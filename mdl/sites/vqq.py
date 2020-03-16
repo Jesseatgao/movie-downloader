@@ -79,40 +79,43 @@ class QQVideoVC(VideoConfig):
                 if json_path_get(data, ['vl', 'vi', 0, 'drm']) == 0:  # DRM-free only, for now
                     for stream in json_path_get(data, ['fl', 'fi'], []):
                         if isinstance(stream, dict) and stream.get('name') == definition:
-                            if stream.get('lmt') == 0:
-                                stream_id = stream.get('id', '')
-                                ext = json_path_get(data, ['vl', 'vi', 0, 'fn'], '').split('.')[-1]
+                            #if stream.get('lmt') == 0:
+                            stream_id = stream.get('id', '')
+                            ext = json_path_get(data, ['vl', 'vi', 0, 'fn'], '').split('.')[-1]
 
-                                for chapter in json_path_get(data, ['vl', 'vi', 0, 'cl', 'ci'], []):
-                                    if isinstance(chapter, dict):
-                                        keyid = chapter.get('keyid', '')
-                                        filename = keyid.replace('.10', '.p', 1) + '.' + ext
-                                        params = {
-                                            'otype': 'json',
-                                            'vid': vid,
-                                            'format': stream_id,
-                                            'filename': filename,
-                                            'platform': 10901,
-                                            'vt': 217,
-                                            'charge': 0,
-                                        }
-                                        r = self._requester.get('https://h5vv.video.qq.com/getkey', params=params)
-                                        if r.status_code == 200:
-                                            try:
-                                                key_data = json.loads(r.text[len('QZOutputJson='):-1])
-                                            except json.JSONDecodeError:
-                                                # logging
-                                                return None, None, []
+                            for chapter in json_path_get(data, ['vl', 'vi', 0, 'cl', 'ci'], []):
+                                if isinstance(chapter, dict):
+                                    keyid = chapter.get('keyid', '')
+                                    keyid_new = keyid.split('.')
+                                    keyid_new[1] = 'p' + str(stream_id % 10000)
+                                    keyid_new = '.'.join(keyid_new)
+                                    filename = keyid_new + '.' + ext
+                                    params = {
+                                        'otype': 'json',
+                                        'vid': vid,
+                                        'format': stream_id,
+                                        'filename': filename,
+                                        'platform': 10901,
+                                        'vt': 217,
+                                        'charge': 0,
+                                    }
+                                    r = self._requester.get('https://h5vv.video.qq.com/getkey', params=params)
+                                    if r.status_code == 200:
+                                        try:
+                                            key_data = json.loads(r.text[len('QZOutputJson='):-1])
+                                        except json.JSONDecodeError:
+                                            # logging
+                                            return None, None, []
 
-                                            if key_data and isinstance(key_data, dict) and key_data.get('key'):
-                                                url_mirrors = '\t'.join(['%s%s?sdtfrom=v1010&vkey=%s' % (url_prefix, filename, key_data['key'])
-                                                                        for url_prefix in url_prefixes])
-                                                if url_mirrors:
-                                                    urls.append(url_mirrors)
+                                        if key_data and isinstance(key_data, dict) and key_data.get('key'):
+                                            url_mirrors = '\t'.join(['%s%s?sdtfrom=v1010&vkey=%s' % (url_prefix, filename, key_data['key'])
+                                                                    for url_prefix in url_prefixes])
+                                            if url_mirrors:
+                                                urls.append(url_mirrors)
 
-                                # check if the URLs for the file parts have all been successfully obtained
-                                if json_path_get(data, ['vl', 'vi', 0, 'cl', 'fc']) == len(urls):
-                                    stream_name = stream['name']
+                            # check if the URLs for the file parts have all been successfully obtained
+                            if json_path_get(data, ['vl', 'vi', 0, 'cl', 'fc']) == len(urls):
+                                stream_name = stream['name']
 
                             break
 
