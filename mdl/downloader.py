@@ -145,7 +145,7 @@ class MDownloader(object):
 
         return "", []
 
-    def join_videos_with_ffmpeg(self, coverdir, episodedir, fnames):
+    def join_videos_with_ffmpeg_mkvmerge(self, coverdir, episodedir, fnames):
         """abs_cover_dir > abs_episode_dir > video files """
 
         if coverdir and episodedir and fnames:
@@ -155,7 +155,7 @@ class MDownloader(object):
             episode_name = os.path.join(coverdir, episode_name)
 
             cp = None
-            if suffix in ['.ts']:  # ['.ts', '.mpg', '.mpeg']
+            if suffix in ['.ts', '.mpg', '.mpeg']:
                 with tempfile.TemporaryFile(mode='w+b', suffix=suffix, dir=coverdir) as tmpf:
                     for fn in fnames:
                         with open(os.path.join(episodedir, fn), 'rb') as f:
@@ -164,17 +164,24 @@ class MDownloader(object):
                     tmpf.seek(0)
 
                     if suffix == '.ts':
-                        episode_name = episode_name.replace('.ts', '.mp4')
+                        episode_name = episode_name.rpartition('.')[0] + '.mp4'
 
                     cmd = ['ffmpeg', '-y', '-i', 'pipe:0', '-safe', '0', '-c', 'copy', '-hide_banner', episode_name]
                     cp = subprocess.run(cmd, input=tmpf.read())
             else:
+                '''
                 flist = ["file '{}'".format(os.path.join(episodedir, fn)) for fn in fnames]
                 flist = '\n'.join(flist)
 
                 cmd = ['ffmpeg', '-y', '-safe', '0', '-protocol_whitelist', 'file,pipe', '-f', 'concat',
                        '-i', 'pipe:0', '-c', 'copy', '-hide_banner', episode_name]
                 cp = subprocess.run(cmd, input=flist.encode('utf-8'))
+                '''
+                flist = ["{}".format(os.path.join(episodedir, fn)) for fn in fnames]
+                episode_name = episode_name.rpartition('.')[0] + '.mkv'
+
+                cmd = ['mkvmerge', '-o', episode_name] + ['['] + flist + [']']
+                cp = subprocess.run(cmd)
 
             if cp and cp.returncode == 0:
                 return True
@@ -183,7 +190,7 @@ class MDownloader(object):
     def join_videos(self, coverdir, episodes):
         for episode_dir, fnames in episodes:
             if len(fnames) > 1:
-                res = self.join_videos_with_ffmpeg(coverdir, episode_dir, fnames)
+                res = self.join_videos_with_ffmpeg_mkvmerge(coverdir, episode_dir, fnames)
                 if res:
                     shutil.rmtree(episode_dir, ignore_errors=True)
                 else:
