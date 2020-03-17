@@ -26,6 +26,13 @@ class QQVideoVC(VideoConfig):
         # default: VideoTypes.TV
     }
 
+    _VQQ_FORMAT_IDS_DEFAULT = {
+        'fhd': 10209,
+        'shd': 10201,
+        'hd': 10212,
+        'sd': 10203
+    }
+
     def __init__(self, requester=None):
         super().__init__(requester)
 
@@ -45,7 +52,7 @@ class QQVideoVC(VideoConfig):
     def get_video_urls(self, vid, definition):
         urls = []
         ext = None
-        stream_name = None
+        format_name = None
 
         params = {
             'isHLS': False,
@@ -77,24 +84,32 @@ class QQVideoVC(VideoConfig):
                             url_prefixes.append(url)
 
                 if json_path_get(data, ['vl', 'vi', 0, 'drm']) == 0:  # DRM-free only, for now
-                    for stream in json_path_get(data, ['fl', 'fi'], []):
-                        if isinstance(stream, dict) and stream.get('name') == definition:
-                            #if stream.get('lmt') == 0:
-                            stream_id = stream.get('id', '')
-                            ext = json_path_get(data, ['vl', 'vi', 0, 'fn'], '').split('.')[-1]
+                    for fmt_info in json_path_get(data, ['fl', 'fi'], []):
+                        if isinstance(fmt_info, dict) and fmt_info.get('name') == definition:
+                            format_id = fmt_info.get('id', self._VQQ_FORMAT_IDS_DEFAULT[definition])
+                            vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
+                            vfn = vfilename.split('.')  # e.g. ['egmovie', 'p201', 'mp4']
+                            if len(vfn) != 3:
+                                break
+                            ext = vfn[-1]  # video extension, e.g. 'mp4'
+                            vfmt = vfn[1]  # e.g. 'p201'
+                            fmt_prefix = vfmt[0]  # e.g. 'p' in 'p201'
+                            vfmt_new = fmt_prefix + str(format_id % 10000)
 
                             for chapter in json_path_get(data, ['vl', 'vi', 0, 'cl', 'ci'], []):
                                 if isinstance(chapter, dict):
                                     keyid = chapter.get('keyid', '')
                                     keyid_new = keyid.split('.')
-                                    keyid_new[1] = 'p' + str(stream_id % 10000)
+                                    if len(keyid_new) != 3:
+                                        break
+                                    keyid_new[1] = vfmt_new
                                     keyid_new = '.'.join(keyid_new)
-                                    filename = keyid_new + '.' + ext
+                                    cfilename = keyid_new + '.' + ext
                                     params = {
                                         'otype': 'json',
                                         'vid': vid,
-                                        'format': stream_id,
-                                        'filename': filename,
+                                        'format': format_id,
+                                        'filename': cfilename,
                                         'platform': 10901,
                                         'vt': 217,
                                         'charge': 0,
@@ -108,18 +123,18 @@ class QQVideoVC(VideoConfig):
                                             return None, None, []
 
                                         if key_data and isinstance(key_data, dict) and key_data.get('key'):
-                                            url_mirrors = '\t'.join(['%s%s?sdtfrom=v1010&vkey=%s' % (url_prefix, filename, key_data['key'])
+                                            url_mirrors = '\t'.join(['%s%s?sdtfrom=v1010&vkey=%s' % (url_prefix, cfilename, key_data['key'])
                                                                     for url_prefix in url_prefixes])
                                             if url_mirrors:
                                                 urls.append(url_mirrors)
 
                             # check if the URLs for the file parts have all been successfully obtained
                             if json_path_get(data, ['vl', 'vi', 0, 'cl', 'fc']) == len(urls):
-                                stream_name = stream['name']
+                                format_name = fmt_info['name']
 
                             break
 
-        return stream_name, ext, urls
+        return format_name, ext, urls
 
     def get_cover_info(self, cover_url):
         """"{
@@ -233,12 +248,12 @@ class QQVideoVC(VideoConfig):
                 vi['defns'] = {}
 
             for definition in VIDEO_DEFINITIONS:
-                stream_name, ext, urls = self.get_video_urls(vi['V'], definition)
-                if stream_name:  # same as definition
-                    if stream_name not in vi['defns'].keys():
-                        vi['defns'][stream_name] = []
+                format_name, ext, urls = self.get_video_urls(vi['V'], definition)
+                if format_name:  # same as definition
+                    if format_name not in vi['defns'].keys():
+                        vi['defns'][format_name] = []
                     fmt = dict(ext=ext, urls=urls)
-                    vi['defns'][stream_name].append(fmt)
+                    vi['defns'][format_name].append(fmt)
 
     def get_video_config_info(self, url):
         config_info = self.get_video_info(url)
