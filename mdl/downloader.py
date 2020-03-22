@@ -2,6 +2,7 @@ import os
 import subprocess
 import tempfile
 import shutil
+import errno
 
 # from requests.exceptions import ConnectionError, Timeout
 # import requests
@@ -132,10 +133,9 @@ class MDownloader(object):
             urllist = '\n'.join(urls)
             mod_dir = os.path.dirname(os.path.abspath(__file__))
             cert_path = os.path.join(mod_dir, '3rd-parties/aria2/ca-bundle.crt')
-            cmd_aria2c = ['aria2c', '-c', '-j5', '-k128K', '-s128', '-x128', '-m1000', '--retry-wait', '5',
-                          '--lowest-speed-limit', '10K', '--no-conf', '-i-', '--console-log-level', 'warn',
-                          '--download-result', 'hide', '--summary-interval', '0', '--ca-certificate',
-                          cert_path]
+            cmd_aria2c = ['aria2c', '-c', '-j5', '-k128K', '-s128', '-x128', '--max-file-not-found=1000', '-m1000',
+                          '--retry-wait=5', '--lowest-speed-limit=10K', '--no-conf', '-i-', '--console-log-level=warn',
+                          '--download-result=hide', '--summary-interval=0', '--ca-certificate', cert_path]
             cp = subprocess.run(cmd_aria2c, input=urllist.encode('utf-8'))
             if not cp.returncode:
                 return cover_dir, episodes
@@ -154,8 +154,11 @@ class MDownloader(object):
             episode_name = os.path.basename(episodedir) + suffix
             episode_name = os.path.join(coverdir, episode_name)
 
-            cp = None
+            proc = None
             if suffix in ['.ts', '.mpg', '.mpeg']:
+                if suffix == '.ts':
+                    episode_name = episode_name.rpartition('.')[0] + '.mp4'
+                '''    
                 with tempfile.TemporaryFile(mode='w+b', suffix=suffix, dir=coverdir) as tmpf:
                     for fn in fnames:
                         with open(os.path.join(episodedir, fn), 'rb') as f:
@@ -163,11 +166,26 @@ class MDownloader(object):
                     tmpf.flush()
                     tmpf.seek(0)
 
-                    if suffix == '.ts':
-                        episode_name = episode_name.rpartition('.')[0] + '.mp4'
-
                     cmd = ['ffmpeg', '-y', '-i', 'pipe:0', '-safe', '0', '-c', 'copy', '-hide_banner', episode_name]
-                    cp = subprocess.run(cmd, input=tmpf.read())
+                    proc = subprocess.run(cmd, input=tmpf.read())
+                '''
+                cmd = ['ffmpeg', '-y', '-i', 'pipe:0', '-safe', '0', '-c', 'copy', '-hide_banner', episode_name]
+                try:
+                    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+                    for fn in fnames:
+                        with open(os.path.join(episodedir, fn), 'rb') as f:
+                            try:
+                                proc.stdin.write(f.read())
+                            except IOError as e:
+                                if e.errno == errno.EPIPE or e.errno == errno.EINVAL:
+                                    break
+                                else:
+                                    raise
+
+                    proc.stdin.close()
+                    proc.wait()
+                except OSError as e:
+                    print("\nOS error number {}: '{}'".format(e.errno, e.strerror))
             else:
                 '''
                 flist = ["file '{}'".format(os.path.join(episodedir, fn)) for fn in fnames]
@@ -181,9 +199,12 @@ class MDownloader(object):
                 episode_name = episode_name.rpartition('.')[0] + '.mkv'
 
                 cmd = ['mkvmerge', '-o', episode_name] + ['['] + flist + [']']
-                cp = subprocess.run(cmd)
+                try:
+                    proc = subprocess.run(cmd)
+                except OSError as e:
+                    print("\nOS error number {}: '{}'".format(e.errno, e.strerror))
 
-            if cp and cp.returncode == 0:
+            if proc and proc.returncode == 0:
                 return True
 
 

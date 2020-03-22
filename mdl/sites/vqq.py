@@ -15,7 +15,9 @@ class QQVideoVC(VideoConfig):
         {'pat': r'^https?://v\.qq\.com/detail/([a-zA-Z0-9])/((?:\1)\w+)\.html',
          'eg': 'https://v.qq.com/detail/n/nhtfh14i9y1egge.html'},  # 'video_detail'
         {'pat': r'^https?://v\.qq\.com/x/cover/(\w+)/(\w+)\.html',
-         'eg': 'https://v.qq.com/x/cover/nhtfh14i9y1egge/d00249ld45q.html'} # 'video_episode'
+         'eg': 'https://v.qq.com/x/cover/nhtfh14i9y1egge/d00249ld45q.html'}, # 'video_episode'
+        {'pat': r'^https?://v\.qq\.com/x/page/(\w+)\.html',
+         'eg': 'https://v.qq.com/x/page/d00249ld45q.html'} # 'video_page'
     ]
     SOURCE_NAME = "Tencent"
     _VIP_TOKEN = {}
@@ -191,11 +193,16 @@ class QQVideoVC(VideoConfig):
                     cover_url = self._VIDEO_COVER_PREFIX + cover_id + '.html'
                     cover_info = self.get_cover_info(cover_url)
                     break
-                else:  # typ == 3  # 'video_episode'
+                elif typ == 3:  # 'video_episode'
                     cover_id = match.group(1)
                     video_id = match.group(2)
                     cover_url = self._VIDEO_COVER_PREFIX + cover_id + '.html'
                     cover_info = self.get_cover_info(cover_url)
+                    cover_info['normal_ids'] = [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id]
+                    break
+                else:  # typ == 4 'video_page'
+                    video_id = match.group(1)
+                    cover_info = self.get_cover_info(videourl)
                     cover_info['normal_ids'] = [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id]
                     break
 
