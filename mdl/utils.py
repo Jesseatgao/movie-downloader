@@ -9,8 +9,8 @@ from requests.packages.urllib3.util.retry import Retry
 
 
 def requests_retry_session(
-        retries=5,
-        backoff_factor=0.3,
+        retries=7,
+        backoff_factor=0.2,
         status_forcelist=(500, 502, 504),
         session=None,
 ):
@@ -32,7 +32,7 @@ def requests_retry_session(
     return session
 
 
-def retry(exceptions, tries=7, backoff_factor=0.1, logger=print):
+def retry(exceptions, tries=10, backoff_factor=0.1, logger=print):
     """
     Retry calling the decorated function using an exponential backoff.
     Ref: http://www.saltycrane.com/blog/2009/11/trying-out-retry-decorator-python/
@@ -46,6 +46,7 @@ def retry(exceptions, tries=7, backoff_factor=0.1, logger=print):
         logger: Logger to use. None to disable logging.
     """
     def deco_retry(f):
+        NTRIES = 7
 
         @wraps(f)
         def f_retry(*args, **kwargs):
@@ -55,7 +56,7 @@ def retry(exceptions, tries=7, backoff_factor=0.1, logger=print):
                     return f(*args, **kwargs)
                 except exceptions as e:
                     ntries += 1
-                    steps = random.randrange(0, 2**ntries)
+                    steps = random.randrange(0, 2**(ntries % NTRIES))
                     backoff = steps * backoff_factor
 
                     if logger:
@@ -106,3 +107,18 @@ def json_path_get(nested_data, key_path, default=None):
 
     val = reduce(_get_item, key_path, nested_data)
     return val if val is not None else default
+
+
+def build_cookiejar_from_kvp(key_values):
+    """
+    build a CookieJar from key-value pairs of the form "cookie_key=cookie_value cookie_key2=cookie_value2"
+
+    """
+    if key_values:
+        cookiejar = requests.cookies.RequestsCookieJar()
+        kvps = key_values.split()
+        for kvp in kvps:
+            key, value = kvp.split("=")
+            cookiejar.set(key, value)
+
+        return cookiejar

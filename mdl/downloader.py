@@ -1,6 +1,6 @@
 import os
 import subprocess
-import tempfile
+# import tempfile
 import shutil
 import errno
 
@@ -15,7 +15,7 @@ from .utils import retry
 
 
 class MDownloader(object):
-    def __init__(self, args=None):
+    def __init__(self, args=None, confs=None):
         self._requester = requests_retry_session()
         self._vcs = get_all_sites_vcs()
         # self._args = args  # taken from sys.argv
@@ -23,6 +23,9 @@ class MDownloader(object):
             'save_dir': '.',
             'definition': None
         }
+
+        opts.update(confs)
+
         proxies = {}
         if args:
             if args.dir:
@@ -31,6 +34,8 @@ class MDownloader(object):
                 opts['definition'] = args.definition
             if args.proxy:
                 proxies = dict(http=args.proxy, https=args.proxy)
+            if args.QQVideo_no_logo:
+                opts['QQVideo']['no_logo'] = args.QQVideo_no_logo
 
         self._opts = opts
         self._requester.proxies = proxies
@@ -43,8 +48,8 @@ class MDownloader(object):
         self._requester.headers = headers
 
     @retry(Exception)
-    def get(self, url, params=None, timeout=3.5, **kwargs):
-        return self._requester.get(url, params=params, timeout=timeout, **kwargs)
+    def get(self, url, params=None, timeout=3.5, verify=True, **kwargs):
+        return self._requester.get(url, params=params, timeout=timeout, verify=verify, **kwargs)
 
     def download(self, urls):
         for url in urls:
@@ -133,9 +138,13 @@ class MDownloader(object):
             urllist = '\n'.join(urls)
             mod_dir = os.path.dirname(os.path.abspath(__file__))
             cert_path = os.path.join(mod_dir, '3rd-parties/aria2/ca-bundle.crt')
-            cmd_aria2c = ['aria2c', '-c', '-j5', '-k128K', '-s128', '-x128', '--max-file-not-found=1000', '-m1000',
+            # user_agent_qq = 'MQQBrowser/26 MicroMessenger/5.4.1 Mozilla/5.0 (Linux; U; Android 2.3.7; zh-cn; MB200 Build/GRJ22; CyanogenMod-7) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1'
+            user_agent = 'Mozilla/5.0 (Linux; U; Android 2.3.7; zh-cn) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1'
+            cmd_aria2c = ['aria2c', '-c', '-j5', '-k128K', '-s128', '-x128', '--max-file-not-found=1000000', '-m0',
                           '--retry-wait=5', '--lowest-speed-limit=10K', '--no-conf', '-i-', '--console-log-level=warn',
-                          '--download-result=hide', '--summary-interval=0', '--ca-certificate', cert_path]
+                          '--download-result=default', '--summary-interval=60', '--ca-certificate', cert_path,
+                          '--retry-on-400=true', '--retry-on-403=true','--retry-on-406=true', '--retry-on-unknown=true',
+                          '-U', user_agent]
             cp = subprocess.run(cmd_aria2c, input=urllist.encode('utf-8'))
             if not cp.returncode:
                 return cover_dir, episodes

@@ -1,10 +1,16 @@
 import json
 import re
+import random
 
 from ..commons import VIDEO_DEFINITIONS
 from ..commons import VideoTypeCodes as VIDEO_TYPES
 from ..videoconfig import VideoConfig
-from ..utils import json_path_get
+from ..utils import json_path_get, build_cookiejar_from_kvp
+
+
+class QQVideoPlatforms:
+    P10901 = '10901'
+    P10801 = '10801'
 
 
 class QQVideoVC(VideoConfig):
@@ -20,7 +26,7 @@ class QQVideoVC(VideoConfig):
          'eg': 'https://v.qq.com/x/page/d00249ld45q.html'} # 'video_page'
     ]
     SOURCE_NAME = "Tencent"
-    _VIP_TOKEN = {}
+    # _VIP_TOKEN = {}
 
     _VQQ_TYPE_CODES = {
         1: VIDEO_TYPES.MOVIE,
@@ -29,13 +35,21 @@ class QQVideoVC(VideoConfig):
     }
 
     _VQQ_FORMAT_IDS_DEFAULT = {
-        'fhd': 10209,
-        'shd': 10201,
-        'hd': 10212,
-        'sd': 10203
+        QQVideoPlatforms.P10901: {
+            'fhd': 10209,
+            'shd': 10201,
+            'hd': 10212,
+            'sd': 10203
+        },
+        QQVideoPlatforms.P10801: {
+            'fhd': 321004,
+            'shd': 321003,
+            'hd': 321002,
+            'sd': 321001
+        }
     }
 
-    def __init__(self, requester=None):
+    def __init__(self, requester):
         super().__init__(requester)
 
         self._COVER_PAT_RE = re.compile(r"var\s+COVER_INFO\s*=\s*(.+?)var\s+COLUMN_INFO",
@@ -47,11 +61,87 @@ class QQVideoVC(VideoConfig):
             if pat.get('cpat') is None:
                 pat['cpat'] = re.compile(pat['pat'], re.IGNORECASE)
 
+        # get user tokens/cookies from configuration file
+        self._regular_token = build_cookiejar_from_kvp(self._requester._opts['QQVideo']['qq_regular_user_token'])
+        self._vip_token = build_cookiejar_from_kvp(self._requester._opts['QQVideo']['qq_vip_user_token'])
+        self.user_token = self._vip_token if self._vip_token else self._regular_token
+
+        self.no_logo = True if self._requester._opts['QQVideo']['no_logo'].lower() == 'true' else False
+
     # @classmethod
     # def is_url_valid(cls, url):
     #     return super().is_url_valid(url)
 
-    def get_video_urls(self, vid, definition):
+    def get_video_urls_p10801(self, vid, definition):
+        urls = []
+        ext = None
+        format_name = None
+
+        params = {
+            'vid': vid,
+            'defn': definition,
+            'otype': 'json',
+            'platform': QQVideoPlatforms.P10801,
+            'fhdswitch': 1,
+            'show1080p': 1,
+            'dtype': 3
+        }
+        r = self._requester.get('https://vv.video.qq.com/getinfo', params=params, cookies=self.user_token)
+        if r.status_code == 200:
+            try:
+                data = json.loads(r.text[len('QZOutputJson='):-1])
+            except json.JSONDecodeError:
+                # logging
+                return None, None, []
+
+            if data:
+                url_prefixes = []
+                for url_dic in json_path_get(data, ['vl', 'vi', 0, 'ul', 'ui'], []):
+                    if isinstance(url_dic, dict):
+                        url = url_dic.get('url')
+                        if url:
+                            url_prefixes.append(url)
+
+                url_prefix = url_prefixes[random.randrange(len(url_prefixes))]
+
+                if json_path_get(data, ['vl', 'vi', 0, 'drm']) == 0:  # DRM-free only, for now
+                    for fmt_info in json_path_get(data, ['fl', 'fi'], []):
+                        if isinstance(fmt_info, dict) and fmt_info.get('name') == definition:
+                            format_id = fmt_info.get('id',
+                                                     self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10801][definition])
+                            vfilename = json_path_get(data, ['vl', 'vi', 0, 'ul', 'ui', 0, 'hls', 'pt'], '')
+                            vfn = vfilename.split('.')  # e.g. ['egmovie', '321003', 'ts', 'm3u8?ver=4']
+                            if len(vfn) != 4:
+                                break
+                            ext = vfn[2]
+                            vfn[1] = str(format_id)
+                            vfilename = '.'.join(vfn)
+                            vm3u8_url = url_prefix + vfilename
+
+                            r = self._requester.get(vm3u8_url, cookies=self.user_token)
+                            if r.status_code == 200:
+                                last_piece_num = ''
+                                for line in r.text.splitlines():
+                                    if not line.startswith('#EXT'):
+                                        ln = line.split('.')
+                                        if ln[2] == last_piece_num:
+                                            continue
+                                        last_piece_num = ln[2]
+
+                                        ln = line.split('?')
+                                        url_mirrors = '\t'.join(
+                                            ['%s%s' % (prefix, ln[0]) for prefix in url_prefixes])
+                                        # url_mirrors = '%s%s' % (url_prefix, ln[0])
+                                        if url_mirrors:
+                                            urls.append(url_mirrors)
+
+                                format_name = fmt_info['name']
+
+                            break
+
+        return format_name, ext, urls
+
+    def get_video_urls_p10901(self, vid, definition):
         urls = []
         ext = None
         format_name = None
@@ -63,13 +153,13 @@ class QQVideoVC(VideoConfig):
             'defn': definition,
             'defnpayver': 1,
             'otype': 'json',
-            'platform': 10901,
+            'platform': QQVideoPlatforms.P10901,
             'sdtfrom': 'v1010',
             'host': 'v.qq.com',
             'fhdswitch': 0,
             'show1080p': 1,
         }
-        r = self._requester.get('https://h5vv.video.qq.com/getinfo', params=params)
+        r = self._requester.get('https://h5vv.video.qq.com/getinfo', params=params, cookies=self.user_token)
         if r.status_code == 200:
             try:
                 data = json.loads(r.text[len('QZOutputJson='):-1])
@@ -88,7 +178,7 @@ class QQVideoVC(VideoConfig):
                 if json_path_get(data, ['vl', 'vi', 0, 'drm']) == 0:  # DRM-free only, for now
                     for fmt_info in json_path_get(data, ['fl', 'fi'], []):
                         if isinstance(fmt_info, dict) and fmt_info.get('name') == definition:
-                            format_id = fmt_info.get('id', self._VQQ_FORMAT_IDS_DEFAULT[definition])
+                            format_id = fmt_info.get('id', self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10901][definition])
                             vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
                             vfn = vfilename.split('.')  # e.g. ['egmovie', 'p201', 'mp4']
                             if len(vfn) != 3:
@@ -112,11 +202,12 @@ class QQVideoVC(VideoConfig):
                                         'vid': vid,
                                         'format': format_id,
                                         'filename': cfilename,
-                                        'platform': 10901,
+                                        'platform': QQVideoPlatforms.P10901,
                                         'vt': 217,
                                         'charge': 0,
                                     }
-                                    r = self._requester.get('https://h5vv.video.qq.com/getkey', params=params)
+                                    r = self._requester.get('https://h5vv.video.qq.com/getkey', params=params,
+                                                            cookies=self.user_token)
                                     if r.status_code == 200:
                                         try:
                                             key_data = json.loads(r.text[len('QZOutputJson='):-1])
@@ -137,6 +228,12 @@ class QQVideoVC(VideoConfig):
                             break
 
         return format_name, ext, urls
+
+    def get_video_urls(self, vid, definition):
+        if self.no_logo:
+            return self.get_video_urls_p10801(vid, definition)
+        else:
+            return self.get_video_urls_p10901(vid, definition)
 
     def get_cover_info(self, cover_url):
         """"{
