@@ -2,10 +2,13 @@ import time
 import random
 from functools import wraps, reduce
 import operator
+import logging
+from sys import stdout
 
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from requests import Session
 
 
 def requests_retry_session(
@@ -77,6 +80,38 @@ def retry(exceptions, tries=10, backoff_factor=0.1, logger=print):
     return deco_retry
 
 
+class RequestsWrapper(object):
+    def __init__(self):
+        self._requester = requests_retry_session()
+
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:69.0) Gecko/20100101 Firefox/69.0',
+            #'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+            'Accept-Encoding': 'gzip, identity, deflate, br, *'
+        }
+        self._requester.headers = headers
+
+    @retry(Exception)
+    def get(self, url, params=None, timeout=3.5, verify=True, **kwargs):
+        return self._requester.get(url, params=params, timeout=timeout, verify=verify, **kwargs)
+
+
+class RequestsSessionWrapper(Session):
+    def __init__(self):
+        super().__init__()
+
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:69.0) Gecko/20100101 Firefox/69.0',
+            # 'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+            'Accept-Encoding': 'gzip, identity, deflate, br, *'
+        }
+        self.headers = headers
+
+    @retry(Exception)
+    def get(self, url, params=None, timeout=3.5, verify=True, **kwargs):
+        return super().get(url, params=params, timeout=timeout, verify=verify, **kwargs)
+
+
 def json_path_get(nested_data, key_path, default=None):
     """Access the nested data via a key sequence
 
@@ -122,3 +157,36 @@ def build_cookiejar_from_kvp(key_values):
             cookiejar.set(key, value)
 
         return cookiejar
+
+
+def build_logger(logger_name, log_file_name, logger_level=logging.DEBUG, console_level=logging.INFO, file_level=logging.DEBUG):
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logger_level)
+
+    ch = logging.StreamHandler(stream=stdout)
+    ch.setLevel(console_level)
+    cf = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(cf)
+
+    fh = logging.FileHandler(log_file_name)
+    fh.setLevel(file_level)
+    ff = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(ff)
+
+    logger.addHandler(ch)
+    logger.addHandler(fh)
+
+    return logger
+
+
+def change_logging_level(logger_name, logger_level=None, console_level=None, file_level=None):
+    logger = logging.getLogger(logger_name)
+
+    if logger_level is not None:
+        logger.setLevel(logger_level)
+
+    for handler in logger.handlers:
+        if isinstance(handler, logging.StreamHandler) and console_level is not None:
+            handler.setLevel(console_level)
+        elif isinstance(handler, logging.FileHandler) and file_level is not None:
+            handler.setLevel(file_level)

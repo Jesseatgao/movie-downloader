@@ -26,6 +26,7 @@ class QQVideoVC(VideoConfig):
          'eg': 'https://v.qq.com/x/page/d00249ld45q.html'} # 'video_page'
     ]
     SOURCE_NAME = "Tencent"
+    VC_NAME = "QQVideo"
     # _VIP_TOKEN = {}
 
     _VQQ_TYPE_CODES = {
@@ -49,8 +50,8 @@ class QQVideoVC(VideoConfig):
         }
     }
 
-    def __init__(self, requester):
-        super().__init__(requester)
+    def __init__(self, requester, args, confs):
+        super().__init__(requester, args, confs)
 
         self._COVER_PAT_RE = re.compile(r"var\s+COVER_INFO\s*=\s*(.+?)var\s+COLUMN_INFO",
                                         re.MULTILINE | re.DOTALL | re.IGNORECASE)
@@ -62,11 +63,14 @@ class QQVideoVC(VideoConfig):
                 pat['cpat'] = re.compile(pat['pat'], re.IGNORECASE)
 
         # get user tokens/cookies from configuration file
-        self._regular_token = build_cookiejar_from_kvp(self._requester._opts['QQVideo']['qq_regular_user_token'])
-        self._vip_token = build_cookiejar_from_kvp(self._requester._opts['QQVideo']['qq_vip_user_token'])
+        self._regular_token = build_cookiejar_from_kvp(confs[self.VC_NAME]['qq_regular_user_token'])
+        self._vip_token = build_cookiejar_from_kvp(confs[self.VC_NAME]['qq_vip_user_token'])
         self.user_token = self._vip_token if self._vip_token else self._regular_token
 
-        self.no_logo = True if self._requester._opts['QQVideo']['no_logo'].lower() == 'true' else False
+        # parse cmdline args and config file for "QQVideo" site
+        no_logo_default = 'True'
+        no_logo = args.QQVideo_no_logo or confs[self.VC_NAME]['no_logo'] or no_logo_default
+        self.no_logo = True if no_logo.lower() == 'true' else False
 
     # @classmethod
     # def is_url_valid(cls, url):
@@ -102,40 +106,35 @@ class QQVideoVC(VideoConfig):
                         if url:
                             url_prefixes.append(url)
 
-                url_prefix = url_prefixes[random.randrange(len(url_prefixes))]
+                # random.seed()
+                # url_prefix = url_prefixes[random.randrange(len(url_prefixes))]
+                chosen_url_prefixes = [prefix for prefix in url_prefixes if 'defaultts.tc.qq.com' in prefix]
+                if not chosen_url_prefixes:
+                    chosen_url_prefixes = url_prefixes
 
                 if json_path_get(data, ['vl', 'vi', 0, 'drm']) == 0:  # DRM-free only, for now
                     for fmt_info in json_path_get(data, ['fl', 'fi'], []):
                         if isinstance(fmt_info, dict) and fmt_info.get('name') == definition:
                             format_id = fmt_info.get('id',
                                                      self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10801][definition])
-                            vfilename = json_path_get(data, ['vl', 'vi', 0, 'ul', 'ui', 0, 'hls', 'pt'], '')
-                            vfn = vfilename.split('.')  # e.g. ['egmovie', '321003', 'ts', 'm3u8?ver=4']
-                            if len(vfn) != 4:
+                            vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
+                            vfn = vfilename.split('.')  # e.g. ['egmovie', '321003', 'ts']
+                            if len(vfn) != 3:
                                 break
                             ext = vfn[2]
                             vfn[1] = str(format_id)
-                            vfilename = '.'.join(vfn)
-                            vm3u8_url = url_prefix + vfilename
 
-                            r = self._requester.get(vm3u8_url, cookies=self.user_token)
-                            if r.status_code == 200:
-                                last_piece_num = ''
-                                for line in r.text.splitlines():
-                                    if not line.startswith('#EXT'):
-                                        ln = line.split('.')
-                                        if ln[2] == last_piece_num:
-                                            continue
-                                        last_piece_num = ln[2]
+                            fc = json_path_get(data, ['vl', 'vi', 0, 'fc'])
+                            for idx in range(1, fc + 1):
+                                vfilename = '.'.join([vfn[0], vfn[1], str(idx), vfn[2]])
 
-                                        ln = line.split('?')
-                                        url_mirrors = '\t'.join(
-                                            ['%s%s' % (prefix, ln[0]) for prefix in url_prefixes])
-                                        # url_mirrors = '%s%s' % (url_prefix, ln[0])
-                                        if url_mirrors:
-                                            urls.append(url_mirrors)
+                                url_mirrors = '\t'.join(
+                                    ['%s%s' % (prefix, vfilename) for prefix in chosen_url_prefixes])
+                                # url_mirrors = '%s%s' % (url_prefixes[-1], vfilename)
+                                if url_mirrors:
+                                    urls.append(url_mirrors)
 
-                                format_name = fmt_info['name']
+                            format_name = fmt_info['name']
 
                             break
 

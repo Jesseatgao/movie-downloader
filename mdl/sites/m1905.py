@@ -8,6 +8,7 @@ import hashlib
 from ..videoconfig import VideoConfig
 from ..commons import VideoTypeCodes
 
+
 class M1905VC(VideoConfig):
     _VIDEO_URL_PATS = [
         {'pat': r'^https?://www\.1905\.com/vod/play/(\d+)\.shtml',
@@ -18,10 +19,11 @@ class M1905VC(VideoConfig):
          'eg': 'https://vip.1905.com/play/535547.shtml'}  # 'VIP: video_episode_hd'
     ]
     SOURCE_NAME = "m1905"
-    _VIP_TOKEN = {}
+    VC_NAME = "m1905"
+    #_VIP_TOKEN = {}
 
-    def __init__(self, requester=None):
-        super().__init__(requester)
+    def __init__(self, requester, args, confs):
+        super().__init__(requester, args, confs)
 
         self._SD_CONF_PAT_RE = re.compile(
             r"VODCONFIG.*vid\s*:\s*\"(\d+)\".*title\s*:\s*\"(.*?)\".*mdbfilmid\s*:\s*\"(\d+)\".*apikey\s*:\s*\"(.*?)\"",

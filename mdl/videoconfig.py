@@ -1,13 +1,21 @@
 import re
-
+import logging
 
 class VideoConfig(object):
     # [{'pat': r'^https?://v\.qq\.com/x/cover/(\w+)\.html', 'eg': 'https://v.qq.com/x/cover/nhtfh14i9y1egge.html'}]
     _VIDEO_URL_PATS = []
     _requester = None  # Web content downloader, e.g. requests
+    VC_NAME = 'vc'
 
-    def __init__(self, requester=None):
+    def __init__(self, requester, args, confs):
         self._requester = requester
+        logger_name = '.'.join(['MDL', self.VC_NAME])  # 'MDL.vc'
+        self._logger = logging.getLogger(logger_name)
+
+        # set proxy
+        proxies = dict(http=confs[self.VC_NAME]['proxy'],
+                       https=confs[self.VC_NAME]['proxy'])
+        self._requester.proxies = proxies
 
     @classmethod
     def is_url_valid(cls, url):
