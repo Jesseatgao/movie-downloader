@@ -1,6 +1,7 @@
 import json
 import re
 import random
+import string
 
 from ..commons import VIDEO_DEFINITIONS
 from ..commons import VideoTypeCodes as VIDEO_TYPES
@@ -31,7 +32,8 @@ class QQVideoVC(VideoConfig):
 
     _VQQ_TYPE_CODES = {
         1: VIDEO_TYPES.MOVIE,
-        2: VIDEO_TYPES.TV
+        2: VIDEO_TYPES.TV,
+        3: VIDEO_TYPES.TV
         # default: VideoTypes.TV
     }
 
@@ -53,8 +55,10 @@ class QQVideoVC(VideoConfig):
     def __init__(self, requester, args, confs):
         super().__init__(requester, args, confs)
 
-        self._COVER_PAT_RE = re.compile(r"var\s+COVER_INFO\s*=\s*(.+?)var\s+COLUMN_INFO",
+        self._COVER_PAT_RE = re.compile(r"var\s+COVER_INFO\s*=\s*(.+?);?var\s+COLUMN_INFO",
                                         re.MULTILINE | re.DOTALL | re.IGNORECASE)
+        self._VIDEO_INFO_RE = re.compile(r"var\s+VIDEO_INFO\s*=\s*(.+?);?</script>",
+                                         re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._VIDEO_COVER_PREFIX = 'https://v.qq.com/x/cover/'
 
         # make sure _VIDEO_URL_PATS has a compiled version, which should have been done in @classmethod is_url_valid
@@ -106,35 +110,43 @@ class QQVideoVC(VideoConfig):
                         if url:
                             url_prefixes.append(url)
 
-                # random.seed()
-                # url_prefix = url_prefixes[random.randrange(len(url_prefixes))]
-                chosen_url_prefixes = [prefix for prefix in url_prefixes if 'defaultts.tc.qq.com' in prefix]
+                default_urls = ['defaultts.tc.qq.com', '.hls.tc.qq.com']
+                chosen_url_prefixes = [prefix for prefix in url_prefixes if any(url in prefix for url in default_urls)]
                 if not chosen_url_prefixes:
                     chosen_url_prefixes = url_prefixes
 
+                # chosen_url_prefixes = url_prefixes  # supposed to run faster
+
                 if json_path_get(data, ['vl', 'vi', 0, 'drm']) == 0:  # DRM-free only, for now
                     for fmt_info in json_path_get(data, ['fl', 'fi'], []):
-                        if isinstance(fmt_info, dict) and fmt_info.get('name') == definition:
-                            format_id = fmt_info.get('id',
-                                                     self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10801][definition])
+                        if isinstance(fmt_info, dict) and fmt_info.get('resolution') == VIDEO_DEFINITIONS[definition]:
+                            # format_id = fmt_info.get('id',
+                            #                          self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10801][definition])
                             vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
-                            vfn = vfilename.split('.')  # e.g. ['egmovie', '321003', 'ts']
-                            if len(vfn) != 3:
-                                break
-                            ext = vfn[2]
-                            vfn[1] = str(format_id)
+                            vfn = vfilename.rpartition('.')  # e.g. ['egmovie.321003', '.', 'ts']
 
+                            ext = vfn[-1]  # e.g. 'ts' 'mp4'
                             fc = json_path_get(data, ['vl', 'vi', 0, 'fc'])
-                            for idx in range(1, fc + 1):
-                                vfilename = '.'.join([vfn[0], vfn[1], str(idx), vfn[2]])
+                            start = 0 if fc == 0 else 1  # start counting number of the video clip file indexes
 
-                                url_mirrors = '\t'.join(
-                                    ['%s%s' % (prefix, vfilename) for prefix in chosen_url_prefixes])
-                                # url_mirrors = '%s%s' % (url_prefixes[-1], vfilename)
-                                if url_mirrors:
+                            if ext == 'ts':
+                                for idx in range(start, fc + 1):
+                                    vfilename_new = '.'.join([vfn[0], str(idx), 'ts'])
+                                    url_mirrors = '\t'.join(
+                                        ['%s%s' % (prefix, vfilename_new) for prefix in chosen_url_prefixes])
+                                    urls.append(url_mirrors)
+                            else:  # 'mp4'
+                                ext = 'ts'
+                                vfilename2 = '_'.join(vfilename.split('.'))
+
+                                for idx in range(start, fc + 1):
+                                    vfilename_new = '.'.join([vfilename2, str(idx) + '.0', 'ts'])
+                                    url_mirrors = '\t'.join(
+                                        ['%s%s/%s' % (prefix, vfilename, vfilename_new) for prefix in chosen_url_prefixes])
                                     urls.append(url_mirrors)
 
-                            format_name = fmt_info['name']
+                            #format_name = fmt_info['name']
+                            format_name = definition
 
                             break
 
@@ -234,6 +246,46 @@ class QQVideoVC(VideoConfig):
         else:
             return self.get_video_urls_p10901(vid, definition)
 
+    def _gen_default_cover_id(self):
+        """'coverid000000do'"""
+        random.seed()
+        word_string = string.ascii_lowercase + string.digits
+        cover_id = [random.choice(word_string) for idx in range(8)]
+        cover_id = ''.join(cover_id)
+
+        return 'random_' + cover_id
+
+    def _extract_video_cover_info(self, regex, text):
+        cover_match = regex.search(text)
+        if cover_match:
+            info = {}
+            cover_group = cover_match.group(1).strip()
+            try:
+                cover_info = json.loads(cover_group)
+            except json.JSONDecodeError:
+                return None, None
+            if cover_info and isinstance(cover_info, dict):
+                info['title'] = cover_info.get('title', '')
+                info['year'] = cover_info.get('year', '1900')
+                info['cover_id'] = cover_info.get('cover_id', self._gen_default_cover_id())
+
+                video_type = cover_info.get('typeid', 0)
+                if video_type == 0:
+                    video_type = cover_info.get('video_type', 0)
+                info['type'] = self._VQQ_TYPE_CODES.get(video_type, VIDEO_TYPES.MOVIE)
+
+                video_id = cover_info.get('vid')
+                if video_id is None:
+                    normal_ids = cover_info.get('nomal_ids')
+
+                    for d in normal_ids:
+                        del d['F']
+                else:
+                    normal_ids = [{"V": video_id, "E": 1}]
+                info['normal_ids'] = normal_ids
+
+                return info, cover_match.end
+
     def get_cover_info(self, cover_url):
         """"{
         "title":"" ,
@@ -254,24 +306,12 @@ class QQVideoVC(VideoConfig):
         r = self._requester.get(cover_url)
         if r.status_code == 200:
             r.encoding = 'utf-8'
-            cover_match = self._COVER_PAT_RE.search(r.text)
-            if cover_match:
-                info = {}
-                cover_group = cover_match.group(1).strip()
-                try:
-                    cover_info = json.loads(cover_group)
-                except json.JSONDecodeError:
-                    return None
-                if cover_info and isinstance(cover_info, dict):
-                    #video_ids = cover_info.get('video_ids') #cover_info['video_ids']
-                    info['title'] = cover_info.get('title')
-                    info['year'] = cover_info.get('year')
-                    info['type'] = self._VQQ_TYPE_CODES.get(cover_info.get('typeid'), VIDEO_TYPES.TV)
-                    info['cover_id'] = cover_info.get('cover_id')
-                    normal_ids = cover_info.get('nomal_ids')
-                    for d in normal_ids:
-                        del d['F']
-                    info['normal_ids'] = normal_ids
+            info, pos_end = self._extract_video_cover_info(self._COVER_PAT_RE, r.text)
+            if info:
+                if info['normal_ids'] is None:
+                    info, _ = self._extract_video_cover_info(self._VIDEO_INFO_RE, r.text[pos_end:])
+            else:
+                info, _ = self._extract_video_cover_info(self._VIDEO_INFO_RE, r.text)
 
         return info
 

@@ -83,8 +83,7 @@ def parse_3rd_party_progs(args, confs):
             if which(exe, path=path) is None:
                 raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), exe)
     except Exception as e:
-        # logging
-        print(str(e))
+        LOGGER.error(str(e))
         sys.exit(-1)
 
     # update config info
@@ -110,6 +109,10 @@ def parse_dlops_default(args, confs):
         if site not in ('misc', 'progs'):
             save_dir = args.dir or confs[site]['dir'] or save_dir_default
             confs[site]['dir'] = save_dir
+            # Validate the file save directory
+            if not (os.path.exists(save_dir) and os.path.isdir(save_dir)):
+                LOGGER.error('"{}" is not a valid path!'.format(save_dir))
+                sys.exit(-1)
 
             definition = args.definition or confs[site]['definition'] or definition_default
             confs[site]['definition'] = definition
@@ -136,9 +139,7 @@ def main():
         sys.exit(0)
     '''
 
-    if not (os.path.exists(args.dir) and os.path.isdir(args.dir)):
-        print('"{}" is not a valid path!'.format(args.dir))
-        sys.exit(-1)
+
 
 
 

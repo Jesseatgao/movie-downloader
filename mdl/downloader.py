@@ -1,8 +1,10 @@
 import os
 import subprocess
-# import tempfile
+import tempfile
 import shutil
 import errno
+import logging
+from time import sleep
 
 # from requests.exceptions import ConnectionError, Timeout
 # import requests
@@ -12,12 +14,16 @@ from .commons import VideoTypeCodes as VIDEO_TYPES
 from .sites import get_all_sites_vcs
 # from .utils import RequestsWrapper
 from .utils import RequestsSessionWrapper
+from .utils import logging_with_pipe
 
 class MDownloader(object):
     def __init__(self, args=None, confs=None):
         self._vcs = get_all_sites_vcs()
         self.args = args
         self.confs = confs
+
+        logger_name = '.'.join(['MDL', 'MDownloader'])  # 'MDL.MDownloader'
+        self._logger = logging.getLogger(logger_name)
 
     def download(self, urls):
         for url in urls:
@@ -47,7 +53,7 @@ class MDownloader(object):
             return config_info
         else:
             # check site domain name against URL
-            print("Video URL {!r} is invalid".format(url))  # logging
+            self._logger.error("Video URL {!r} is invalid".format(url))
             return None
 
     def dwnld_videos_with_aria2(self, configinfo, savedir='.', defn=None):
@@ -70,7 +76,7 @@ class MDownloader(object):
 
         video_list = configinfo.get('normal_ids', [])
         if video_list:
-            cover_name = '.'.join([configinfo.get('title', configinfo['source_name'] + '_' + configinfo.get('cover_id', '')),
+            cover_name = '.'.join([configinfo.get('title') if configinfo.get('title') else configinfo['source_name'] + '_' + configinfo.get('cover_id', ''),
                                    configinfo.get('year', '1900')])
             cover_default_dir = '.'.join([cover_name, configinfo.get('type', VIDEO_TYPES.MOVIE).value])
             cover_dir = os.path.abspath(os.path.join(savedir, cover_default_dir))
@@ -119,14 +125,22 @@ class MDownloader(object):
                           '--download-result=hide', '--summary-interval=0', '--ca-certificate', cert_path,
                           '--retry-on-400=true', '--retry-on-403=true','--retry-on-406=true', '--retry-on-unknown=true',
                           '-U', user_agent, '--all-proxy', proxy]
-            cp = subprocess.run(cmd_aria2c, input=urllist.encode('utf-8'))
-            if not cp.returncode:
+            try:
+                with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
+                    with subprocess.Popen(cmd_aria2c, bufsize=1, text=True, encoding='utf-8',
+                                          stdin=subprocess.PIPE, stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
+                        proc.stdin.write(urllist)
+                        proc.stdin.close()
+            except OSError as e:
+                self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
+
+            if not proc.returncode:
                 return cover_dir, episodes
         else:
-            # logging
-            print("No files to download.")
+            self._logger.warning("No files to download.")
 
         return "", []
+
 
     def join_videos_with_ffmpeg_mkvmerge(self, coverdir, episodedir, fnames):
         """abs_cover_dir > abs_episode_dir > video files """
@@ -155,21 +169,21 @@ class MDownloader(object):
                 ffmpeg = self.confs['progs']['ffmpeg']
                 cmd = [ffmpeg, '-y', '-i', 'pipe:0', '-safe', '0', '-c', 'copy', '-hide_banner', episode_name]
                 try:
-                    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
-                    for fn in fnames:
-                        with open(os.path.join(episodedir, fn), 'rb') as f:
-                            try:
-                                proc.stdin.write(f.read())
-                            except IOError as e:
-                                if e.errno == errno.EPIPE or e.errno == errno.EINVAL:
-                                    break
-                                else:
-                                    raise
+                    with logging_with_pipe(self._logger, level=logging.INFO) as log_pipe:
+                        with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
+                            for fn in fnames:
+                                with open(os.path.join(episodedir, fn), 'rb') as f:
+                                    try:
+                                        proc.stdin.write(f.read())
+                                    except IOError as e:
+                                        if e.errno == errno.EPIPE or e.errno == errno.EINVAL:
+                                            break
+                                        else:
+                                            raise
 
-                    proc.stdin.close()
-                    proc.wait()
+                            proc.stdin.close()
                 except OSError as e:
-                    print("\nOS error number {}: '{}'".format(e.errno, e.strerror))
+                    self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
             else:
                 '''
                 flist = ["file '{}'".format(os.path.join(episodedir, fn)) for fn in fnames]
@@ -185,21 +199,24 @@ class MDownloader(object):
                 mkvmerge = self.confs['progs']['mkvmerge']
                 cmd = [mkvmerge, '-o', episode_name] + ['['] + flist + [']']
                 try:
-                    proc = subprocess.run(cmd)
+                    with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
+                        with subprocess.Popen(cmd, bufsize=1, text=True, encoding='utf-8',
+                                              stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
+                            pass
                 except OSError as e:
-                    print("\nOS error number {}: '{}'".format(e.errno, e.strerror))
+                    self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
 
             if proc and proc.returncode == 0:
                 return True
 
     def join_videos(self, coverdir, episodes):
         for episode_dir, fnames in episodes:
-            if len(fnames) > 1:
+            if len(fnames) > 0:
                 res = self.join_videos_with_ffmpeg_mkvmerge(coverdir, episode_dir, fnames)
                 if res:
                     shutil.rmtree(episode_dir, ignore_errors=True)
                 else:
-                    print('Join videos failed! <{}>\n'.format(episode_dir))
+                    self._logger.error('Join videos failed! <{}>'.format(episode_dir))
 
 
     '''

@@ -3,7 +3,11 @@ import random
 from functools import wraps, reduce
 import operator
 import logging
-from sys import stdout
+from logging.handlers import RotatingFileHandler
+import sys
+import os
+import threading
+from contextlib import contextmanager
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -163,14 +167,15 @@ def build_logger(logger_name, log_file_name, logger_level=logging.DEBUG, console
     logger = logging.getLogger(logger_name)
     logger.setLevel(logger_level)
 
-    ch = logging.StreamHandler(stream=stdout)
+    ch = logging.StreamHandler(stream=sys.stdout)
+    # ch.flush = sys.stdout.flush
     ch.setLevel(console_level)
-    cf = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+    cf = logging.Formatter('%(message)s')
     ch.setFormatter(cf)
 
-    fh = logging.FileHandler(log_file_name)
+    fh = RotatingFileHandler(log_file_name, mode='a', maxBytes=1024*512, backupCount=1)
     fh.setLevel(file_level)
-    ff = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ff = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - \n%(message)s')
     fh.setFormatter(ff)
 
     logger.addHandler(ch)
@@ -190,3 +195,79 @@ def change_logging_level(logger_name, logger_level=None, console_level=None, fil
             handler.setLevel(console_level)
         elif isinstance(handler, logging.FileHandler) and file_level is not None:
             handler.setLevel(file_level)
+
+
+@contextmanager
+def logging_with_pipe(logger, level, text=False, encoding='utf-8'):
+    """
+    From:
+     https://codereview.stackexchange.com/questions/6567/redirecting-subprocesses-output-stdout-and-stderr-to-the-logging-module
+
+    """
+    fd_read, fd_write = os.pipe()
+
+    def run():
+        with os.fdopen(fd_read, mode='rb') as readp:
+            for line in iter(readp.readline, b''):
+                if not line.isspace():
+                    logger.log(level, line.decode(encoding))
+
+    def run_text():
+        with os.fdopen(fd_read, mode='r', encoding=encoding) as readp:
+            for line in iter(readp.readline, ''):
+                if not line.isspace():
+                    logger.log(level, line)
+
+    if text:
+        threading.Thread(target=run_text).start()
+    else:
+        threading.Thread(target=run).start()
+
+    try:
+        yield fd_write
+    finally:
+        os.close(fd_write)
+
+
+class LogPipe(threading.Thread):
+    """
+        From:
+         https://codereview.stackexchange.com/questions/6567/redirecting-subprocesses-output-stdout-and-stderr-to-the-logging-module
+
+    """
+    def __init__(self, logger, level, text=False, encoding='utf-8'):
+        """Setup the object with a logger and a loglevel
+        and start the thread
+        """
+        super().__init__()
+        self.daemon = False
+        self.logger = logger
+        self.text = text
+        self.encoding = encoding
+        self.level = level
+        self.fdRead, self.fdWrite = os.pipe()
+        mode = 'r' if self.text else 'rb'
+        self.pipeReader = os.fdopen(self.fdRead, mode=mode)
+        self.start()
+
+    def fileno(self):
+        """Return the write file descriptor of the pipe
+        """
+        return self.fdWrite
+
+    def run(self):
+        """Run the thread, logging everything.
+        """
+        sentinel = '' if self.text else b''
+        for line in iter(self.pipeReader.readline, sentinel):
+            if not self.text:
+                self.logger.log(self.level, line.decode(self.encoding))
+            else:
+                self.logger.log(self.level, line)
+
+        self.pipeReader.close()
+
+    def close(self):
+        """Close the write end of the pipe.
+        """
+        os.close(self.fdWrite)
