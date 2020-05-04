@@ -1,6 +1,7 @@
 import re
 import logging
 
+
 class VideoConfig(object):
     # [{'pat': r'^https?://v\.qq\.com/x/cover/(\w+)\.html', 'eg': 'https://v.qq.com/x/cover/nhtfh14i9y1egge.html'}]
     _VIDEO_URL_PATS = []

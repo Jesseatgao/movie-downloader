@@ -16,6 +16,7 @@ from .sites import get_all_sites_vcs
 from .utils import RequestsSessionWrapper
 from .utils import logging_with_pipe
 
+
 class MDownloader(object):
     def __init__(self, args=None, confs=None):
         self._vcs = get_all_sites_vcs()
@@ -120,11 +121,11 @@ class MDownloader(object):
             proxy = self.confs[configinfo['vc_name']]['proxy'] \
                 if self.confs[configinfo['vc_name']]['enable_proxy_dl_video'].lower() == "true" else ''
 
-            cmd_aria2c = [aria2c, '-c', '-j5', '-k128K', '-s128', '-x128', '--max-file-not-found=0', '-m0',
+            cmd_aria2c = [aria2c, '-c', '-j5', '-k128K', '-s128', '-x128', '--max-file-not-found=5000', '-m0',
                           '--retry-wait=5', '--lowest-speed-limit=10K', '--no-conf', '-i-', '--console-log-level=warn',
-                          '--download-result=hide', '--summary-interval=0', '--ca-certificate', cert_path,
-                          '--retry-on-400=true', '--retry-on-403=true','--retry-on-406=true', '--retry-on-unknown=true',
-                          '-U', user_agent, '--all-proxy', proxy]
+                          '--download-result=hide', '--summary-interval=0', '--stream-piece-selector=inorder',
+                          '--ca-certificate', cert_path, '--retry-on-400=true', '--retry-on-403=true',
+                          '--retry-on-406=true', '--retry-on-unknown=true', '-U', user_agent, '--all-proxy', proxy]
             try:
                 with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
                     with subprocess.Popen(cmd_aria2c, bufsize=1, text=True, encoding='utf-8',
@@ -140,7 +141,6 @@ class MDownloader(object):
             self._logger.warning("No files to download.")
 
         return "", []
-
 
     def join_videos_with_ffmpeg_mkvmerge(self, coverdir, episodedir, fnames):
         """abs_cover_dir > abs_episode_dir > video files """
