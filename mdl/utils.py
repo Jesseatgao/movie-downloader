@@ -17,31 +17,7 @@ from requests import Session
 from clint.textui import progress
 
 
-def requests_retry_session(
-        retries=7,
-        backoff_factor=0.2,
-        status_forcelist=(500, 502, 504),
-        session=None,
-):
-    """
-    Ref: https://www.peterbe.com/plog/best-practice-with-retries-with-requests
-
-    """
-    session = session or requests.Session()
-    max_retries = Retry(
-        total=retries,
-        read=retries,
-        connect=retries,
-        backoff_factor=backoff_factor,
-        status_forcelist=status_forcelist,
-    )
-    adapter = HTTPAdapter(max_retries=max_retries)
-    session.mount('http://', adapter)
-    session.mount('https://', adapter)
-    return session
-
-
-def retry(exceptions, tries=10, backoff_factor=0.1, logger=logging.getLogger()):
+def retry(exceptions, tries=10, backoff_factor=0.1, logger=None):
     """
     Retry calling the decorated function using an exponential backoff.
     Ref: http://www.saltycrane.com/blog/2009/11/trying-out-retry-decorator-python/
@@ -54,6 +30,8 @@ def retry(exceptions, tries=10, backoff_factor=0.1, logger=logging.getLogger()):
         backoff_factor:
         logger: Logger to use. None to disable logging.
     """
+    logger = logger or logging.getLogger()
+
     def deco_retry(f):
         NTRIES = 7
 
@@ -68,43 +46,41 @@ def retry(exceptions, tries=10, backoff_factor=0.1, logger=logging.getLogger()):
                     steps = random.randrange(1, 2**(ntries % NTRIES))
                     backoff = steps * backoff_factor
 
-                    if logger:
-                        logger.warning('{!r}, Retrying {}/{} in {:.2f} seconds...'.format(e, ntries, tries, backoff))
+                    logger.warning('{!r}, Retrying {}/{} in {:.2f} seconds...'.format(e, ntries, tries, backoff))
 
                     time.sleep(backoff)
 
             try:
                 return f(*args, **kwargs)
             except exceptions as e:
-                if logger:
-                    logger.warning('{!s}, Having retried {} times, finally failed...'.format(e, ntries))
+                logger.warning('{!s}, Having retried {} times, finally failed...'.format(e, ntries))
 
-                raise e  # sys.exit(-1)
+                raise e
 
         return f_retry  # true decorator
 
     return deco_retry
 
 
-class RequestsWrapper(object):
-    def __init__(self):
-        # super().__init__()
-        self._requester = requests_retry_session()
-
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:69.0) Gecko/20100101 Firefox/69.0',
-            #'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
-            'Accept-Encoding': 'gzip, identity, deflate, br, *'
-        }
-        self._requester.headers = headers
-
-    @retry(requests.exceptions.RequestException)
-    def get(self, url, params=None, timeout=3.5, verify=True, **kwargs):
-        return self._requester.get(url, params=params, timeout=timeout, verify=verify, **kwargs)
-
-    @retry(requests.exceptions.RequestException)
-    def head(self, url, **kwargs):
-        return self._requester.head(url, **kwargs)
+# class RequestsWrapper(object):
+#     def __init__(self):
+#         # super().__init__()
+#         self._requester = requests_retry_session()
+#
+#         headers = {
+#             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:69.0) Gecko/20100101 Firefox/69.0',
+#             #'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+#             'Accept-Encoding': 'gzip, identity, deflate, br, *'
+#         }
+#         self._requester.headers = headers
+#
+#     @retry(requests.RequestException)
+#     def get(self, url, params=None, timeout=3.5, verify=True, **kwargs):
+#         return self._requester.get(url, params=params, timeout=timeout, verify=verify, **kwargs)
+#
+#     @retry(requests.RequestException)
+#     def head(self, url, **kwargs):
+#         return self._requester.head(url, **kwargs)
 
 
 class RequestsSessionWrapper(Session):
@@ -118,9 +94,35 @@ class RequestsSessionWrapper(Session):
         }
         self.headers = headers
 
-    @retry(requests.exceptions.RequestException)
-    def get(self, url, params=None, timeout=3.5, verify=True, **kwargs):
+    @retry(requests.RequestException)
+    def get(self, url, params=None, timeout=(3.2, 6), verify=True, **kwargs):
         return super().get(url, params=params, timeout=timeout, verify=verify, **kwargs)
+
+
+def requests_retry_session(
+        retries=7,
+        backoff_factor=0.2,
+        status_forcelist=(500, 502, 504),
+        session=None,
+):
+    """
+    Ref: https://www.peterbe.com/plog/best-practice-with-retries-with-requests
+
+    """
+    # session = session or requests.Session()
+    session = session or RequestsSessionWrapper()
+
+    max_retries = Retry(
+        total=retries,
+        read=retries,
+        connect=retries,
+        backoff_factor=backoff_factor,
+        status_forcelist=status_forcelist,
+    )
+    adapter = HTTPAdapter(max_retries=max_retries)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    return session
 
 
 def json_path_get(nested_data, key_path, default=None):
@@ -174,8 +176,8 @@ def build_logger(logger_name, log_file_name, logger_level=logging.DEBUG, console
     logger = logging.getLogger(logger_name)
     logger.setLevel(logger_level)
 
-    ch = logging.StreamHandler(stream=sys.stdout)
-    #ch.flush = sys.stdout.flush
+    #ch = logging.StreamHandler(stream=sys.stdout)
+    ch = logging.StreamHandler()
     ch.setLevel(console_level)
     cf = logging.Formatter('%(message)s')
     ch.setFormatter(cf)
@@ -280,10 +282,90 @@ class LogPipe(threading.Thread):
         os.close(self.fdWrite)
 
 
+class MillProgress(object):
+    """
+    Print a mill while progressing.
+    Source: grabbed from `clint.textui.progress`, adding support for unknown `expected_size`.
+    Source_URL: https://github.com/kennethreitz-archive/clint/blob/master/clint/textui/progress.py
+    """
+    STREAM = sys.stderr
+    MILL_TEMPLATE = '{}  {}  {:10,d}/{:<10,d} elapsed: {}\r'
+    MILL_CHARS = ['|', '/', '-', '\\']  # '+', 'x'
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.done()
+        return False
+
+    def __init__(self, label='', hide=None, expected_size=None, every=1):
+        self.label = label
+        self.hide = hide
+        # Only show bar in terminals by default (better for piping, logging etc.)
+        if hide is None:
+            try:
+                self.hide = not self.STREAM.isatty()
+            except AttributeError:  # output does not support isatty()
+                self.hide = True
+        self.expected_size = expected_size or 0
+        self.every = every
+        self.last_progress = 0
+        self.delta_progress = 0
+        self.every_progress = 0
+        self.start = time.time()
+        self.elapsed = 0
+
+        self.show(0)
+
+    def format_time(self, seconds):
+        return time.strftime('%H:%M:%S', time.gmtime(seconds))
+
+    def mill_char(self, progress):
+        # if self.expected_size and progress >= self.expected_size:
+        #     return ' '
+        # else:
+        #     return self.MILL_CHARS[(progress // self.every) % len(self.MILL_CHARS)]
+        return self.MILL_CHARS[(progress // self.every) % len(self.MILL_CHARS)]
+
+    def show(self, progress, count=None):
+        if count is not None:
+            self.expected_size = count
+
+        self.last_progress = progress
+        self.elapsed = time.time() - self.start
+        elapsed = self.format_time(self.elapsed)
+
+        if not self.hide:
+            #if ((progress % self.every) == 0 or  # True every "every" updates
+            if ((progress % self.every) == 0 or (progress - self.delta_progress) // self.every >= 1 or  # True every "every" updates
+                    (self.expected_size and progress == self.expected_size)):  # And when we're done
+
+                # self.STREAM.write(self.MILL_TEMPLATE % (
+                #     self.label, self.mill_char(progress), str(progress), expected, elapsed))
+                self.STREAM.write(self.MILL_TEMPLATE.format(
+                    self.label, self.mill_char(self.every_progress), progress, self.expected_size, elapsed))
+                self.STREAM.flush()
+
+                self.delta_progress = progress
+                self.every_progress += self.every
+
+    def done(self):
+        self.elapsed = time.time() - self.start
+        elapsed = self.format_time(self.elapsed)
+
+        if not self.hide:
+            self.STREAM.write(self.MILL_TEMPLATE.format(
+                self.label, ' ', self.last_progress, self.expected_size, elapsed))
+            self.STREAM.write('\n')
+            self.STREAM.flush()
+
+
 class Aria2Cg(object):
     """
     ctx = {
         "total_size": 2000,  # total size of all the to-be-downloaded files, maybe inaccurate due to chunked transfer encoding
+        "accurate": True,  # Is `total_size` accurate?
         "files":{
             "file1":{
                 "length": 2000,  # 0 means 'unkown', i.e. file size can't be pre-determined through any one of provided URLs
@@ -319,14 +401,31 @@ class Aria2Cg(object):
         }
     }
     """
-    def __init__(self, max_workers=None, min_split_size=1024*1024, chunk_size=10240):
-        self.requester = RequestsWrapper()
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
+    def __init__(self, max_workers=None, min_split_size=1024*1024, chunk_size=1024*10, proxy=None, logger=None, progress='bar'):
+        self.requester = requests_retry_session()
+        self.proxy = proxy or ''
+        self.requester.proxies = dict(http=self.proxy, https=self.proxy)
+
         self.executor = ThreadPoolExecutor(max_workers)
-        self._dl_ctx = {"total_size": 0, "files": {}, "futures": {}}  # see CTX structure definition
-        logger_name = '.'.join(['MDL', 'Aria2Cg'])
-        self._logger = logging.getLogger(logger_name)
+        self.mgmnt_thread = None
+        self.stop = False   # Flag signaling waiting threads to exit
+        self._dl_ctx = {"total_size": 0, "accurate": True, "files": {}, "futures": {}}  # see CTX structure definition
+        self._logger = logger or logging.getLogger()
         self.min_split_size = min_split_size
         self.chunk_size = chunk_size
+
+        self.progress = progress
+        if self.progress not in ('bar', 'mill'):
+            self._logger.error("Error: invalid Aria2Cg progress parameter '{}',\
+             default to 'bar' if possible, 'mill' otherwise".format(self.progress))
+            self.progress = 'bar'
 
     @staticmethod
     def calc_req_ranges(req_len, split_size, req_start=0):
@@ -344,6 +443,12 @@ class Aria2Cg(object):
             ranges.append((start, end))
 
         return ranges
+
+    @staticmethod
+    def list_split(li, chunk_size=5):
+        """Break the list `li` into chunks of size `chunk_size`"""
+        for i in range(0, len(li), chunk_size):
+            yield li[i:i+chunk_size]
 
     def _is_parallel_downloadable(self, path_name):
         ctx_file = self._dl_ctx['files'][path_name]
@@ -383,44 +488,56 @@ class Aria2Cg(object):
         ctx_range = self._dl_ctx['files'][path_name]['ranges'][req_range]
         url = ctx_range['url'][0]
 
+        max_tries = 10
+        resume_no_support = False  # In case the server responses with no-support status against a range request
         with open(path_name, mode='r+b') as fd:
-            if self._is_download_resumable(path_name):
-                # request start position and end position(which here we don't care about), maybe resuming from a previous failed request
-                range_start = ctx_range['start'] + ctx_range['offset']
-                req_range_new = "bytes={}-{}".format(range_start, '')
-                headers = {"Range": req_range_new}
+            for tr in range(max_tries):
+                if self._is_download_resumable(path_name) and not resume_no_support:
+                    # request start position and end position(which here we don't care about), maybe resuming from a previous failed request
+                    range_start = ctx_range['start'] + ctx_range['offset']
+                    req_range_new = "bytes={}-{}".format(range_start, '')
+                    headers = {"Range": req_range_new}
+                    status_code = requests.codes.partial
+                else:
+                    range_start = ctx_range['start']
+                    headers = {}
+                    status_code = requests.codes.ok
+
+                fd.seek(range_start)
+
+                try:
+                    r = self.requester.get(url, headers=headers, allow_redirects=True, stream=True)
+                    r.raise_for_status()
+                    if r.status_code == status_code:  # in (requests.codes.ok, requests.codes.partial)
+                        for chunk in r.iter_content(chunk_size=None):
+                            fd.write(chunk)
+                            ctx_range['offset'] += len(chunk)
+
+                            if headers:
+                                range_start = ctx_range['start'] + ctx_range['offset']
+                                req_range_new = "bytes={}-{}".format(range_start, '')
+                                headers['Range'] = req_range_new
+
+                        break
+                    else:
+                        resume_no_support = True
+                        self._logger.error("Unexpected status code: {}, which should have been {}. This may be caused by unsupported range request.".format(r.status_code, status_code))
+                        if tr < max_tries - 1:
+                            self._logger.error("Retrying {}/{}...".format(tr + 1, max_tries - 1))
+                            time.sleep(0.1)
+                except requests.RequestException as e:
+                    ctx_file = self._dl_ctx['files'][path_name]
+                    if ctx_file['length']:
+                        range_end = file_end = ctx_file['length']
+                    else:
+                        range_end = file_end = ''
+
+                    self._logger.error("Error while downloading {}(range:{}-{}/{}-{}): '{}'".format(
+                        os.path.basename(path_name), range_start, range_end, ctx_range['start'], file_end, str(e)))
+                    if tr < max_tries - 1:
+                        self._logger.error("Retrying {}/{}...".format(tr + 1, max_tries - 1))
+                        time.sleep(0.1)
             else:
-                range_start = ctx_range['start']
-                headers = {}
-
-            fd.seek(range_start)
-
-            try:
-                timeout = (3.1, 3.1)
-                r = self.requester.get(url, headers=headers, timeout=timeout, allow_redirects=True, stream=True)
-                #r.raise_for_status()
-                if r.status_code in (requests.codes.ok, requests.codes.partial):
-                    for chunk in r.iter_content(chunk_size=None):
-                        fd.write(chunk)
-                        ctx_range['offset'] += len(chunk)
-
-                        if headers:
-                            range_start = ctx_range['start'] + ctx_range['offset']
-                            req_range_new = "bytes={}-{}".format(range_start, '')
-                            headers['Range'] = req_range_new
-                else:
-                    self._logger.error("Status code: {}".format(r.status_code))
-
-            except Exception as e:
-                ctx_file = self._dl_ctx['files'][path_name]
-                if ctx_file['length']:
-                    range_end = file_end = ctx_file['length']
-                else:
-                    range_end = file_end = ''
-
-                self._logger.error("Error while downloading {}(range:{}-{}/{}-{}): '{}'".format(
-                    os.path.basename(path_name), range_start, range_end, ctx_range['start'], file_end,
-                    str(e)))
                 raise
 
     def _pick_file_url(self, path_name):
@@ -477,6 +594,8 @@ class Aria2Cg(object):
             r.close()
 
         self._dl_ctx['total_size'] += ctx_file['length']
+        if not ctx_file['length']:
+            self._dl_ctx['accurate'] = False
 
         # calculate request ranges
         if ctx_file['length'] and ctx_file['resumable']:  # rewrite as `self._is_parallel_downloadable` for clarity
@@ -501,8 +620,8 @@ class Aria2Cg(object):
             if self._build_ctx_internal(path_name, urls):
                 return -1
 
-    def _submit_dl_tasks(self):
-        for path_name in self._dl_ctx["files"]:
+    def _submit_dl_tasks(self, path_urls):
+        for path_name, _ in path_urls:
             if self._is_parallel_downloadable(path_name):
                 tsk = self._get_remote_file_multipart
             else:
@@ -534,56 +653,92 @@ class Aria2Cg(object):
             self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
             return -1
 
+    def _is_all_done(self):
+        return all(f.done() for f in self._dl_ctx['futures'])
+
     def _manage_tasks(self):
         total_size = self._dl_ctx['total_size']
-        bar = progress.Bar(expected_size=total_size)
 
+        if self._dl_ctx['accurate']:
+            if self.progress == 'bar':
+                accurate_progress_bar = progress.Bar(expected_size=total_size)
+            else:
+                accurate_progress_bar = MillProgress(label='Downloaded/Expected:', expected_size=total_size, every=1024)
+        else:
+            inaccurate_progress_bar = MillProgress(label='Downloaded/Expected(inaccurate):', expected_size=total_size, every=1024)
+
+        done = False
         while True:
             completed = 0
             for ctx_path_name in self._dl_ctx['files'].values():
-                for ctx_range in ctx_path_name['ranges'].values():
-                    completed += ctx_range['offset']
+                ctx_ranges = ctx_path_name.get('ranges')
+                if ctx_ranges:
+                    for ctx_range in ctx_ranges.values():
+                        completed += ctx_range.get('offset', 0)
 
-            bar.show(completed)
+            progress_bar = accurate_progress_bar if self._dl_ctx['accurate'] else inaccurate_progress_bar
 
-            if all(f.done() for f in self._dl_ctx['futures']):
-                break
+            if not done:
+                progress_bar.show(completed, count=self._dl_ctx['total_size'])
 
-            time.sleep(0.1)
-
-        bar.done()
+            if not self._is_all_done():
+                done = False
+                time.sleep(0.1)
+            else:
+                done = True
+                if not self.stop:
+                    time.sleep(1)
+                else:
+                    progress_bar.done()
+                    break
 
     def downloads(self, path_urls):
         """path_urls: [('path1', r'url1\turl2\turl3'),('path2', 'url4'),]
         """
-        if self._create_empty_downloads(path_urls) or self._build_ctx(path_urls):
-            self._logger.error("Download file(s) failed.")
-            return -1
+        for chunk_path_urls in self.list_split(path_urls, chunk_size=2):
+            if self._create_empty_downloads(chunk_path_urls) or self._build_ctx(chunk_path_urls):
+                self._logger.error("Download file(s) failed.")
+                return -1
 
-        self._submit_dl_tasks()
+            self._submit_dl_tasks(chunk_path_urls)
 
         #done, not_done = wait(self._dl_ctx["futures"].keys())
 
-        mgmnt_thread = threading.Thread(target=self._manage_tasks)
-        mgmnt_thread.start()
-        mgmnt_thread.join()
+        if self.mgmnt_thread is None:
+            self.mgmnt_thread = threading.Thread(target=self._manage_tasks)
+            self.mgmnt_thread.start()
 
     def download(self, path_name, url):
         return self.downloads([(path_name, url)])
 
-    ## ContextManager
+    def wait_for_all(self):
+        while True:
+            if not self._is_all_done():
+                time.sleep(0.1)
+            else:
+                break
+
     def close(self):
+        self.wait_for_all()
         self.executor.shutdown()
+
+        self.stop = True
+        self.mgmnt_thread.join()
 
 
 if __name__ == '__main__':
     MOD_DIR = os.path.dirname(os.path.abspath(__file__))
     logger = build_logger('MDL', os.path.normpath(os.path.join(MOD_DIR, 'log/mdl.log')))
 
-    aria2 = Aria2Cg(max_workers=10)
-    #aria2.download("g:/tmp/test1.exe", "https://download.virtualbox.org/virtualbox/6.0.18/VirtualBox-6.0.18-136238-Win.exe")
-    #aria2.download("g:/tmp/test1.tar.gz", "https://github.com/aria2/aria2/archive/release-1.35.0.tar.gz")
-    #aria2.download("g:/tmp/test1.tar.gz", "http://117.128.6.11/cache/download.cpuid.com/cpu-z/cpu-z_1.91-en.zip?ich_args2=468-09144517038142_81f32f2247db3ae7e8963d8a4efff09a_10001002_9c896c2fd0c0f7d29533518939a83798_b98418dd38a074b80b0874faf12173e2")
-    aria2.download("g:/tmp/test1.tar.xz", "https://mirrors.tuna.tsinghua.edu.cn/gnu/binutils/binutils-2.32.tar.xz")
+    # file_urls = [("g:/tmp/test1.exe", "https://download.virtualbox.org/virtualbox/6.0.18/VirtualBox-6.0.18-136238-Win.exe"),
+    #              ("g:/tmp/test1.tar.gz", "https://github.com/aria2/aria2/archive/release-1.35.0.tar.gz"),
+    #              ("g:/tmp/test1.tar.xz", "https://mirrors.tuna.tsinghua.edu.cn/gnu/binutils/binutils-2.32.tar.xz")
+    #              ]
 
-    aria2.close()
+    with Aria2Cg(max_workers=20, progress='mill') as aria2:
+        # aria2.download("g:/tmp/test1.exe", "https://download.virtualbox.org/virtualbox/6.0.18/VirtualBox-6.0.18-136238-Win.exe")
+        aria2.download("g:/tmp/test1.tar.gz", "https://github.com/aria2/aria2/archive/release-1.35.0.tar.gz")
+        aria2.download("g:/tmp/test1.tar.xz", "https://mirrors.tuna.tsinghua.edu.cn/gnu/binutils/binutils-2.32.tar.xz")
+        # aria2.downloads(file_urls)
+
+    # aria2.close()

@@ -13,7 +13,7 @@ from .commons import VIDEO_DEFINITIONS
 from .commons import VideoTypeCodes as VIDEO_TYPES
 from .sites import get_all_sites_vcs
 # from .utils import RequestsWrapper
-from .utils import RequestsSessionWrapper
+from .utils import requests_retry_session
 from .utils import logging_with_pipe
 
 
@@ -43,7 +43,7 @@ class MDownloader(object):
 
             vci = vc.get('instance')
             if vci is None:
-                requester = RequestsSessionWrapper()
+                requester = requests_retry_session()
                 vci = vcc(requester, self.args, self.confs)
                 vc['instance'] = vci
 
