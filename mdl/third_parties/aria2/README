@@ -1,0 +1,27 @@
+aria2 static build
+==================
+
+Fallback path:
+    Path used when not provided on command line or in configuration file. It is hard-coded to `third-parties/aria2`.
+
+Where to download:
+
+* For Windows:
+    i686 32-bit version:
+    https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/release-1.35.0/aria2-i686-win.zip
+
+    x86_64 64-bit version:
+    https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/release-1.35.0/aria2-x86_64-win.zip
+
+* For Linux:
+    i686 32-bit version:
+
+    x86_64 64-bit version:
+
+How to install:
+
+* Manually download and install
+    Download, unzip and extract `aria2c.exe` or `aria2c` into the directory `3rd-parties/aria2/` according to the target platform, respectively.
+
+* Automatically download and install
+

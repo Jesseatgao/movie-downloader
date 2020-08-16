@@ -68,9 +68,9 @@ def conf_parser():
 def parse_3rd_party_progs(args, confs):
     """Option precedence: cmdline args > confs(config file) > default"""
 
-    aria2c_default = os.path.normpath(os.path.join(MOD_DIR, '3rd-parties/aria2/aria2c'))
-    ffmpeg_default = os.path.normpath(os.path.join(MOD_DIR, '3rd-parties/ffmpeg/ffmpeg'))
-    mkvmerge_default = os.path.normpath(os.path.join(MOD_DIR, '3rd-parties/mkvtoolnix/mkvmerge'))
+    aria2c_default = os.path.normpath(os.path.join(MOD_DIR, 'third_parties/aria2/aria2c'))
+    ffmpeg_default = os.path.normpath(os.path.join(MOD_DIR, 'third_parties/ffmpeg/ffmpeg'))
+    mkvmerge_default = os.path.normpath(os.path.join(MOD_DIR, 'third_parties/mkvtoolnix/mkvmerge'))
 
     aria2c_path = args.aria2c or confs['progs']['aria2c'] or aria2c_default
     ffmpeg_path = args.ffmpeg or confs['progs']['ffmpeg'] or ffmpeg_default

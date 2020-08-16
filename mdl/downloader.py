@@ -115,7 +115,7 @@ class MDownloader(object):
 
             aria2c = self.confs['progs']['aria2c']
             mod_dir = os.path.dirname(os.path.abspath(__file__))
-            cert_path = os.path.join(mod_dir, '3rd-parties/aria2/ca-bundle.crt')
+            cert_path = os.path.join(mod_dir, 'third_parties/aria2/ca-bundle.crt')
             # user_agent_qq = 'MQQBrowser/26 MicroMessenger/5.4.1 Mozilla/5.0 (Linux; U; Android 2.3.7; zh-cn; MB200 Build/GRJ22; CyanogenMod-7) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1'
             user_agent = 'Mozilla/5.0 (Linux; U; Android 2.3.7; zh-cn) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1'
             proxy = self.confs[configinfo['vc_name']]['proxy'] \

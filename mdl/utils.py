@@ -698,7 +698,7 @@ class Aria2Cg(object):
         for chunk_path_urls in self.list_split(path_urls, chunk_size=2):
             if self._create_empty_downloads(chunk_path_urls) or self._build_ctx(chunk_path_urls):
                 self._logger.error("Download file(s) failed.")
-                return -1
+                sys.exit(-1)
 
             self._submit_dl_tasks(chunk_path_urls)
 
@@ -730,15 +730,15 @@ if __name__ == '__main__':
     MOD_DIR = os.path.dirname(os.path.abspath(__file__))
     logger = build_logger('MDL', os.path.normpath(os.path.join(MOD_DIR, 'log/mdl.log')))
 
-    # file_urls = [("g:/tmp/test1.exe", "https://download.virtualbox.org/virtualbox/6.0.18/VirtualBox-6.0.18-136238-Win.exe"),
-    #              ("g:/tmp/test1.tar.gz", "https://github.com/aria2/aria2/archive/release-1.35.0.tar.gz"),
-    #              ("g:/tmp/test1.tar.xz", "https://mirrors.tuna.tsinghua.edu.cn/gnu/binutils/binutils-2.32.tar.xz")
-    #              ]
+    file_urls = [("g:/tmp/ffmpeg-4.2.2-win64-static.zip", "https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-4.2.2-win64-static.zip"),
+                ("g:/tmp/mkvtoolnix-64-bit-46.0.0.7z", "https://www.videohelp.com/download/mkvtoolnix-64-bit-46.0.0.7z"),
+                ("g:/tmp/aria2-x86_64-win.zip", "https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/release-1.35.0/aria2-x86_64-win.zip")
+                ]
 
-    with Aria2Cg(max_workers=20, progress='mill') as aria2:
+    with Aria2Cg(max_workers=20, progress='mill', proxy='http://127.0.0.1:8080') as aria2:
         # aria2.download("g:/tmp/test1.exe", "https://download.virtualbox.org/virtualbox/6.0.18/VirtualBox-6.0.18-136238-Win.exe")
-        aria2.download("g:/tmp/test1.tar.gz", "https://github.com/aria2/aria2/archive/release-1.35.0.tar.gz")
-        aria2.download("g:/tmp/test1.tar.xz", "https://mirrors.tuna.tsinghua.edu.cn/gnu/binutils/binutils-2.32.tar.xz")
-        # aria2.downloads(file_urls)
+        aria2.download("g:/tmp/test1.tar.gz", "https://www.videohelp.com/download/mkvtoolnix-64-bit-46.0.0.7z")
+        #aria2.download("g:/tmp/test1.tar.xz", "https://mirrors.tuna.tsinghua.edu.cn/gnu/binutils/binutils-2.32.tar.xz")
+        #aria2.downloads(file_urls)
 
     # aria2.close()
