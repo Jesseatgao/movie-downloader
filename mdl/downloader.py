@@ -197,7 +197,7 @@ class MDownloader(object):
                 episode_name = episode_name.rpartition('.')[0] + '.mkv'
 
                 mkvmerge = self.confs['progs']['mkvmerge']
-                cmd = [mkvmerge, '-o', episode_name] + ['['] + flist + [']']
+                cmd = [mkvmerge, '-o', episode_name] + ' + '.join(flist).split()
                 try:
                     with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
                         with subprocess.Popen(cmd, bufsize=1, text=True, encoding='utf-8',

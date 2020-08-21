@@ -84,6 +84,7 @@ def parse_3rd_party_progs(args, confs):
                 raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), exe)
     except Exception as e:
         LOGGER.error(str(e))
+        LOGGER.info('For how to get and install Aria2, FFmpeg and MKVToolnix(mkvmerge), please refer to README.md.')
         sys.exit(-1)
 
     # update config info
