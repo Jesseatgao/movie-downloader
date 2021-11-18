@@ -26,7 +26,7 @@ setup(
     version=version,
     package_dir={'': '.'},
     packages=find_packages(where='.'),
-    python_requires='>=3.5',  # FIXME
+    python_requires='>=3.6',
     install_requires=['requests', 'requests[socks]', 'clint'],
     include_package_data=True,
     package_data={

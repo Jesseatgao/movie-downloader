@@ -128,7 +128,7 @@ class MDownloader(object):
                           '--retry-on-406=true', '--retry-on-unknown=true', '-U', user_agent, '--all-proxy', proxy]
             try:
                 with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
-                    with subprocess.Popen(cmd_aria2c, bufsize=1, text=True, encoding='utf-8',
+                    with subprocess.Popen(cmd_aria2c, bufsize=1, universal_newlines=True, encoding='utf-8',
                                           stdin=subprocess.PIPE, stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
                         proc.stdin.write(urllist)
                         proc.stdin.close()

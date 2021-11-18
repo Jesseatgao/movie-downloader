@@ -10,7 +10,7 @@ from ..utils import json_path_get, build_cookiejar_from_kvp
 
 
 class QQVideoPlatforms:
-    P10901 = '10901'
+    P10901 = 11
     P10801 = '10801'
 
 

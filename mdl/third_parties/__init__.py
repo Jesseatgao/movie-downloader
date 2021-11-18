@@ -47,12 +47,12 @@ progs_conf = {
     'ffmpeg': {
         'Windows': {
             '32-bit': {
-                'url': 'https://ffmpeg.zeranoe.com/builds/win32/static/ffmpeg-4.2.2-win32-static.zip',
+                'url': 'https://archive.org/download/zeranoe/win32/static/ffmpeg-4.2.2-win32-static.zip',
                 'content-path': ['ffmpeg-4.2.2-win32-static/', 'bin/'],
                 'ext': '.zip'
             },
             '64-bit': {
-                'url': 'https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-4.2.2-win64-static.zip',
+                'url': 'https://archive.org/download/zeranoe/win64/static/ffmpeg-4.2.2-win64-static.zip',
                 'content-path': ['ffmpeg-4.2.2-win64-static/', 'bin/'],
                 'ext': '.zip'
             }
