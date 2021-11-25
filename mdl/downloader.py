@@ -122,8 +122,8 @@ class MDownloader(object):
                 if self.confs[configinfo['vc_name']]['enable_proxy_dl_video'].lower() == "true" else ''
 
             cmd_aria2c = [aria2c, '-c', '-j5', '-k128K', '-s128', '-x128', '--max-file-not-found=5000', '-m0',
-                          '--retry-wait=5', '--lowest-speed-limit=10K', '--no-conf', '-i-', '--console-log-level=warn',
-                          '--download-result=hide', '--summary-interval=0', '--stream-piece-selector=inorder',
+                          '--retry-wait=5', '--lowest-speed-limit=100K', '--no-conf', '-i-', '--console-log-level=warn',
+                          '--download-result=hide', '--summary-interval=0', '--uri-selector=adaptive',
                           '--ca-certificate', cert_path, '--retry-on-400=true', '--retry-on-403=true',
                           '--retry-on-406=true', '--retry-on-unknown=true', '-U', user_agent, '--all-proxy', proxy]
             try:

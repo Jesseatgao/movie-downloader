@@ -110,12 +110,13 @@ class QQVideoVC(VideoConfig):
                         if url:
                             url_prefixes.append(url)
 
-                default_urls = ['defaultts.tc.qq.com', '.hls.tc.qq.com']
-                chosen_url_prefixes = [prefix for prefix in url_prefixes if any(url in prefix for url in default_urls)]
+                chosen_url_prefixes = [prefix for prefix in url_prefixes if prefix[:prefix.find('/', 8)].endswith('.tc.qq.com')]
                 if not chosen_url_prefixes:
                     chosen_url_prefixes = url_prefixes
 
-                # chosen_url_prefixes = url_prefixes  # supposed to run faster
+                # use all URL prefixes but with default servers coming before CDN mirrors
+                cdn = [prefix for prefix in url_prefixes if prefix not in chosen_url_prefixes]
+                chosen_url_prefixes += cdn
 
                 if json_path_get(data, ['vl', 'vi', 0, 'drm']) == 0:  # DRM-free only, for now
                     for fmt_info in json_path_get(data, ['fl', 'fi'], []):
@@ -137,13 +138,18 @@ class QQVideoVC(VideoConfig):
                                     urls.append(url_mirrors)
                             else:  # 'mp4'
                                 ext = 'ts'
-                                vfilename2 = '_'.join(vfilename.split('.'))
 
-                                for idx in range(start, fc + 1):
-                                    vfilename_new = '.'.join([vfilename2, str(idx) + '.0', 'ts'])
-                                    url_mirrors = '\t'.join(
-                                        ['%s%s/%s' % (prefix, vfilename, vfilename_new) for prefix in chosen_url_prefixes])
-                                    urls.append(url_mirrors)
+                                playlist_m3u8 = json_path_get(data, ['vl', 'vi', 0, 'ul', 'ui', -1, 'hls', 'pname'])
+                                playlist_url = chosen_url_prefixes[-1] + playlist_m3u8
+
+                                r = self._requester.get(playlist_url, cookies=self.user_token)
+                                if r.status_code == 200:
+                                    r.encoding = 'utf-8'
+                                    for line in r.iter_lines(decode_unicode=True):
+                                        if line and not line.startswith('#'):
+                                            url_mirrors = '\t'.join(
+                                                ['%s%s/%s' % (prefix, vfilename, line) for prefix in chosen_url_prefixes])
+                                            urls.append(url_mirrors)
 
                             #format_name = fmt_info['name']
                             format_name = definition
@@ -185,6 +191,15 @@ class QQVideoVC(VideoConfig):
                         url = url_dic.get('url')
                         if url:
                             url_prefixes.append(url)
+
+                chosen_url_prefixes = [prefix for prefix in url_prefixes if
+                                       prefix[:prefix.find('/', 8)].endswith('.tc.qq.com')]
+                if not chosen_url_prefixes:
+                    chosen_url_prefixes = url_prefixes
+
+                # use all URL prefixes but with default servers coming before CDN mirrors
+                cdn = [prefix for prefix in url_prefixes if prefix not in chosen_url_prefixes]
+                chosen_url_prefixes += cdn
 
                 if json_path_get(data, ['vl', 'vi', 0, 'drm']) == 0:  # DRM-free only, for now
                     for fmt_info in json_path_get(data, ['fl', 'fi'], []):
@@ -228,7 +243,7 @@ class QQVideoVC(VideoConfig):
 
                                         if key_data and isinstance(key_data, dict) and key_data.get('key'):
                                             url_mirrors = '\t'.join(['%s%s?sdtfrom=v1010&vkey=%s' % (url_prefix, cfilename, key_data['key'])
-                                                                    for url_prefix in url_prefixes])
+                                                                    for url_prefix in chosen_url_prefixes])
                                             if url_mirrors:
                                                 urls.append(url_mirrors)
 
@@ -278,8 +293,9 @@ class QQVideoVC(VideoConfig):
                 if video_id is None:
                     normal_ids = cover_info.get('nomal_ids')
 
-                    for d in normal_ids:
-                        del d['F']
+                    for cnt, vi in enumerate(normal_ids, start=1):
+                        # del vi['F']
+                        vi['E'] = cnt  # add/update episode number 'cause the returned info may not include it
                 else:
                     normal_ids = [{"V": video_id, "E": 1}]
                 info['normal_ids'] = normal_ids
@@ -315,7 +331,6 @@ class QQVideoVC(VideoConfig):
 
         return info
 
-
     def get_video_info(self, videourl):
         cover_info = None
         for typ, pat in enumerate(self._VIDEO_URL_PATS, 1):
@@ -343,7 +358,6 @@ class QQVideoVC(VideoConfig):
                     break
 
         return cover_info
-
 
     def update_video_dwnld_info(self, coverinfo):
         """"

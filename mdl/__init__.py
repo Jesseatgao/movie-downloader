@@ -123,7 +123,6 @@ def parse_dlops_default(args, confs):
 
 
 def main():
-
     confs = conf_parser()  # parse the config file
     parser = arg_parser()
     args = parser.parse_args()
@@ -140,13 +139,7 @@ def main():
         sys.exit(0)
     '''
 
-
-
-
-
     dl = MDownloader(args, confs)
     dl.download(args.url)
-
-
 
 # __all__ = ["main"]
