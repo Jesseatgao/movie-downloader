@@ -57,7 +57,7 @@ class QQVideoVC(VideoConfig):
 
         self._COVER_PAT_RE = re.compile(r"var\s+COVER_INFO\s*=\s*(.+?);?var\s+COLUMN_INFO",
                                         re.MULTILINE | re.DOTALL | re.IGNORECASE)
-        self._VIDEO_INFO_RE = re.compile(r"var\s+VIDEO_INFO\s*=\s*(.+?);?</script>",
+        self._VIDEO_INFO_RE = re.compile(r"var\s+VIDEO_INFO\s*=\s*(.+?);?</script>|\"videoInfo\"\s*\:\s*({.+?})",
                                          re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._VIDEO_COVER_PREFIX = 'https://v.qq.com/x/cover/'
 
@@ -271,16 +271,18 @@ class QQVideoVC(VideoConfig):
         return 'random_' + cover_id
 
     def _extract_video_cover_info(self, regex, text):
+        result = (None, None)
+
         cover_match = regex.search(text)
         if cover_match:
             info = {}
-            cover_group = cover_match.group(1).strip()
+            cover_group = cover_match.group(1) or cover_match.group(2)
             try:
                 cover_info = json.loads(cover_group)
             except json.JSONDecodeError:
-                return None, None
+                return result
             if cover_info and isinstance(cover_info, dict):
-                info['title'] = cover_info.get('title', '')
+                info['title'] = cover_info.get('title', '') or cover_info.get('c_title_output', '')
                 info['year'] = cover_info.get('year', '1900')
                 info['cover_id'] = cover_info.get('cover_id', self._gen_default_cover_id())
 
@@ -291,7 +293,7 @@ class QQVideoVC(VideoConfig):
 
                 video_id = cover_info.get('vid')
                 if video_id is None:
-                    normal_ids = cover_info.get('nomal_ids')
+                    normal_ids = cover_info.get('nomal_ids', [])
 
                     for cnt, vi in enumerate(normal_ids, start=1):
                         # del vi['F']
@@ -300,7 +302,9 @@ class QQVideoVC(VideoConfig):
                     normal_ids = [{"V": video_id, "E": 1}]
                 info['normal_ids'] = normal_ids
 
-                return info, cover_match.end
+                result = (info, cover_match.end)
+
+        return result
 
     def get_cover_info(self, cover_url):
         """"{
@@ -324,7 +328,7 @@ class QQVideoVC(VideoConfig):
             r.encoding = 'utf-8'
             info, pos_end = self._extract_video_cover_info(self._COVER_PAT_RE, r.text)
             if info:
-                if info['normal_ids'] is None:
+                if not info['normal_ids']:
                     info, _ = self._extract_video_cover_info(self._VIDEO_INFO_RE, r.text[pos_end:])
             else:
                 info, _ = self._extract_video_cover_info(self._VIDEO_INFO_RE, r.text)

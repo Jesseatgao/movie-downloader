@@ -8,7 +8,9 @@ import zipfile
 import tarfile
 from distutils.dir_util import copy_tree, remove_tree
 
-from mdl.utils import Aria2Cg
+from bdownload import BDownloader
+from bdownload.cli import install_signal_handlers
+
 
 MOD_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGGER = logging.getLogger('MDL.third_parties')
@@ -47,12 +49,14 @@ progs_conf = {
     'ffmpeg': {
         'Windows': {
             '32-bit': {
-                'url': 'https://archive.org/download/zeranoe/win32/static/ffmpeg-4.2.2-win32-static.zip',
+                'url': 'https://archive.org/download/zeranoe/win32/static/ffmpeg-4.2.2-win32-static.zip'
+                       '\thttps://www.videohelp.com/download/ffmpeg-4.2.2-win32-static.zip',
                 'content-path': ['ffmpeg-4.2.2-win32-static/', 'bin/'],
                 'ext': '.zip'
             },
             '64-bit': {
-                'url': 'https://archive.org/download/zeranoe/win64/static/ffmpeg-4.2.2-win64-static.zip',
+                'url': 'https://archive.org/download/zeranoe/win64/static/ffmpeg-4.2.2-win64-static.zip'
+                       '\thttps://www.videohelp.com/download/ffmpeg-4.2.2-win64-static.zip',
                 'content-path': ['ffmpeg-4.2.2-win64-static/', 'bin/'],
                 'ext': '.zip'
             }
@@ -112,9 +116,7 @@ def arg_parser():
 
     parser.add_argument('-p', '--proxy', dest='proxy', help='Proxy of the form "http://[user:pass@]host:port" or "socks5://[user:pass@]host:port" ')
 
-    args = parser.parse_args()
-
-    return vars(args)
+    return parser
 
 
 def determine_target():
@@ -146,17 +148,24 @@ progs_base_path = [os.path.join(MOD_DIR, prog) for prog in progs_name]
 pkgs_full_path = [os.path.join(base, prog + progs_conf[prog][system][bitness]['ext']) for prog, base in zip(progs_name, progs_base_path)]
 
 
-def download():
-    args = arg_parser()
-
+def download(**kwargs):
     urls = [progs_conf[prog][system][bitness]['url'] for prog in progs_name]
     pkgs_urls = list(zip(pkgs_full_path, urls))
 
+    succeeded, failed = [], []
     try:
-        with Aria2Cg(max_workers=20, progress='mill', **args) as aria2:
-            aria2.downloads(pkgs_urls)
-    except Exception as e:
+        with BDownloader(referrer='*', **kwargs) as downloader:
+            install_signal_handlers(downloader)
+            downloader.downloads(pkgs_urls)
+            succeeded, failed = downloader.wait_for_all()
+    except (Exception, KeyboardInterrupt) as e:
         LOGGER.error("Download file(s) failed. {!r}".format(e))
+        sys.exit(-1)
+
+    if succeeded:
+        LOGGER.info('Succeeded in downloading: {!r}'.format(succeeded))
+    if failed:
+        LOGGER.error('Failed to download: {!r}'.format(failed))
         sys.exit(-1)
 
 
@@ -189,11 +198,13 @@ def finalize():
 
 
 def download_3rd_parties():
-    download()
+    args = arg_parser().parse_args()
+    kwargs = vars(args)
+
+    download(**kwargs)
     extract()
     finalize()
 
 
 if __name__ == '__main__':
     download_3rd_parties()
-
