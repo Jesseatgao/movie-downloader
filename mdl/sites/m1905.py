@@ -1,12 +1,16 @@
+import json
 import time
 import re
 import random
 import hashlib
+from urllib.parse import quote as urllib_parse_quote
+from math import floor as math_floor
 
 # from requests.cookies import RequestsCookieJar
 
 from ..videoconfig import VideoConfig
 from ..commons import VideoTypeCodes
+from ..utils import json_path_get
 
 
 class M1905VC(VideoConfig):
@@ -21,6 +25,9 @@ class M1905VC(VideoConfig):
     SOURCE_NAME = "m1905"
     VC_NAME = "m1905"
     #_VIP_TOKEN = {}
+
+    _M1905_DEFINITION = ['uhd', 'hd', 'sd']  # decremental! FIXME: VIP user
+    _M1905_DEFINITION_MAP = {'uhd': 'shd', 'hd': 'hd', 'sd': 'sd'}
 
     def __init__(self, requester, args, confs):
         super().__init__(requester, args, confs)
@@ -41,14 +48,36 @@ class M1905VC(VideoConfig):
             re.MULTILINE | re.DOTALL | re.IGNORECASE
         )
 
-        self._VIDEO_COVER_FORMAT = 'https://www.1905.com/mdb/film/{}/video'
-        self._PROFILE_CONFIG_URL = "http://profile.m1905.com/mvod/config.php"
+        self._VIDEO_COVER_FORMAT = "https://www.1905.com/mdb/film/{}/video"
+        self._PROFILE_CONFIG_URL = "https://profile.m1905.com/mvod/getVideoinfo.php"
         self._apikey = ""
+        self._appid = "dde3d61a0411511d"
 
         # make sure _VIDEO_URL_PATS has a compiled version, which should have been done in @classmethod is_url_valid
         for pat in self._VIDEO_URL_PATS:
             if pat.get('cpat') is None:
                 pat['cpat'] = re.compile(pat['pat'], re.IGNORECASE)
+
+    @staticmethod
+    def _random_string():
+        def translate(c):
+            n = math_floor(16 * random.random())
+            t = "{:x}".format(n) if 'x' == c else "{:x}".format(3 & n | 8) if 'y' == c else c
+            return t
+
+        random.seed()
+        return ''.join(map(translate, "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"))
+
+    @staticmethod
+    def _signature(params, appid):
+        query = ""
+        ks = sorted(params.keys())
+        for k in ks:
+            if k != "signature":
+                q = k + "=" + urllib_parse_quote(str(params[k]), safe="")
+                query += "&" + q if query else q
+
+        return hashlib.sha1((query + "." + appid).encode("utf-8")).hexdigest()
 
     def _get_episode_info_sd(self, epurl):
         info = None
@@ -69,7 +98,7 @@ class M1905VC(VideoConfig):
         return info
 
     def _get_episode_info_hd(self, epurl):
-        '''Parse VIP webpage'''
+        """Parse VIP webpage"""
 
         info = None
         regex_vip = r"movie-title\s*\"\s*>(?P<title>[^<]+)</h1>.*?年份[^\d]+(?P<year>\d+).*?www\.1905\.com/mdb/film/(?P<cover_id>\d+)"
@@ -86,7 +115,6 @@ class M1905VC(VideoConfig):
                 info['vid'] = epurl.split('/')[-1].split('.')[0]
 
         return info
-
 
     def _get_cover_info(self, cvurl):
         """
@@ -135,7 +163,7 @@ class M1905VC(VideoConfig):
                         year, _ = self._get_cover_info(self._VIDEO_COVER_FORMAT.format(episode_info['cover_id']))
                         episode_info['year'] = year
 
-                        conf_info["normal_ids"] = [dict(V=episode_info['vid'], E=1, defns=dict(sd=[]))]
+                        conf_info["normal_ids"] = [dict(V=episode_info['vid'], E=1, vip=False, defns={}, page=url)]
                 elif typ == 2:  # 'video_cover'
                     year, urls_dict = self._get_cover_info(self._VIDEO_COVER_FORMAT.format(match.group(1)))
                     if urls_dict:
@@ -146,17 +174,17 @@ class M1905VC(VideoConfig):
                             if episode_info:
                                 episode_info['year'] = year
                                 ep_num += 1
-                                conf_info["normal_ids"].append(dict(V=episode_info['vid'], E=ep_num, defns=dict(sd=[])))
+                                conf_info["normal_ids"].append(dict(V=episode_info['vid'], E=ep_num, vip=False, defns={}, page=urls_dict['sd']))
 
                         if urls_dict.get('hd'):
                             episode_info = self._get_episode_info_hd(urls_dict['hd'])
                             if episode_info:
                                 ep_num += 1
-                                conf_info["normal_ids"].append(dict(V=episode_info['vid'], E=ep_num, defns=dict(hd=[])))
+                                conf_info["normal_ids"].append(dict(V=episode_info['vid'], E=ep_num, vip=True, defns={}, page=urls_dict['hd']))
                 else:  # video_episode_hd
                     episode_info = self._get_episode_info_hd(url)
                     if episode_info:
-                        conf_info["normal_ids"] = [dict(V=episode_info['vid'], E=1, defns=dict(hd=[]))]
+                        conf_info["normal_ids"] = [dict(V=episode_info['vid'], E=1, vip=True, defns={}, page=url)]
 
                 if episode_info:
                     conf_info["title"] = episode_info["title"]
@@ -169,17 +197,18 @@ class M1905VC(VideoConfig):
         return conf_info
 
     def _update_video_dwnld_info_sd(self, vi):
-        '''vi: item of confinfo['normal_ids']'''
-
-        random.seed()
+        """vi: item of confinfo['normal_ids']"""
+        nonce = math_floor(time.time())
         params = {
-            "k": self._apikey[10:18],
-            "t": str(time.time() * 1000)[:13],
-            "i": vi['V'],
-            "p": str(random.random())[-15:],
-            "v": 1
+            'cid': vi['V'],
+            'expiretime': nonce + 600,
+            'nonce': nonce,
+            'page': vi['page'],
+            'playerid': self._random_string().replace('-', '')[5:20],
+            'type': "hls",
+            'uuid': self._random_string()
         }
-        params["s"] = hashlib.md5((params["k"] + params["t"] + params["i"] + params["p"]).encode('utf-8')).hexdigest()
+        params['signature'] = self._signature(params, self._appid)
 
         r = self._requester.get(self._PROFILE_CONFIG_URL, params=params)
         if r.status_code == 200:
@@ -191,35 +220,44 @@ class M1905VC(VideoConfig):
             #     _, path = cookie_info[-2].split("=")
             #     _, domain = cookie_info[-1].split("=")
             #     cookie_jar.set(name, val, path=path, domain=domain)
+            try:
+                data = json.loads(r.text[len("null("):-1]).get('data')
+            except json.JSONDecodeError:
+                return
 
-            mo = re.search(r"item\s+id\s*=.*?url\s*=\s*\"([^\"]+)", r.text)
-            if mo:
-                loader_url = mo.group(1)
-                loader_url = loader_url.replace("%2F", "/").replace("&amp;", "&")
+            playlist_m3u8 = ""
+            for defn in self._M1905_DEFINITION:
+                host = json_path_get(data, ['quality', defn, 'host'])
+                sign = json_path_get(data, ['sign', defn, 'sign'])
+                path = json_path_get(data, ['path', defn, 'path'])
 
+                if host and sign and path:
+                    playlist_m3u8 = (host + sign + path).replace('\\', '')
+                    break  # FIXME: CLI specific defn
+
+            if playlist_m3u8:
                 try:
                     # r = self._requester.get(loader_url, headers=headers, cookies=cookie_jar, timeout=3.5)
-                    r = self._requester.get(loader_url)  # Requests Session persists cookies across all requests
+                    r = self._requester.get(playlist_m3u8)  # Requests Session persists cookies across all requests
                     if r.status_code == 200:
-                        mpeg_urls = [url for url in r.text.splitlines() if url[:4] == "http"]
-                        vi["defns"]["sd"].append(dict(ext="ts", urls=mpeg_urls))
-                except Exception:
-                    print("Failed to fetch {!r}".format(loader_url))  # logging
+                        url_prefix = playlist_m3u8.rpartition('/')[0]
+                        mpeg_urls = ["%s/%s" % (url_prefix, line) for line in r.text.splitlines() if line and not line.startswith('#')]
 
+                        std_defn = self._M1905_DEFINITION_MAP[defn]
+                        vi["defns"].setdefault(std_defn, []).append(dict(ext="ts", urls=mpeg_urls))
+                except Exception:
+                    print("Failed to fetch {!r}".format(playlist_m3u8))  # logging
 
     def _update_video_dwnld_info_hd(self, vi):
         pass
 
-
     def _update_video_dwnld_info(self, confinfo):
-        for vi in confinfo.get('normal_ids'):
-            for defn in vi["defns"].keys():
-                if defn == "sd":
-                    self._update_video_dwnld_info_sd(vi)
-                elif defn == "hd":
-                    self._update_video_dwnld_info_hd(vi)
-
-
+        vl = confinfo.get('normal_ids', [])
+        for vi in vl:
+            if not vi['vip']:
+                self._update_video_dwnld_info_sd(vi)
+            else:
+                self._update_video_dwnld_info_hd(vi)
 
     def get_video_config_info(self, url):
         conf_info = self._get_video_info(url)
@@ -227,4 +265,3 @@ class M1905VC(VideoConfig):
             self._update_video_dwnld_info(conf_info)
 
         return conf_info
-
