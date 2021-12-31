@@ -116,7 +116,6 @@ class MDownloader(object):
             aria2c = self.confs['progs']['aria2c']
             mod_dir = os.path.dirname(os.path.abspath(__file__))
             cert_path = os.path.join(mod_dir, 'third_parties/aria2/ca-bundle.crt')
-            # user_agent_qq = 'MQQBrowser/26 MicroMessenger/5.4.1 Mozilla/5.0 (Linux; U; Android 2.3.7; zh-cn; MB200 Build/GRJ22; CyanogenMod-7) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1'
             user_agent = 'Mozilla/5.0 (Linux; U; Android 2.3.7; zh-cn) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1'
             proxy = self.confs[configinfo['vc_name']]['proxy'] \
                 if self.confs[configinfo['vc_name']]['enable_proxy_dl_video'].lower() == "true" else ''
@@ -155,7 +154,7 @@ class MDownloader(object):
             if suffix in ['.ts', '.mpg', '.mpeg']:
                 if suffix == '.ts':
                     episode_name = episode_name.rpartition('.')[0] + '.mp4'
-                '''    
+                """
                 with tempfile.TemporaryFile(mode='w+b', suffix=suffix, dir=coverdir) as tmpf:
                     for fn in fnames:
                         with open(os.path.join(episodedir, fn), 'rb') as f:
@@ -165,7 +164,7 @@ class MDownloader(object):
 
                     cmd = ['ffmpeg', '-y', '-i', 'pipe:0', '-safe', '0', '-c', 'copy', '-hide_banner', episode_name]
                     proc = subprocess.run(cmd, input=tmpf.read())
-                '''
+                """
                 ffmpeg = self.confs['progs']['ffmpeg']
                 cmd = [ffmpeg, '-y', '-i', 'pipe:0', '-safe', '0', '-c', 'copy', '-hide_banner', episode_name]
                 try:
@@ -200,7 +199,7 @@ class MDownloader(object):
                 cmd = [mkvmerge, '-o', episode_name] + ' + '.join(flist).split()
                 try:
                     with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
-                        with subprocess.Popen(cmd, bufsize=1, text=True, encoding='utf-8',
+                        with subprocess.Popen(cmd, bufsize=1, universal_newlines=True, encoding='utf-8',
                                               stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
                             pass
                 except OSError as e:

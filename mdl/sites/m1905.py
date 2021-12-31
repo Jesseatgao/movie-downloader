@@ -27,7 +27,8 @@ class M1905VC(VideoConfig):
     #_VIP_TOKEN = {}
 
     _M1905_DEFINITION = ['uhd', 'hd', 'sd']  # decremental! FIXME: VIP user
-    _M1905_DEFINITION_MAP = {'uhd': 'shd', 'hd': 'hd', 'sd': 'sd'}
+    _M1905_DEFN_MAP_I2S = {'uhd': 'shd', 'hd': 'hd', 'sd': 'sd'}  # internal format name -> standard format name
+    _M1905_DEFN_MAP_S2I = {'fhd': 'fhd', 'shd': 'uhd', 'hd': 'hd', 'sd': 'sd'}  # standard -> internal | FIXME: VIP fhd?
 
     def __init__(self, requester, args, confs):
         super().__init__(requester, args, confs)
@@ -57,6 +58,8 @@ class M1905VC(VideoConfig):
         for pat in self._VIDEO_URL_PATS:
             if pat.get('cpat') is None:
                 pat['cpat'] = re.compile(pat['pat'], re.IGNORECASE)
+
+        self.preferred_defn = confs[self.VC_NAME]['definition']
 
     @staticmethod
     def _random_string():
@@ -226,7 +229,9 @@ class M1905VC(VideoConfig):
                 return
 
             playlist_m3u8 = ""
-            for defn in self._M1905_DEFINITION:
+            defn = self._M1905_DEFN_MAP_S2I[self.preferred_defn]
+            defns = [defn] if json_path_get(data, ['sign', defn]) else self._M1905_DEFINITION
+            for defn in defns:
                 host = json_path_get(data, ['quality', defn, 'host'])
                 sign = json_path_get(data, ['sign', defn, 'sign'])
                 path = json_path_get(data, ['path', defn, 'path'])
@@ -243,7 +248,7 @@ class M1905VC(VideoConfig):
                         url_prefix = playlist_m3u8.rpartition('/')[0]
                         mpeg_urls = ["%s/%s" % (url_prefix, line) for line in r.text.splitlines() if line and not line.startswith('#')]
 
-                        std_defn = self._M1905_DEFINITION_MAP[defn]
+                        std_defn = self._M1905_DEFN_MAP_I2S[defn]
                         vi["defns"].setdefault(std_defn, []).append(dict(ext="ts", urls=mpeg_urls))
                 except Exception:
                     print("Failed to fetch {!r}".format(playlist_m3u8))  # logging
