@@ -90,11 +90,8 @@ class M1905VC(VideoConfig):
             r.encoding = 'utf-8'
             conf_match = self._SD_CONF_PAT_RE.search(r.text)
             if conf_match:
-                info = {}
-                info['title'] = conf_match.group(2)
+                info = {'vid': conf_match.group(1), 'title': conf_match.group(2), 'cover_id': conf_match.group(3)}
                 # info['year'] = video_info.get('year')  # extract it from the cover page
-                info['cover_id'] = conf_match.group(3)
-                info['vid'] = conf_match.group(1)
 
                 self._apikey = conf_match.group(4)
 
@@ -111,11 +108,8 @@ class M1905VC(VideoConfig):
             r.encoding = 'utf-8'
             conf_match = re.search(regex_vip, r.text, flags=re.MULTILINE|re.DOTALL|re.IGNORECASE)
             if conf_match:
-                info = {}
-                info['title'] = conf_match.group('title')
-                info['year'] = conf_match.group('year')
-                info['cover_id'] = conf_match.group('cover_id')
-                info['vid'] = epurl.split('/')[-1].split('.')[0]
+                info = {'title': conf_match.group('title'), 'year': conf_match.group('year'),
+                        'cover_id': conf_match.group('cover_id'), 'vid': epurl.split('/')[-1].split('.')[0]}
 
         return info
 

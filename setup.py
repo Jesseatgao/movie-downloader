@@ -27,13 +27,13 @@ setup(
     package_dir={'': '.'},
     packages=find_packages(where='.'),
     python_requires='>=3.6',
-    install_requires=['requests', 'requests[socks]', 'clint', 'bdownload'],
+    install_requires=['requests[socks]', 'requests', 'clint', 'bdownload'],
     include_package_data=True,
     package_data={
         'mdl': [
             'log/mdl.log',
             'conf/*.conf',
-            'third_parties/aria2/*.crt', 'third_parties/aria2/README',
+            'third_parties/aria2/README',
             'third_parties/ffmpeg/README',
             'third_parties/mkvtoolnix/README',
             'third_parties/setupext_janitor/janitor.py', 'third_parties/setupext_janitor/README.rst'

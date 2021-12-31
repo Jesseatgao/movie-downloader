@@ -4,17 +4,17 @@ import tempfile
 import shutil
 import errno
 import logging
-from time import sleep
 
-# from requests.exceptions import ConnectionError, Timeout
-# import requests
+from certifi import where
 
 from .commons import VIDEO_DEFINITIONS
 from .commons import VideoTypeCodes as VIDEO_TYPES
 from .sites import get_all_sites_vcs
-# from .utils import RequestsWrapper
 from .utils import requests_retry_session
 from .utils import logging_with_pipe
+
+
+cert_path = where()
 
 
 class MDownloader(object):
@@ -114,8 +114,6 @@ class MDownloader(object):
             urllist = '\n'.join(urls)
 
             aria2c = self.confs['progs']['aria2c']
-            mod_dir = os.path.dirname(os.path.abspath(__file__))
-            cert_path = os.path.join(mod_dir, 'third_parties/aria2/ca-bundle.crt')
             user_agent = 'Mozilla/5.0 (Linux; U; Android 2.3.7; zh-cn) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1'
             proxy = self.confs[configinfo['vc_name']]['proxy'] \
                 if self.confs[configinfo['vc_name']]['enable_proxy_dl_video'].lower() == "true" else ''

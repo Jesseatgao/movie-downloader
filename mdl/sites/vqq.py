@@ -59,7 +59,7 @@ class QQVideoVC(VideoConfig):
 
         self._COVER_PAT_RE = re.compile(r"var\s+COVER_INFO\s*=\s*(.+?);?var\s+COLUMN_INFO",
                                         re.MULTILINE | re.DOTALL | re.IGNORECASE)
-        self._VIDEO_INFO_RE = re.compile(r"var\s+VIDEO_INFO\s*=\s*(.+?);?</script>|\"videoInfo\"\s*\:\s*({.+?})",
+        self._VIDEO_INFO_RE = re.compile(r"var\s+VIDEO_INFO\s*=\s*(.+?);?</script>|\"videoInfo\"\s*:\s*({.+?})",
                                          re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._VIDEO_COVER_PREFIX = 'https://v.qq.com/x/cover/'
 
