@@ -59,7 +59,7 @@ class QQVideoVC(VideoConfig):
         QQVideoPlatforms.P10901: {
             'fhd': 10209,
             'shd': 10201,
-            'hd': 10202,
+            'hd': 10212,
             'sd': 10203
         },
         QQVideoPlatforms.P10801: {
@@ -225,13 +225,13 @@ class QQVideoVC(VideoConfig):
 
                 if json_path_get(data, ['vl', 'vi', 0, 'drm']) == 0:  # DRM-free only, for now
                     # pick the best matched definition from available formats
-                    formats = [fmt.get('name') for fmt in json_path_get(data, ['fl', 'fi'], [])]
+                    formats = {fmt.get('name'): fmt.get('id') for fmt in json_path_get(data, ['fl', 'fi'], [])}
                     if definition not in formats:
                         for definition in self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10901]:
                             if definition in formats:
                                 break
 
-                    format_id = self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10901][definition]
+                    format_id = formats.get(definition) or self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10901][definition]
                     vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
                     vfn = vfilename.split('.')  # e.g. ['egmovie', 'p201', 'mp4']
                     if len(vfn) != 3:
