@@ -8,7 +8,7 @@ import logging
 from certifi import where
 
 from .commons import VIDEO_DEFINITIONS
-from .commons import VideoTypeCodes as VIDEO_TYPES
+from .commons import VideoTypes
 from .sites import get_all_sites_vcs
 from .utils import requests_retry_session
 from .utils import logging_with_pipe
@@ -79,7 +79,7 @@ class MDownloader(object):
         if video_list:
             cover_name = '.'.join([configinfo.get('title') if configinfo.get('title') else configinfo['source_name'] + '_' + configinfo.get('cover_id', ''),
                                    configinfo.get('year', '1900')])
-            cover_default_dir = '.'.join([cover_name, configinfo.get('type', VIDEO_TYPES.MOVIE).value])
+            cover_default_dir = '.'.join([cover_name, configinfo.get('type', VideoTypes.MOVIE)])
             cover_dir = os.path.abspath(os.path.join(savedir, cover_default_dir))
 
             urls = []  # URLs file info for aria2c
@@ -92,9 +92,9 @@ class MDownloader(object):
                 if vi.get('defns') and any(vi['defns'].values()):
                     if not (defn and vi['defns'].get(defn)):
                         defn = pick_highest_definition(vi['defns'])
-                    if configinfo['type'] == VIDEO_TYPES.MOVIE and ep_num == 1:
+                    if configinfo['type'] == VideoTypes.MOVIE and ep_num == 1:
                         episode_default_dir = '.'.join([cover_name, 'WEBRip', configinfo['source_name'] + '_' + defn])
-                    else:  # VIDEO_TYPES.TV or (VIDEO_TYPES.MOVIE and ep_num > 1)
+                    else:  # VideoTypes.TV or (VideoTypes.MOVIE and ep_num > 1)
                         episode_default_dir = '.'.join([cover_name, 'EP' + '{:02}'.format(vi['E']), 'WEBRip',
                                                         configinfo['source_name'] + '_' + defn])
                     episode_dir = os.path.join(cover_dir, episode_default_dir)

@@ -3,14 +3,14 @@ import re
 import random
 import string
 
-from ..commons import VideoTypeCodes as VIDEO_TYPES
+from ..commons import VideoTypeCodes, VideoTypes
 from ..videoconfig import VideoConfig
 from ..utils import json_path_get, build_cookiejar_from_kvp
 
 
 class QQVideoPlatforms:
-    P10901 = 11
-    P10801 = '10801'
+    P10901 = '11'
+    P10801 = '10801'  # '10601'
 
 
 class QQVideoVC(VideoConfig):
@@ -30,17 +30,36 @@ class QQVideoVC(VideoConfig):
     # _VIP_TOKEN = {}
 
     _VQQ_TYPE_CODES = {
-        1: VIDEO_TYPES.MOVIE,
-        2: VIDEO_TYPES.TV,
-        3: VIDEO_TYPES.TV
-        # default: VideoTypes.TV
+        VideoTypeCodes.MOVIE: VideoTypes.MOVIE,
+        VideoTypeCodes.TV: VideoTypes.TV,
+        VideoTypeCodes.CARTOON: VideoTypes.CARTOON,
+        VideoTypeCodes.SPORTS: VideoTypes.SPORTS,
+        VideoTypeCodes.ENTMT: VideoTypes.ENTMT,
+        VideoTypeCodes.GAME: VideoTypes.GAME,
+        VideoTypeCodes.DOCU: VideoTypes.DOCU,
+        VideoTypeCodes.VARIETY: VideoTypes.VARIETY,
+        VideoTypeCodes.MUSIC: VideoTypes.MUSIC,
+        VideoTypeCodes.NEWS: VideoTypes.NEWS,
+        VideoTypeCodes.FINANCE: VideoTypes.FINANCE,
+        VideoTypeCodes.FASHION: VideoTypes.FASHION,
+        VideoTypeCodes.TRAVEL: VideoTypes.TRAVEL,
+        VideoTypeCodes.EDUCATION: VideoTypes.EDUCATION,
+        VideoTypeCodes.TECH: VideoTypes.TECH,
+        VideoTypeCodes.AUTO: VideoTypes.AUTO,
+        VideoTypeCodes.HOUSE: VideoTypes.HOUSE,
+        VideoTypeCodes.LIFE: VideoTypes.LIFE,
+        VideoTypeCodes.FUN: VideoTypes.FUN,
+        VideoTypeCodes.BABY: VideoTypes.BABY,
+        VideoTypeCodes.CHILD: VideoTypes.CHILD,
+        VideoTypeCodes.ART: VideoTypes.ART
+        # default: VideoTypes.MOVIE
     }
 
     _VQQ_FORMAT_IDS_DEFAULT = {
         QQVideoPlatforms.P10901: {
             'fhd': 10209,
             'shd': 10201,
-            'hd': 10212,
+            'hd': 10202,
             'sd': 10203
         },
         QQVideoPlatforms.P10801: {
@@ -59,7 +78,8 @@ class QQVideoVC(VideoConfig):
 
         self._COVER_PAT_RE = re.compile(r"var\s+COVER_INFO\s*=\s*(.+?);?var\s+COLUMN_INFO",
                                         re.MULTILINE | re.DOTALL | re.IGNORECASE)
-        self._VIDEO_INFO_RE = re.compile(r"var\s+VIDEO_INFO\s*=\s*(.+?);?</script>|\"videoInfo\"\s*:\s*({.+?})",
+        self._VIDEO_INFO_RE = re.compile(r"var\s+VIDEO_INFO\s*=\s*(.+?);?</script>"
+                                         r"|\"storeEpisodeSinglePlay\".+?\"item_params\"\s*:\s*({.+?})",
                                          re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._VIDEO_COVER_PREFIX = 'https://v.qq.com/x/cover/'
 
@@ -287,18 +307,16 @@ class QQVideoVC(VideoConfig):
             except json.JSONDecodeError:
                 return result
             if cover_info and isinstance(cover_info, dict):
-                info['title'] = cover_info.get('title', '') or cover_info.get('c_title_output', '')
+                info['title'] = cover_info.get('title', '') or cover_info.get('title_new', '')
                 info['year'] = cover_info.get('year', '1900')
                 info['cover_id'] = cover_info.get('cover_id', self._gen_default_cover_id())
 
-                video_type = cover_info.get('typeid', 0)
-                if video_type == 0:
-                    video_type = cover_info.get('video_type', 0)
-                info['type'] = self._VQQ_TYPE_CODES.get(video_type, VIDEO_TYPES.MOVIE)
+                type_id = int(cover_info.get('type') or VideoTypeCodes.MOVIE)
+                info['type'] = self._VQQ_TYPE_CODES.get(type_id, VideoTypes.MOVIE)
 
                 video_id = cover_info.get('vid')
                 if video_id is None:
-                    normal_ids = cover_info.get('nomal_ids', [])
+                    normal_ids = cover_info.get('nomal_ids') or []
 
                     for cnt, vi in enumerate(normal_ids, start=1):
                         # del vi['F']
@@ -363,7 +381,9 @@ class QQVideoVC(VideoConfig):
                 else:  # typ == 4 'video_page'
                     video_id = match.group(1)
                     cover_info = self.get_cover_info(videourl)
-                    cover_info['normal_ids'] = [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id]
+                    cover_info['normal_ids'] = \
+                        [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id] if cover_info['normal_ids'] else \
+                        [{"V": video_id, "E": 1}]
                     break
 
         return cover_info

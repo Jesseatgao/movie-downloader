@@ -9,7 +9,7 @@ from math import floor as math_floor
 # from requests.cookies import RequestsCookieJar
 
 from ..videoconfig import VideoConfig
-from ..commons import VideoTypeCodes
+from ..commons import VideoTypes
 from ..utils import json_path_get
 
 
@@ -186,7 +186,7 @@ class M1905VC(VideoConfig):
                 if episode_info:
                     conf_info["title"] = episode_info["title"]
                     conf_info["year"] = episode_info["year"]
-                    conf_info["type"] = VideoTypeCodes.MOVIE
+                    conf_info["type"] = VideoTypes.MOVIE
                     conf_info["cover_id"] = episode_info["cover_id"]
 
                 break
