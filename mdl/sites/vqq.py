@@ -59,7 +59,7 @@ class QQVideoVC(VideoConfig):
         QQVideoPlatforms.P10901: {
             'fhd': 10209,
             'shd': 10201,
-            'hd': 10212,
+            'hd': 10212,  # 10202
             'sd': 10203
         },
         QQVideoPlatforms.P10801: {
@@ -71,7 +71,8 @@ class QQVideoVC(VideoConfig):
     }
 
     _VQQ_FMT2DEFN_MAP = {10209: 'fhd', 10201: 'shd', 10212: 'hd', 10203: 'sd',
-                         321004: 'fhd', 321003: 'shd', 321002: 'hd', 321001: 'sd'}
+                         321004: 'fhd', 321003: 'shd', 321002: 'hd', 321001: 'sd',
+                         320090: 'hd', 320089: 'sd'}
 
     def __init__(self, requester, args, confs):
         super().__init__(requester, args, confs)
@@ -143,11 +144,11 @@ class QQVideoVC(VideoConfig):
                 chosen_url_prefixes += cdn
 
                 if json_path_get(data, ['vl', 'vi', 0, 'drm']) == 0:  # DRM-free only, for now
+                    formats = {fmt.get('id'): fmt.get('name') for fmt in json_path_get(data, ['fl', 'fi'], [])}
                     keyid = json_path_get(data, ['vl', 'vi', 0, 'keyid'], '')
-                    ret_defn = self._VQQ_FMT2DEFN_MAP.get(int(keyid.split('.')[-1]))  # not necessarily equal to requested `definition`
+                    format_id = int(keyid.split('.')[-1])
+                    ret_defn = formats.get(format_id) or self._VQQ_FMT2DEFN_MAP.get(format_id)  # not necessarily equal to requested `definition`
 
-                    # format_id = fmt_info.get('id',
-                    #                          self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10801][definition])
                     vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
                     vfn = vfilename.rpartition('.')  # e.g. ['egmovie.321003', '.', 'ts']
 

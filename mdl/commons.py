@@ -7,7 +7,7 @@ VIDEO_DEFINITIONS = {'fhd': '1080P', 'shd': '720P', 'hd': '480P', 'sd': '270P'} 
 
 
 class VideoTypes:
-    MOVIE = "Mov"
+    MOVIE = "MOV"
     TV = "TV"
     CARTOON = "Cartoon"
     SPORTS = "Sports"
