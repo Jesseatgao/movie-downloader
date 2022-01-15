@@ -18,6 +18,9 @@ class VideoConfig(object):
                        https=confs[self.VC_NAME]['proxy'])
         self._requester.proxies = proxies
 
+        # set default user agent
+        self._requester.headers.update({'User-Agent': confs[self.VC_NAME]['user_agent']})
+
     @classmethod
     def is_url_valid(cls, url):
         for pat in cls._VIDEO_URL_PATS:

@@ -17,6 +17,15 @@ from requests import Session
 from clint.textui import progress
 
 
+ILLEGAL_FILENAME_CHARS = (' ', '#', '%', '&', '{', '}', '\\', '<', '>', '*', '?', '/', '$', '!', '\'', '"', ':', '@', '+', '`', '|', '=')
+
+
+def normalize_filename(fn, repl='_'):
+    norm = [c if c not in ILLEGAL_FILENAME_CHARS else repl for c in fn]
+
+    return ''.join(norm)
+
+
 def retry(exceptions, tries=10, backoff_factor=0.1, logger=None):
     """
     Retry calling the decorated function using an exponential backoff.

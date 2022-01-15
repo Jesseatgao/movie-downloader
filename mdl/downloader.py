@@ -10,8 +10,7 @@ from certifi import where
 from .commons import VIDEO_DEFINITIONS
 from .commons import VideoTypes
 from .sites import get_all_sites_vcs
-from .utils import requests_retry_session
-from .utils import logging_with_pipe
+from .utils import requests_retry_session, logging_with_pipe, normalize_filename
 
 
 cert_path = where()
@@ -79,6 +78,7 @@ class MDownloader(object):
         if video_list:
             cover_name = '.'.join([configinfo.get('title') if configinfo.get('title') else configinfo['source_name'] + '_' + configinfo.get('cover_id', ''),
                                    configinfo.get('year', '1900')])
+            cover_name = normalize_filename(cover_name, repl='_')
             cover_default_dir = '.'.join([cover_name, configinfo.get('type', VideoTypes.MOVIE)])
             cover_dir = os.path.abspath(os.path.join(savedir, cover_default_dir))
 
@@ -114,7 +114,7 @@ class MDownloader(object):
             urllist = '\n'.join(urls)
 
             aria2c = self.confs['progs']['aria2c']
-            user_agent = 'Mozilla/5.0 (Linux; U; Android 2.3.7; zh-cn) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1'
+            user_agent = self.confs[configinfo['vc_name']]['user_agent']
             proxy = self.confs[configinfo['vc_name']]['proxy'] \
                 if self.confs[configinfo['vc_name']]['enable_proxy_dl_video'].lower() == "true" else ''
 
@@ -194,7 +194,7 @@ class MDownloader(object):
                 episode_name = episode_name.rpartition('.')[0] + '.mkv'
 
                 mkvmerge = self.confs['progs']['mkvmerge']
-                cmd = [mkvmerge, '-o', episode_name] + ' + '.join(flist).split()
+                cmd = [mkvmerge, '-o', episode_name, '['] + flist + [']']
                 try:
                     with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
                         with subprocess.Popen(cmd, bufsize=1, universal_newlines=True, encoding='utf-8',
