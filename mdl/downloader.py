@@ -57,10 +57,10 @@ class MDownloader(object):
             return None
 
     def dwnld_videos_with_aria2(self, configinfo, savedir='.', defn=None):
-        '''
+        """
         :return:
         (abs_cover_dir, [(abs_episode1_dir, [fname1.1.mp4, fname1.2.mp4]),(abs_episode2_dir, [fname2.1.mp4, fname2.2.mp4])])
-        '''
+        """
 
         def pick_highest_definition(defns):
             for definition in VIDEO_DEFINITIONS:
@@ -117,12 +117,13 @@ class MDownloader(object):
             user_agent = self.confs[configinfo['vc_name']]['user_agent']
             proxy = self.confs[configinfo['vc_name']]['proxy'] \
                 if self.confs[configinfo['vc_name']]['enable_proxy_dl_video'].lower() == "true" else ''
+            referer = configinfo['referrer']
 
             cmd_aria2c = [aria2c, '-c', '-j5', '-k128K', '-s128', '-x128', '--max-file-not-found=5000', '-m0',
                           '--retry-wait=5', '--lowest-speed-limit=100K', '--no-conf', '-i-', '--console-log-level=warn',
                           '--download-result=hide', '--summary-interval=0', '--uri-selector=adaptive',
-                          '--ca-certificate', cert_path, '--retry-on-400=true', '--retry-on-403=true',
-                          '--retry-on-406=true', '--retry-on-unknown=true', '-U', user_agent, '--all-proxy', proxy]
+                          '--referer', referer, '--ca-certificate', cert_path, '-U', user_agent, '--all-proxy', proxy,
+                          '--retry-on-400=true', '--retry-on-403=true', '--retry-on-406=true', '--retry-on-unknown=true']
             try:
                 with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
                     with subprocess.Popen(cmd_aria2c, bufsize=1, universal_newlines=True, encoding='utf-8',
@@ -152,7 +153,7 @@ class MDownloader(object):
             if suffix in ['.ts', '.mpg', '.mpeg']:
                 if suffix == '.ts':
                     episode_name = episode_name.rpartition('.')[0] + '.mp4'
-                """
+                '''
                 with tempfile.TemporaryFile(mode='w+b', suffix=suffix, dir=coverdir) as tmpf:
                     for fn in fnames:
                         with open(os.path.join(episodedir, fn), 'rb') as f:
@@ -162,7 +163,7 @@ class MDownloader(object):
 
                     cmd = ['ffmpeg', '-y', '-i', 'pipe:0', '-safe', '0', '-c', 'copy', '-hide_banner', episode_name]
                     proc = subprocess.run(cmd, input=tmpf.read())
-                """
+                '''
                 ffmpeg = self.confs['progs']['ffmpeg']
                 cmd = [ffmpeg, '-y', '-i', 'pipe:0', '-safe', '0', '-c', 'copy', '-hide_banner', episode_name]
                 try:
@@ -214,54 +215,3 @@ class MDownloader(object):
                     shutil.rmtree(episode_dir, ignore_errors=True)
                 else:
                     self._logger.error('Join videos failed! <{}>'.format(episode_dir))
-
-
-    '''
-    def dwnld_video_with_progressbar(self, url, fn):
-        resp = requests.get(url, allow_redirects=True, stream=True)
-        if resp.status_code == 200:
-            try:
-                with open(fn, 'wb') as f:
-                    total_length = resp.headers.get('content-length')
-                    if total_length:
-                        dl = 0
-                        total_length = int(total_length)
-                        for data in resp.iter_content(chunk_size=4096):
-                            dl += len(data)
-                            f.write(data)
-                            done = int(50 * dl / total_length)
-                            sys.stdout.write("\r[%s%s] %d/%d" % ('=' * done, ' ' * (50 - done), dl, total_length))
-                            sys.stdout.flush()
-                    else:  # no content length header
-                        f.write(resp.content)
-    
-            except OSError as e:
-                print('File error: {}. {}'.format(fn, e))  # logging
-    
-    
-    def dwnld_videos_with_requests(self, coverinfo, savedir='.'):
-        cover_dir = os.path.join(savedir, coverinfo['default_dir'])
-        try:
-            os.mkdir(cover_dir)
-        except FileExistsError:
-            pass
-    
-        for vi in coverinfo['normal_ids']:
-            if vi['defns']:
-                defn = vi['defns'][0]  # Highest definition
-                episode_dir = os.path.join(cover_dir, vi['default_dir'][defn])
-                try:
-                    os.mkdir(episode_dir)
-                except FileExistsError:
-                    pass
-    
-                for url in vi[defn]:
-                    match = re.search(r'/([a-zA-Z0-9\.]+)\?', url)
-                    if match:
-                        fn = match.group(1)
-                    else:
-                        continue  # logging, shouldn't go here
-    
-                    fn = os.path.join(episode_dir, fn)
-                    dwnld_video_with_progressbar(url, fn)
-    '''

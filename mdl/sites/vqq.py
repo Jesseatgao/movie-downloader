@@ -336,6 +336,7 @@ class QQVideoVC(VideoConfig):
 
     def get_cover_info(self, cover_url):
         """"{
+        "referrer": "https://v.qq.com/x/cover/nhtfh14i9y1egge.html",
         "title":"" ,
         "year":"",
         "type":VideoTypes.TV,
@@ -361,6 +362,9 @@ class QQVideoVC(VideoConfig):
             else:
                 info, _ = self._extract_video_cover_info(self._VIDEO_INFO_RE, r.text)
 
+        if info:
+            info['referrer'] = cover_url  # set the Referer to the address of the cover web page
+
         return info
 
     def get_video_info(self, videourl):
@@ -381,14 +385,16 @@ class QQVideoVC(VideoConfig):
                     video_id = match.group(2)
                     cover_url = self._VIDEO_COVER_PREFIX + cover_id + '.html'
                     cover_info = self.get_cover_info(cover_url)
-                    cover_info['normal_ids'] = [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id]
+                    if cover_info:
+                        cover_info['normal_ids'] = [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id]
                     break
                 else:  # typ == 4 'video_page'
                     video_id = match.group(1)
                     cover_info = self.get_cover_info(videourl)
-                    cover_info['normal_ids'] = \
-                        [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id] if cover_info['normal_ids'] else \
-                        [{"V": video_id, "E": 1}]
+                    if cover_info:
+                        cover_info['normal_ids'] = \
+                            [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id] if cover_info['normal_ids'] else \
+                            [{"V": video_id, "E": 1}]
                     break
 
         return cover_info
@@ -396,8 +402,10 @@ class QQVideoVC(VideoConfig):
     def update_video_dwnld_info(self, coverinfo):
         """"
         {
+            "referrer": "https://v.qq.com/x/cover/nhtfh14i9y1egge.html",
             "title": "李师师",
             "year": "1989",
+            "type": VideoTypes.TV,
             "cover_id": "nhtfh14i9y1egge",
             "normal_ids": [{
                 "V": "d00249ld45q",
@@ -449,50 +457,3 @@ class QQVideoVC(VideoConfig):
             self.update_video_dwnld_info(config_info)
 
         return config_info
-
-
-"""
-def dump_videos_urls2files(coverinfo):
-    """"""
-    cover_dir = (coverinfo['title'] or '') + '_' + (coverinfo['year'] or '') + '_' + coverinfo['cover_id']
-    try:
-        os.mkdir(cover_dir)
-    except FileExistsError:
-        pass
-
-    for vi in coverinfo['normal_ids']:
-        for defn in ('fhd', 'shd', 'hd', 'sd'):
-            if defn in vi['defns']:
-                episode_fn = '_'.join(['ep' + "{:02}".format(vi['E']), vi['V'], defn])
-                # episode_fn += '.txt'
-                try:
-                    with open('/'.join([cover_dir, episode_fn]), mode='wt') as f:
-                        fns = []
-                        f.write('URLs:\n\n')
-                        for url in vi[defn]:
-                            f.write(url)
-                            f.write('\n')
-
-                            match = re.search(r'/([a-zA-Z0-9\.]+)\?', url)
-                            if match:
-                                fn = match.group(1)
-                                fns.append(fn)
-
-                        if len(fns) >= 1:
-                            cmd_str = 'mp4box -add ' + fns[0]
-                            ext = fns[0].split('.')[-1]
-
-                            for i in range(1, len(fns)):
-                                cmd_str += ' -cat ' + fns[i]
-                            cmd_str += ' ' + episode_fn + '.' + ext
-
-                            f.write('\n\nJoiner:\n\n')
-                            f.write(cmd_str)
-
-                except FileExistsError:
-                    pass
-
-                break
-
-"""
-

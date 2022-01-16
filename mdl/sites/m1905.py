@@ -188,6 +188,7 @@ class M1905VC(VideoConfig):
                     conf_info["year"] = episode_info["year"]
                     conf_info["type"] = VideoTypes.MOVIE
                     conf_info["cover_id"] = episode_info["cover_id"]
+                    conf_info["referrer"] = url
 
                 break
 
@@ -232,7 +233,7 @@ class M1905VC(VideoConfig):
 
                 if host and sign and path:
                     playlist_m3u8 = (host + sign + path).replace('\\', '')
-                    break  # FIXME: CLI specific defn
+                    break
 
             if playlist_m3u8:
                 try:
