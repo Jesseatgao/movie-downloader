@@ -99,6 +99,9 @@ class QQVideoVC(VideoConfig):
         no_logo = args.QQVideo_no_logo or confs[self.VC_NAME]['no_logo'] or no_logo_default
         self.no_logo = True if no_logo.lower() == 'true' else False
 
+        cdn_blacklist = confs[self.VC_NAME].get('cdn_blacklist')
+        self.cdn_blacklist = tuple(cdn_blacklist.split()) if cdn_blacklist else ()
+
         self.preferred_defn = confs[self.VC_NAME]['definition']
 
     # @classmethod
@@ -132,7 +135,7 @@ class QQVideoVC(VideoConfig):
                 for url_dic in json_path_get(data, ['vl', 'vi', 0, 'ul', 'ui'], []):
                     if isinstance(url_dic, dict):
                         url = url_dic.get('url')
-                        if url:
+                        if url and not url.startswith(self.cdn_blacklist):
                             url_prefixes.append(url)
 
                 chosen_url_prefixes = [prefix for prefix in url_prefixes if prefix[:prefix.find('/', 8)].endswith('.tc.qq.com')]
@@ -216,7 +219,7 @@ class QQVideoVC(VideoConfig):
                 for url_dic in json_path_get(data, ['vl', 'vi', 0, 'ul', 'ui'], []):
                     if isinstance(url_dic, dict):
                         url = url_dic.get('url')
-                        if url:
+                        if url and not url.startswith(self.cdn_blacklist):
                             url_prefixes.append(url)
 
                 chosen_url_prefixes = [prefix for prefix in url_prefixes if
