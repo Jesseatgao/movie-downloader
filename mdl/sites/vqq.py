@@ -147,10 +147,18 @@ class QQVideoVC(VideoConfig):
                 chosen_url_prefixes += cdn
 
                 if json_path_get(data, ['vl', 'vi', 0, 'drm']) == 0:  # DRM-free only, for now
-                    formats = {fmt.get('id'): fmt.get('name') for fmt in json_path_get(data, ['fl', 'fi'], [])}
+                    formats = {str(fmt.get('id')): fmt.get('name') for fmt in json_path_get(data, ['fl', 'fi'], [])}
                     keyid = json_path_get(data, ['vl', 'vi', 0, 'keyid'], '')
-                    format_id = int(keyid.split('.')[-1])
-                    ret_defn = formats.get(format_id) or self._VQQ_FMT2DEFN_MAP.get(format_id)  # not necessarily equal to requested `definition`
+                    format_id = keyid.split('.')[-1]
+                    ret_defn = formats.get(format_id)  # not necessarily equal to requested `definition`
+                    if not ret_defn:
+                        # determine the definition from the returned formats
+                        fmt_names = list(formats.values())
+                        if definition not in fmt_names:
+                            for definition in self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10801]:
+                                if definition in fmt_names:
+                                    break
+                        ret_defn = definition
 
                     vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
                     vfn = vfilename.rpartition('.')  # e.g. ['egmovie.321003', '.', 'ts']
