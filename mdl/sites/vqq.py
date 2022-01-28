@@ -264,7 +264,7 @@ class QQVideoVC(VideoConfig):
                             keyid_new[1] = vfmt_new
                             keyid_new = '.'.join(keyid_new)
                         else:
-                            keyid_new = keyid_new[0]
+                            keyid_new = '.'.join(vfn[:-1])
                         cfilename = keyid_new + '.' + ext
                         params = {
                             'otype': 'json',
