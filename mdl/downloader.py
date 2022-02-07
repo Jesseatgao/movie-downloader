@@ -117,11 +117,17 @@ class MDownloader(object):
             user_agent = self.confs[configinfo['vc_name']]['user_agent']
             proxy = self.confs[configinfo['vc_name']]['proxy'] \
                 if self.confs[configinfo['vc_name']]['enable_proxy_dl_video'].lower() == "true" else ''
+            mcd = self.confs[configinfo['vc_name']]['max_concurrent_downloads']
+            mss = self.confs[configinfo['vc_name']]['min_split_size']
+            split = self.confs[configinfo['vc_name']]['split']
+            mcps = self.confs[configinfo['vc_name']]['max_connection_per_server']
+            retry_wait = self.confs[configinfo['vc_name']]['retry_wait']
+            speed_limit = self.confs[configinfo['vc_name']]['lowest_speed_limit']
             referer = configinfo['referrer']
 
-            cmd_aria2c = [aria2c, '-c', '-j5', '-k128K', '-s128', '-x128', '--max-file-not-found=5000', '-m0',
-                          '--retry-wait=5', '--lowest-speed-limit=100K', '--no-conf', '-i-', '--console-log-level=warn',
-                          '--download-result=hide', '--summary-interval=0', '--uri-selector=adaptive',
+            cmd_aria2c = [aria2c, '-c', '-j', mcd,  '-k', mss, '-s', split, '-x', mcps, '--max-file-not-found=5000', '-m0',
+                          '--retry-wait', retry_wait, '--lowest-speed-limit', speed_limit, '--no-conf', '-i-',
+                          '--console-log-level=warn', '--download-result=hide', '--summary-interval=0', '--uri-selector=adaptive',
                           '--referer', referer, '--ca-certificate', cert_path, '-U', user_agent, '--all-proxy', proxy,
                           '--retry-on-400=true', '--retry-on-403=true', '--retry-on-406=true', '--retry-on-unknown=true']
             try:
