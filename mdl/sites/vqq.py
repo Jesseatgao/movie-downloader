@@ -152,6 +152,7 @@ class QQVideoVC(VideoConfig):
                     chosen_url_prefixes += cdn
 
                 drm = json_path_get(data, ['vl', 'vi', 0, 'drm'])
+                preview = data.get('preview')
 
                 formats = {str(fmt.get('id')): fmt.get('name') for fmt in json_path_get(data, ['fl', 'fi'], [])}
                 keyid = json_path_get(data, ['vl', 'vi', 0, 'keyid'], '')
@@ -174,6 +175,9 @@ class QQVideoVC(VideoConfig):
                 start = 0 if fc == 0 else 1  # start counting number of the video clip file indexes
 
                 if ext == 'ts':
+                    if drm == 1 and not preview and not self.has_vip:
+                        return format_name, ext, urls
+
                     for idx in range(start, fc + 1):
                         vfilename_new = '.'.join([vfn[0], str(idx), 'ts'])
                         url_mirrors = '\t'.join(
@@ -465,8 +469,7 @@ class QQVideoVC(VideoConfig):
         }
         """
         for vi in coverinfo['normal_ids']:
-            if vi.get('defns') is None:
-                vi['defns'] = {}
+            vi.setdefault('defns', {})
 
             format_name, ext, urls = self.get_video_urls(vi['V'], self.preferred_defn)
             if format_name:  # may not be same as preferred definition

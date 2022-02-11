@@ -43,7 +43,7 @@ setup(
     cmdclass=cmd_classes,
     entry_points={
         'console_scripts': [
-            'download_3rd_parties = mdl.third_parties:download_3rd_parties',
+            'mdl_3rd_parties = mdl.third_parties:download_3rd_parties',
             'mdl = mdl:main'
         ],
         'distutils.commands': [

@@ -50,6 +50,7 @@ class MDownloader(object):
             if config_info:
                 config_info["source_name"] = vcc.SOURCE_NAME
                 config_info["vc_name"] = vcc.VC_NAME
+                config_info['url'] = url
             return config_info
         else:
             # check site domain name against URL
@@ -113,6 +114,10 @@ class MDownloader(object):
 
             urllist = '\n'.join(urls)
 
+            if not urllist:
+                self._logger.warning("No files to download for '{}'.".format(configinfo['url']))
+                return "", []
+
             aria2c = self.confs['progs']['aria2c']
             user_agent = self.confs[configinfo['vc_name']]['user_agent']
             proxy = self.confs[configinfo['vc_name']]['proxy'] \
@@ -142,7 +147,7 @@ class MDownloader(object):
             if not proc.returncode:
                 return cover_dir, episodes
         else:
-            self._logger.warning("No files to download.")
+            self._logger.warning("No files to download for '{}'.".format(configinfo['url']))
 
         return "", []
 

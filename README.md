@@ -31,11 +31,11 @@ A fast movie downloader using Aria2
     
         i686 32-bit version:
     
-        https://ffmpeg.zeranoe.com/builds/win32/static/ffmpeg-4.2.2-win32-static.zip
+        https://www.videohelp.com/download/ffmpeg-4.2.2-win32-static.zip
         
         x86_64 64-bit version:
         
-        https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-4.2.2-win64-static.zip
+        https://www.videohelp.com/download/ffmpeg-4.2.2-win64-static.zip
     * For Linux:
     
         i686 32-bit version:
@@ -74,7 +74,7 @@ Step 1: install core parsing modules
 Step 2: get and install third-party dependency programs
 * Automatically
 
-  `download_3rd_parties [--proxy {http|socks5}://[user:password@]host:port]`
+  `mdl_3rd_parties [--proxy {http|socks5}://[user:password@]host:port]`
 
 * Manually
 
@@ -86,7 +86,7 @@ Step 2: get and install third-party dependency programs
      [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-L {debug,info,warning,error,critical}]
      url [url ...]`
      
-**Explanation**:
+**Description**:
 
 `-D DIR`: specify _DIR_ to save downloaded videos.
 
