@@ -8,8 +8,8 @@ import zipfile
 import tarfile
 from distutils.dir_util import copy_tree, remove_tree
 
-from bdownload import BDownloader
-from bdownload.cli import install_signal_handlers
+from bdownload.download import BDownloader, BDownloaderException
+from bdownload.cli import install_signal_handlers, ignore_termination_signals
 
 
 MOD_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -152,21 +152,30 @@ def download(**kwargs):
     urls = [progs_conf[prog][system][bitness]['url'] for prog in progs_name]
     pkgs_urls = list(zip(pkgs_full_path, urls))
 
-    succeeded, failed = [], []
-    try:
-        with BDownloader(referrer='*', **kwargs) as downloader:
-            install_signal_handlers(downloader)
-            downloader.downloads(pkgs_urls)
-            succeeded, failed = downloader.wait_for_all()
-    except (Exception, KeyboardInterrupt) as e:
-        LOGGER.error("Download file(s) failed. {!r}".format(e))
-        sys.exit(-1)
+    ignore_termination_signals()
+    downloader = BDownloader(referrer='*', **kwargs)
+    install_signal_handlers(downloader)
 
+    try:
+        downloader.downloads(pkgs_urls)
+    except BDownloaderException as e:
+        LOGGER.error(str(e))
+
+    downloader.wait_for_all()
+    downloader.close()
+
+    succeeded, failed = downloader.results()
     if succeeded:
         LOGGER.info('Succeeded in downloading: {!r}'.format(succeeded))
     if failed:
         LOGGER.error('Failed to download: {!r}'.format(failed))
-        sys.exit(-1)
+
+    result = downloader.result()
+    if not result:
+        LOGGER.info("Downloading 3rd-party files has succeeded.")
+    else:
+        LOGGER.error("Downloading 3rd-party files has failed.")
+        sys.exit(result)
 
 
 def extract():

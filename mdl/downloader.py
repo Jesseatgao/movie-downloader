@@ -6,11 +6,12 @@ import errno
 import logging
 
 from certifi import where
+from bdownload.download import requests_retry_session
 
 from .commons import VIDEO_DEFINITIONS
 from .commons import VideoTypes
 from .sites import get_all_sites_vcs
-from .utils import requests_retry_session, logging_with_pipe, normalize_filename
+from .utils import logging_with_pipe, normalize_filename
 
 
 cert_path = where()

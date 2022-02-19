@@ -14,12 +14,15 @@ class VideoConfig(object):
         self._logger = logging.getLogger(logger_name)
 
         # set proxy
-        proxies = dict(http=confs[self.VC_NAME]['proxy'],
-                       https=confs[self.VC_NAME]['proxy'])
-        self._requester.proxies = proxies
+        proxy = confs[self.VC_NAME]['proxy']
+        if proxy:
+            proxies = dict(http=proxy, https=proxy)
+            self._requester.proxies = proxies
 
         # set default user agent
-        self._requester.headers.update({'User-Agent': confs[self.VC_NAME]['user_agent']})
+        user_agent = confs[self.VC_NAME]['user_agent']
+        if user_agent:
+            self._requester.headers.update({'User-Agent': user_agent})
 
     @classmethod
     def is_url_valid(cls, url):
