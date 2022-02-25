@@ -94,7 +94,7 @@ Step 2: get and install third-party dependency programs
 
 `-p PROXY`: specify the proxy server _PROXY_ (in the form of `{http|socks5}://[user:password@]host:port`)
     used to get web pages or download videos (if configured in `conf/dlops.conf`).
-    
+
 `--QQVideo-no-logo {True,False}`: indicate whether we're trying to download no-watermarked QQVideos or not.
 
 `-A ARIA2C`: specify the absolute path to `aria2c` executable, which takes precedence over the configuration in `conf/misc.conf`
@@ -102,10 +102,10 @@ Step 2: get and install third-party dependency programs
 
 `-F FFMPEG`: specify the absolute path to `ffmpeg` executable, which takes precedence over the configuration in `conf/misc.conf`
     and the hard-coded fallback path `third_parties/ffmpeg/ffmpeg[.exe]`.
-    
+
 `-M MKVMERGE`: specify the absolute path to `mkvmerge` executable, which takes precedence over the configuration in `conf/misc.conf`
     and the hard-coded fallback path `third_parties/mkvtoolnix/mkvmerge[.exe]`.
-    
+
 `-L {debug,info,warning,error,critical}`: specify logging level.
 
-`url [url ...]`: one or more video web page URLs 
+`url [url ...]`: one or more web page URLs of video episodes, cover and playlist.

@@ -117,7 +117,7 @@ class M1905VC(VideoConfig):
         """
 
         :param cvurl:
-        :return: "1983", {"sd": "https://t.com", "hd": "https://u.com"}
+        :returns: "1983", {"sd": "https://t.com", "hd": "https://u.com"}.
         """
         year = ""
         defns = {
@@ -145,57 +145,58 @@ class M1905VC(VideoConfig):
 
         return year, urls
 
-    def _get_video_info(self, url):
-        conf_info = None
+    def get_video_info(self, url):
+        cover_info = None
         episode_info = None
 
         for typ, pat in enumerate(self._VIDEO_URL_PATS, 1):
             match = pat['cpat'].match(url)
             if match:
-                conf_info = {}
-                # conf_info["normal_ids"] = []
+                cover_info = {}
                 if typ == 1:  # 'video_episode_sd'
                     episode_info = self._get_episode_info_sd(url)
                     if episode_info:
                         year, _ = self._get_cover_info(self._VIDEO_COVER_FORMAT.format(episode_info['cover_id']))
                         episode_info['year'] = year
 
-                        conf_info["normal_ids"] = [dict(V=episode_info['vid'], E=1, vip=False, defns={}, page=url)]
+                        cover_info["normal_ids"] = [dict(V=episode_info['vid'], E=1, vip=False, defns={}, page=url)]
                 elif typ == 2:  # 'video_cover'
                     year, urls_dict = self._get_cover_info(self._VIDEO_COVER_FORMAT.format(match.group(1)))
                     if urls_dict:
-                        conf_info["normal_ids"] = []
+                        cover_info["normal_ids"] = []
                         ep_num = 0
                         if urls_dict.get('sd'):
                             episode_info = self._get_episode_info_sd(urls_dict['sd'])
                             if episode_info:
                                 episode_info['year'] = year
                                 ep_num += 1
-                                conf_info["normal_ids"].append(dict(V=episode_info['vid'], E=ep_num, vip=False, defns={}, page=urls_dict['sd']))
+                                cover_info["normal_ids"].append(dict(V=episode_info['vid'], E=ep_num, vip=False, defns={}, page=urls_dict['sd']))
 
                         if urls_dict.get('hd'):
                             episode_info = self._get_episode_info_hd(urls_dict['hd'])
                             if episode_info:
                                 ep_num += 1
-                                conf_info["normal_ids"].append(dict(V=episode_info['vid'], E=ep_num, vip=True, defns={}, page=urls_dict['hd']))
+                                cover_info["normal_ids"].append(dict(V=episode_info['vid'], E=ep_num, vip=True, defns={}, page=urls_dict['hd']))
                 else:  # video_episode_hd
                     episode_info = self._get_episode_info_hd(url)
                     if episode_info:
-                        conf_info["normal_ids"] = [dict(V=episode_info['vid'], E=1, vip=True, defns={}, page=url)]
+                        cover_info["normal_ids"] = [dict(V=episode_info['vid'], E=1, vip=True, defns={}, page=url)]
 
                 if episode_info:
-                    conf_info["title"] = episode_info["title"]
-                    conf_info["year"] = episode_info["year"]
-                    conf_info["type"] = VideoTypes.MOVIE
-                    conf_info["cover_id"] = episode_info["cover_id"]
-                    conf_info["referrer"] = url
+                    cover_info["title"] = episode_info["title"]
+                    cover_info["year"] = episode_info["year"]
+                    cover_info["type"] = VideoTypes.MOVIE
+                    cover_info["cover_id"] = episode_info["cover_id"]
+                    cover_info["referrer"] = url
 
                 break
 
-        return conf_info
+        return cover_info
 
     def _update_video_dwnld_info_sd(self, vi):
-        """vi: item of confinfo['normal_ids']"""
+        """
+        :param vi: item of cover_info['normal_ids'].
+        """
         nonce = math_floor(time.time())
         params = {
             'cid': vi['V'],
@@ -251,8 +252,8 @@ class M1905VC(VideoConfig):
     def _update_video_dwnld_info_hd(self, vi):
         pass
 
-    def _update_video_dwnld_info(self, confinfo):
-        vl = confinfo.get('normal_ids', [])
+    def update_video_dwnld_info(self, cover_info):
+        vl = cover_info.get('normal_ids', [])
         for vi in vl:
             if not vi['vip']:
                 self._update_video_dwnld_info_sd(vi)
@@ -260,8 +261,8 @@ class M1905VC(VideoConfig):
                 self._update_video_dwnld_info_hd(vi)
 
     def get_video_config_info(self, url):
-        conf_info = self._get_video_info(url)
-        if conf_info:
-            self._update_video_dwnld_info(conf_info)
+        cover_info = self.get_video_info(url)
+        if cover_info:
+            self.update_video_dwnld_info(cover_info)
 
-        return conf_info
+        return cover_info

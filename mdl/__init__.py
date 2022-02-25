@@ -19,16 +19,7 @@ LOGGER = build_logger('MDL', os.path.normpath(os.path.join(MOD_DIR, 'log/mdl.log
 def arg_parser():
     parser = ArgumentParser()
 
-    '''
-    url_help_str = """Video URL or cover page URL.
-    e.g.
-      {}
-      {}
-      {}""".format(*[val['eg'] for val in g_video_pat_urls.values()])
-
-    parser.add_argument('url', help=url_help_str)
-    '''
-    parser.add_argument('url', nargs='+', help='')
+    parser.add_argument('url', nargs='+', help='Episode or cover/playlist web page URL(s)')
     parser.add_argument('-D', '--dir', default='', dest='dir', help='path to downloaded videos')
     parser.add_argument('-d', '--definition', default='', dest='definition', choices=['fhd', 'shd', 'hd', 'sd'])
     parser.add_argument('-p', '--proxy', dest='proxy')
@@ -40,8 +31,6 @@ def arg_parser():
     parser.add_argument('-M', '--mkvmerge', dest='mkvmerge', default='', help='path to the mkvmerge executable')
 
     parser.add_argument('-L', '--log-level', dest='log_level', default='', choices=['debug', 'info', 'warning', 'error', 'critical'])
-    # parser.add_argument('-x', '--max-connection-per-server', dest='mcps', default=16)
-    # parser.add_argument('-k', '--min-split-size')
 
     return parser
 
@@ -84,7 +73,8 @@ def parse_3rd_party_progs(args, confs):
                 raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), exe)
     except Exception as e:
         LOGGER.error(str(e))
-        LOGGER.info('For how to get and install Aria2, FFmpeg and MKVToolnix(mkvmerge), please refer to README.md.')
+        LOGGER.info('For how to get and install Aria2, FFmpeg and MKVToolnix(mkvmerge), please refer to README.md.'
+                    'Or simply run "mdl_3rd_parties" from within the Shell')
         sys.exit(-1)
 
     # update config info
@@ -132,12 +122,6 @@ def main():
 
     parse_3rd_party_progs(args, confs)
     parse_dlops_default(args, confs)
-
-    '''
-    if not is_url_valid(args.url):
-        parser.print_help()
-        sys.exit(0)
-    '''
 
     dl = MDownloader(args, confs)
     dl.download(args.url)

@@ -425,7 +425,7 @@ class QQVideoVC(VideoConfig):
 
         return cover_info
 
-    def update_video_dwnld_info(self, coverinfo):
+    def update_video_dwnld_info(self, cover_info):
         """"
         {
             "referrer": "https://v.qq.com/x/cover/nhtfh14i9y1egge.html",
@@ -468,7 +468,7 @@ class QQVideoVC(VideoConfig):
             }]
         }
         """
-        for vi in coverinfo['normal_ids']:
+        for vi in cover_info['normal_ids']:
             vi.setdefault('defns', {})
 
             format_name, ext, urls = self.get_video_urls(vi['V'], self.preferred_defn)
@@ -477,8 +477,8 @@ class QQVideoVC(VideoConfig):
                 vi['defns'].setdefault(format_name, []).append(fmt)
 
     def get_video_config_info(self, url):
-        config_info = self.get_video_info(url)
-        if config_info:
-            self.update_video_dwnld_info(config_info)
+        cover_info = self.get_video_info(url)
+        if cover_info:
+            self.update_video_dwnld_info(cover_info)
 
-        return config_info
+        return cover_info
