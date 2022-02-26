@@ -145,7 +145,7 @@ class M1905VC(VideoConfig):
 
         return year, urls
 
-    def get_video_info(self, url):
+    def get_cover_info(self, url):
         cover_info = None
         episode_info = None
 
@@ -261,7 +261,7 @@ class M1905VC(VideoConfig):
                 self._update_video_dwnld_info_hd(vi)
 
     def get_video_config_info(self, url):
-        cover_info = self.get_video_info(url)
+        cover_info = self.get_cover_info(url)
         if cover_info:
             self.update_video_dwnld_info(cover_info)
 

@@ -21,9 +21,9 @@ class QQVideoVC(VideoConfig):
         {'pat': r'^https?://v\.qq\.com/detail/([a-zA-Z0-9])/((?:\1)\w+)\.html',
          'eg': 'https://v.qq.com/detail/n/nhtfh14i9y1egge.html'},  # 'video_detail'
         {'pat': r'^https?://v\.qq\.com/x/cover/(\w+)/(\w+)\.html',
-         'eg': 'https://v.qq.com/x/cover/nhtfh14i9y1egge/d00249ld45q.html'}, # 'video_episode'
+         'eg': 'https://v.qq.com/x/cover/nhtfh14i9y1egge/d00249ld45q.html'},  # 'video_episode'
         {'pat': r'^https?://v\.qq\.com/x/page/(\w+)\.html',
-         'eg': 'https://v.qq.com/x/page/d00249ld45q.html'} # 'video_page'
+         'eg': 'https://v.qq.com/x/page/d00249ld45q.html'}  # 'video_page'
     ]
     SOURCE_NAME = "Tencent"
     VC_NAME = "QQVideo"
@@ -90,8 +90,8 @@ class QQVideoVC(VideoConfig):
                 pat['cpat'] = re.compile(pat['pat'], re.IGNORECASE)
 
         # get user tokens/cookies from configuration file
-        self._regular_token = build_cookiejar_from_kvp(confs[self.VC_NAME]['qq_regular_user_token'])
-        self._vip_token = build_cookiejar_from_kvp(confs[self.VC_NAME]['qq_vip_user_token'])
+        self._regular_token = build_cookiejar_from_kvp(confs[self.VC_NAME]['regular_user_token'])
+        self._vip_token = build_cookiejar_from_kvp(confs[self.VC_NAME]['vip_user_token'])
         self.user_token = self._vip_token if self._vip_token else self._regular_token
         self.has_vip = True if self._vip_token else False
 
@@ -112,7 +112,7 @@ class QQVideoVC(VideoConfig):
     # def is_url_valid(cls, url):
     #     return super().is_url_valid(url)
 
-    def get_video_urls_p10801(self, vid, definition):
+    def _get_video_urls_p10801(self, vid, definition):
         urls = []
         ext = None
         format_name = None
@@ -203,13 +203,13 @@ class QQVideoVC(VideoConfig):
                                         ['%s%s/%s' % (prefix, vfilename, line) for prefix in chosen_url_prefixes])
                                     urls.append(url_mirrors)
                     else:
-                        return self.get_video_urls_p10901(vid, definition)
+                        return self._get_video_urls_p10901(vid, definition)
 
                 format_name = ret_defn
 
         return format_name, ext, urls
 
-    def get_video_urls_p10901(self, vid, definition):
+    def _get_video_urls_p10901(self, vid, definition):
         urls = []
         ext = None
         format_name = None
@@ -311,20 +311,11 @@ class QQVideoVC(VideoConfig):
 
         return format_name, ext, urls
 
-    def get_video_urls(self, vid, definition):
+    def _get_video_urls(self, vid, definition):
         if self.no_logo:
-            return self.get_video_urls_p10801(vid, definition)
+            return self._get_video_urls_p10801(vid, definition)
         else:
-            return self.get_video_urls_p10901(vid, definition)
-
-    def _gen_default_cover_id(self):
-        """'coverid000000do'"""
-        random.seed()
-        word_string = string.ascii_lowercase + string.digits
-        cover_id = [random.choice(word_string) for idx in range(8)]
-        cover_id = ''.join(cover_id)
-
-        return 'random_' + cover_id
+            return self._get_video_urls_p10901(vid, definition)
 
     def _extract_video_cover_info(self, regex, text):
         result = (None, None)
@@ -340,7 +331,7 @@ class QQVideoVC(VideoConfig):
             if cover_info and isinstance(cover_info, dict):
                 info['title'] = cover_info.get('title', '') or cover_info.get('title_new', '')
                 info['year'] = cover_info.get('year', '1900')
-                info['cover_id'] = cover_info.get('cover_id', self._gen_default_cover_id())
+                info['cover_id'] = cover_info.get('cover_id', '')
 
                 type_id = int(cover_info.get('type') or VideoTypeCodes.MOVIE)
                 info['type'] = self._VQQ_TYPE_CODES.get(type_id, VideoTypes.MOVIE)
@@ -360,7 +351,7 @@ class QQVideoVC(VideoConfig):
 
         return result
 
-    def get_cover_info(self, cover_url):
+    def _get_cover_info(self, cover_url):
         """"{
         "referrer": "https://v.qq.com/x/cover/nhtfh14i9y1egge.html",
         "title":"" ,
@@ -393,34 +384,37 @@ class QQVideoVC(VideoConfig):
 
         return info
 
-    def get_video_info(self, videourl):
+    def get_cover_info(self, videourl):
         cover_info = None
         for typ, pat in enumerate(self._VIDEO_URL_PATS, 1):
             match = pat['cpat'].match(videourl)
             if match:
                 if typ == 1:  # 'video_cover'
-                    cover_info = self.get_cover_info(videourl)
+                    cover_info = self._get_cover_info(videourl)
                     break
                 elif typ == 2:  # 'video_detail'
                     cover_id = match.group(2)
                     cover_url = self._VIDEO_COVER_PREFIX + cover_id + '.html'
-                    cover_info = self.get_cover_info(cover_url)
+                    cover_info = self._get_cover_info(cover_url)
                     break
                 elif typ == 3:  # 'video_episode'
                     cover_id = match.group(1)
                     video_id = match.group(2)
                     cover_url = self._VIDEO_COVER_PREFIX + cover_id + '.html'
-                    cover_info = self.get_cover_info(cover_url)
+                    cover_info = self._get_cover_info(cover_url)
                     if cover_info:
                         cover_info['normal_ids'] = [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id]
                     break
                 else:  # typ == 4 'video_page'
                     video_id = match.group(1)
-                    cover_info = self.get_cover_info(videourl)
+                    cover_info = self._get_cover_info(videourl)
                     if cover_info:
                         cover_info['normal_ids'] = \
                             [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id] if cover_info['normal_ids'] else \
                             [{"V": video_id, "E": 1}]
+
+                        if not cover_info['cover_id']:
+                            cover_info['cover_id'] = video_id
                     break
 
         return cover_info
@@ -471,13 +465,13 @@ class QQVideoVC(VideoConfig):
         for vi in cover_info['normal_ids']:
             vi.setdefault('defns', {})
 
-            format_name, ext, urls = self.get_video_urls(vi['V'], self.preferred_defn)
+            format_name, ext, urls = self._get_video_urls(vi['V'], self.preferred_defn)
             if format_name:  # may not be same as preferred definition
                 fmt = dict(ext=ext, urls=urls)
                 vi['defns'].setdefault(format_name, []).append(fmt)
 
     def get_video_config_info(self, url):
-        cover_info = self.get_video_info(url)
+        cover_info = self.get_cover_info(url)
         if cover_info:
             self.update_video_dwnld_info(cover_info)
 
