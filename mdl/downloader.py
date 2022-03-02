@@ -4,6 +4,7 @@ import tempfile
 import shutil
 import errno
 import logging
+from math import trunc, log10
 
 from certifi import where
 from bdownload.download import requests_retry_session
@@ -76,7 +77,20 @@ class MDownloader(object):
 
             return formats[0]
 
-        video_list = cover_info.get('normal_ids', [])
+        def determine_ep_naming_fmt():
+            width = 2  # default episode numbering format width
+            total_ep = cover_info.get('episode_all')
+            if total_ep:
+                ndigits = trunc(log10(total_ep)) + 1
+                width = ndigits
+
+            normal_ids = cover_info.get('normal_ids', [])
+            ep_cnt = sum([1 for vi in normal_ids if vi.get('defns') and any(vi['defns'].values())])  # number of valid episodes
+            numbering = False if (total_ep and total_ep == 1) or (not total_ep and ep_cnt == 1) else True
+
+            return numbering, width
+
+        video_list = cover_info.get('normal_ids')
         if video_list:
             cover_name = '.'.join([cover_info.get('title') if cover_info.get('title') else cover_info['source_name'] + '_' + cover_info.get('cover_id', ''),
                                    cover_info.get('year', '1900')])
@@ -87,18 +101,18 @@ class MDownloader(object):
             urls = []  # URLs file info for aria2c
             episodes = []  # [(abs_episode1_dir, [fname1.1.mp4, fname1.2.mp4]), ]
 
-            # number of valid episodes
-            ep_num = sum([1 for vi in video_list if vi.get('defns') if any(vi['defns'].values())])
+            ep_fmt_numbering, ep_fmt_width = determine_ep_naming_fmt()
 
             for vi in video_list:
                 if vi.get('defns') and any(vi['defns'].values()):
                     if not (defn and vi['defns'].get(defn)):
                         defn = pick_highest_definition(vi['defns'])
-                    if cover_info['type'] == VideoTypes.MOVIE and ep_num == 1:
+                    if ep_fmt_numbering:
+                        episode_default_dir = '.'.join(
+                            [cover_name, 'EP' + '{:0{width}}'.format(vi['E'], width=ep_fmt_width),
+                             'WEBRip', cover_info['source_name'] + '_' + defn])
+                    else:
                         episode_default_dir = '.'.join([cover_name, 'WEBRip', cover_info['source_name'] + '_' + defn])
-                    else:  # VideoTypes.TV or (VideoTypes.MOVIE and ep_num > 1)
-                        episode_default_dir = '.'.join([cover_name, 'EP' + '{:02}'.format(vi['E']), 'WEBRip',
-                                                        cover_info['source_name'] + '_' + defn])
                     episode_dir = os.path.join(cover_dir, episode_default_dir)
 
                     format = pick_format(vi['defns'][defn])

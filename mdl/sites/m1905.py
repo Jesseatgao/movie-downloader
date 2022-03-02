@@ -187,6 +187,7 @@ class M1905VC(VideoConfig):
                     cover_info["year"] = episode_info["year"]
                     cover_info["type"] = VideoTypes.MOVIE
                     cover_info["cover_id"] = episode_info["cover_id"]
+                    cover_info["episode_all"] = len(cover_info["normal_ids"])
                     cover_info["referrer"] = url
 
                 break

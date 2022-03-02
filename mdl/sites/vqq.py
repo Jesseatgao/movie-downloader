@@ -358,6 +358,7 @@ class QQVideoVC(VideoConfig):
         "year":"",
         "type":VideoTypes.TV,
         "cover_id":"",
+        "episode_all": 16,
         "normal_ids": [{
             "V": "d00249ld45q",
             "E": 1
@@ -380,6 +381,7 @@ class QQVideoVC(VideoConfig):
                 info, _ = self._extract_video_cover_info(self._VIDEO_INFO_RE, r.text)
 
         if info:
+            info['episode_all'] = len(info['normal_ids']) if info['normal_ids'] else 1
             info['referrer'] = cover_url  # set the Referer to the address of the cover web page
 
         return info
@@ -427,6 +429,7 @@ class QQVideoVC(VideoConfig):
             "year": "1989",
             "type": VideoTypes.TV,
             "cover_id": "nhtfh14i9y1egge",
+            "episode_all": 16,
             "normal_ids": [{
                 "V": "d00249ld45q",
                 "E": 1,
