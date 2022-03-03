@@ -63,8 +63,7 @@ class CleanCommand(_CleanCommand):
 
         if self.all:
             for flag in self.boolean_options:
-                if flag != 'environment':  # FIXME
-                    setattr(self, flag, True)
+                setattr(self, flag, True)
 
         if self.environment and self.virtualenv_dir is None:
             self.virtualenv_dir = os.environ.get('VIRTUAL_ENV', None)

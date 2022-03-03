@@ -68,13 +68,15 @@ A fast movie downloader using Aria2
 
 ### Installation
 Step 1: install core parsing modules
-    
-`python setup.py install`
+
+    `$ python install .`
+
+from within source directory locally
 
 Step 2: get and install third-party dependency programs
 * Automatically
 
-  `mdl_3rd_parties [--proxy {http|socks5}://[user:password@]host:port]`
+  `$ mdl_3rd_parties [--proxy {http|socks5}://[user:password@]host:port]`
 
 * Manually
 
@@ -109,3 +111,7 @@ Step 2: get and install third-party dependency programs
 `-L {debug,info,warning,error,critical}`: specify logging level.
 
 `url [url ...]`: one or more web page URLs of video episodes, cover and playlist.
+
+### Credits
+* [**youtube-dl** - download videos from youtube.com or other video platforms](https://github.com/ytdl-org/youtube-dl)
+* [**YouKuDownLoader** - a video downloader focus on China mainland video sites](https://github.com/SeaHOH/ykdl)
