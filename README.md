@@ -94,7 +94,7 @@ Step 2: get and install third-party dependency programs
 
 `-d {fhd,shd,hd,sd}`: specify the definition of the video to download. `fhd,shd,hd,sd` correspond to `1080P, 720P, 480P, 270P` respectively.
 
-`-p PROXY`: specify the proxy server _PROXY_ (in the form of `{http|socks5}://[user:password@]host:port`)
+`-p PROXY`: specify the proxy server _PROXY_ (in the form of `http://[user:password@]host:port`)
     used to get web pages or download videos (if configured in `conf/dlops.conf`).
 
 `--QQVideo-no-logo {True,False}`: indicate whether we're trying to download no-watermarked QQVideos or not.

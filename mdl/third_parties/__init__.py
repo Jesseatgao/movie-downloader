@@ -42,8 +42,16 @@ progs_conf = {
             }
         },
         'Darwin': {
-            '32-bit': '',
-            '64-bit': ''
+            '32-bit': {
+                'url': '',  # FIXME
+                'content-path': ['.'],
+                'ext': '.tar.xz'
+            },
+            '64-bit': {
+                'url': '',  # FIXME
+                'content-path': ['.'],
+                'ext': '.tar.xz'
+            }
         }
     },
     'ffmpeg': {
@@ -74,8 +82,16 @@ progs_conf = {
             }
         },
         'Darwin': {
-            '32-bit': '',
-            '64-bit': ''
+            '32-bit': {
+                'url': '',  # FIXME
+                'content-path': ['.'],
+                'ext': '.tar.xz'
+            },
+            '64-bit': {
+                'url': 'https://evermeet.cx/pub/ffmpeg/ffmpeg-4.2.2.zip',
+                'content-path': ['.'],
+                'ext': '.zip'
+            }
         }
     },
     'mkvtoolnix': {
@@ -104,8 +120,16 @@ progs_conf = {
             }
         },
         'Darwin': {
-            '32-bit': '',
-            '64-bit': ''
+            '32-bit': {
+                'url': '',  # FIXME
+                'content-path': ['.'],
+                'ext': '.tar.xz'
+            },
+            '64-bit': {
+                'url': '',  # FIXME
+                'content-path': ['.'],
+                'ext': '.tar.xz'
+            }
         }
     }
 }
