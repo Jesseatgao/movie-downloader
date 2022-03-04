@@ -29,7 +29,7 @@ if CleanCommand is not None:
     cmd_classes['clean'] = CleanCommand
 
 setup(
-    name='mdl',
+    name='movie-downloader',
     version=version,
     package_dir={'': '.'},
     packages=find_packages(where='.'),

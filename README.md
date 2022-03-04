@@ -68,10 +68,13 @@ A fast movie downloader using Aria2
 
 ### Installation
 Step 1: install core parsing modules
+* via PyPI
 
-    `$ python install .`
+    `$ pip install movie-downloader`
 
-from within source directory locally
+* from within source directory locally
+
+    `$ pip install .`
 
 Step 2: get and install third-party dependency programs
 * Automatically
