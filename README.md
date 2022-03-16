@@ -116,5 +116,5 @@ Step 2: get and install third-party dependency programs
 `url [url ...]`: one or more web page URLs of video episodes, cover and playlist.
 
 ### Credits
-* [**youtube-dl** - download videos from youtube.com or other video platforms](https://github.com/ytdl-org/youtube-dl)
-* [**YouKuDownLoader** - a video downloader focus on China mainland video sites](https://github.com/SeaHOH/ykdl)
+* [**youtube-dl** - an App to download videos from YouTube and other video platforms](https://github.com/ytdl-org/youtube-dl)
+* [**YouKuDownLoader** - a video downloader focused on China mainland video sites](https://github.com/SeaHOH/ykdl)

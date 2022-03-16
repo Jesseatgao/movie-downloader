@@ -161,11 +161,13 @@ class QQVideoVC(VideoConfig):
                 if not ret_defn:
                     # determine the definition from the returned formats
                     fmt_names = list(formats.values())
-                    if definition not in fmt_names:
-                        for definition in self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10801]:
-                            if definition in fmt_names:
-                                break
+
                     ret_defn = definition
+                    if ret_defn not in fmt_names:
+                        for defn in self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10801]:
+                            if defn in fmt_names:
+                                ret_defn = defn
+                                break
 
                 vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
                 vfn = vfilename.rpartition('.')  # e.g. ['egmovie.321003', '.', 'ts']
@@ -257,12 +259,14 @@ class QQVideoVC(VideoConfig):
 
                 # pick the best matched definition from available formats
                 formats = {fmt.get('name'): fmt.get('id') for fmt in json_path_get(data, ['fl', 'fi'], [])}
-                if definition not in formats:
-                    for definition in self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10901]:
-                        if definition in formats:
+                ret_defn = definition  # not necessarily equal to requested `definition`
+                if ret_defn not in formats:
+                    for defn in self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10901]:
+                        if defn in formats:
+                            ret_defn = defn
                             break
 
-                format_id = formats.get(definition) or self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10901][definition]
+                format_id = formats.get(ret_defn) or self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10901][ret_defn]
                 vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
                 vfn = vfilename.split('.')  # e.g. ['egmovie', 'p201', 'mp4'], ['egmovie', 'mp4']
                 ext = vfn[-1]  # video extension, e.g. 'mp4'
@@ -288,10 +292,9 @@ class QQVideoVC(VideoConfig):
                         'filename': cfilename,
                         'platform': QQVideoPlatforms.P10901,
                         'vt': 217,
-                        'charge': 0,
+                        'charge': 0
                     }
-                    r = self._requester.get('https://h5vv.video.qq.com/getkey', params=params,
-                                            cookies=self.user_token)
+                    r = self._requester.get('https://h5vv.video.qq.com/getkey', params=params, cookies=self.user_token)
                     if r.status_code == 200:
                         try:
                             key_data = json.loads(r.text[len('QZOutputJson='):-1])
@@ -307,7 +310,7 @@ class QQVideoVC(VideoConfig):
 
                 # check if the URLs for the file parts have all been successfully obtained
                 if len(keyids) == len(urls):
-                    format_name = definition
+                    format_name = ret_defn
 
         return format_name, ext, urls
 
