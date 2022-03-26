@@ -274,6 +274,7 @@ class QQVideoVC(VideoConfig):
                 # fmt_prefix = vfmt[0]  # e.g. 'p' in 'p201'
                 vfmt_new = vfn[1][0] + str(format_id % 10000) if len(vfn) == 3 else ''
 
+                fvkey = json_path_get(data, ['vl', 'vi', 0, 'fvkey'])
                 fc = json_path_get(data, ['vl', 'vi', 0, 'cl', 'fc'])
                 keyids = [chap.get('keyid') for chap in json_path_get(data, ['vl', 'vi', 0, 'cl', 'ci'], [])] if fc \
                     else [json_path_get(data, ['vl', 'vi', 0, 'cl', 'keyid'])]
@@ -302,8 +303,11 @@ class QQVideoVC(VideoConfig):
                             # logging
                             return format_name, ext, urls
 
-                        if key_data and isinstance(key_data, dict) and key_data.get('key'):
-                            url_mirrors = '\t'.join(['%s%s?sdtfrom=v1010&vkey=%s' % (url_prefix, cfilename, key_data['key'])
+                        if key_data and isinstance(key_data, dict):
+                            vkey = key_data.get('key', fvkey)
+                            if not vkey:
+                                return format_name, ext, urls
+                            url_mirrors = '\t'.join(['%s%s?sdtfrom=v1010&vkey=%s' % (url_prefix, cfilename, vkey)
                                                     for url_prefix in chosen_url_prefixes])
                             if url_mirrors:
                                 urls.append(url_mirrors)
