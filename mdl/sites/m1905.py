@@ -202,17 +202,20 @@ class M1905VC(VideoConfig):
         while i < len(streams):
             stream = streams[i]
             if stream and stream.startswith("#EXT-X-STREAM-INF:"):
+                # skip the blank and comment lines, if any
+                while not streams[i + 1] or streams[i + 1].startswith("#"):
+                    i += 1
+
                 stream_match = re.search(r"BANDWIDTH\s*=\s*(\d+)", stream)
                 if stream_match:
                     matched = int(stream_match.group(1))
                     if matched > bandwidth:
                         bandwidth = matched
-                        m3u = streams[i+1]
+                        m3u = streams[i + 1]
 
                 i += 2
-                continue
-
-            i += 1
+            else:
+                i += 1
 
         return bandwidth, m3u
 
@@ -226,11 +229,11 @@ class M1905VC(VideoConfig):
                     r.encoding = "utf-8"
                     for line in r.iter_lines(decode_unicode=True):
                         if line:
-                            if line.startswith("#EXT-X-STREAM-INF:"):
+                            if line.startswith("#EXT-X-STREAM-INF:"):  # in master playlist
                                 _, m3u = self._pick_highest_bandwidth_m3u8(r.text)
                                 playlist = "%s/%s" % (url_prefix, m3u)
                                 break
-                            elif line.startswith("#EXTINF:"):
+                            elif line.startswith("#EXTINF:"):  # in media playlist
                                 mpeg_urls = ["%s/%s" % (url_prefix, ts) for ts in r.text.splitlines() if
                                              ts and not ts.startswith('#')]
                                 return mpeg_urls
