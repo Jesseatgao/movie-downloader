@@ -194,6 +194,49 @@ class M1905VC(VideoConfig):
 
         return cover_info
 
+    @staticmethod
+    def _pick_highest_bandwidth_m3u8(playlist_variants):
+        bandwidth, m3u = 0, ""
+        streams = playlist_variants.splitlines()
+        i = 0
+        while i < len(streams):
+            stream = streams[i]
+            if stream and stream.startswith("#EXT-X-STREAM-INF:"):
+                stream_match = re.search(r"BANDWIDTH\s*=\s*(\d+)", stream)
+                if stream_match:
+                    matched = int(stream_match.group(1))
+                    if matched > bandwidth:
+                        bandwidth = matched
+                        m3u = streams[i+1]
+
+                i += 2
+                continue
+
+            i += 1
+
+        return bandwidth, m3u
+
+    def _get_ts_playlist(self, m3u8_url):
+        url_prefix = m3u8_url.rpartition('/')[0]
+        playlist = m3u8_url
+        try:
+            for _ in range(2):
+                r = self._requester.get(playlist)
+                if r.status_code == 200:
+                    r.encoding = "utf-8"
+                    for line in r.iter_lines(decode_unicode=True):
+                        if line:
+                            if line.startswith("#EXT-X-STREAM-INF:"):
+                                _, m3u = self._pick_highest_bandwidth_m3u8(r.text)
+                                playlist = "%s/%s" % (url_prefix, m3u)
+                                break
+                            elif line.startswith("#EXTINF:"):
+                                mpeg_urls = ["%s/%s" % (url_prefix, ts) for ts in r.text.splitlines() if
+                                             ts and not ts.startswith('#')]
+                                return mpeg_urls
+        except Exception:
+            print("Failed to fetch {!r}".format(m3u8_url))  # logging
+
     def _update_video_dwnld_info_sd(self, vi):
         """
         :param vi: item of cover_info['normal_ids'].
@@ -238,17 +281,10 @@ class M1905VC(VideoConfig):
                     break
 
             if playlist_m3u8:
-                try:
-                    # r = self._requester.get(loader_url, headers=headers, cookies=cookie_jar, timeout=3.5)
-                    r = self._requester.get(playlist_m3u8)  # Requests Session persists cookies across all requests
-                    if r.status_code == 200:
-                        url_prefix = playlist_m3u8.rpartition('/')[0]
-                        mpeg_urls = ["%s/%s" % (url_prefix, line) for line in r.text.splitlines() if line and not line.startswith('#')]
-
-                        std_defn = self._M1905_DEFN_MAP_I2S[defn]
-                        vi["defns"].setdefault(std_defn, []).append(dict(ext="ts", urls=mpeg_urls))
-                except Exception:
-                    print("Failed to fetch {!r}".format(playlist_m3u8))  # logging
+                mpeg_urls = self._get_ts_playlist(playlist_m3u8)
+                if mpeg_urls:
+                    std_defn = self._M1905_DEFN_MAP_I2S[defn]
+                    vi["defns"].setdefault(std_defn, []).append(dict(ext="ts", urls=mpeg_urls))
 
     def _update_video_dwnld_info_hd(self, vi):
         pass
