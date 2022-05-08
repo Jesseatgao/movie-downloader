@@ -16,11 +16,15 @@ from .utils import build_logger, change_logging_level
 MOD_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGGER = build_logger('MDL', os.path.normpath(os.path.join(MOD_DIR, 'log/mdl.log')))
 
-MAX_EPISODE_NUM = 10000
+MAX_EPISODE_NUM = 10000  # a large number denoting the last episode (whose actual number doesn't matter)
 
 
 def _segment_playlist_items(items):
-    """1, 2,5-10; ; 3 -, 1 ; -3,; ,4 ,6"""
+    """Segment playlists' episode indices.
+
+    >>> _segment_playlist_items("1, 2,5-10; ; 3 -; -3; 4 ,6")
+    [[1, 2, (5, 10)], None, [(3, 10000)], [(1, 3)], [4, 6]]
+    """
     res = []
 
     playlist = items.split(';')
@@ -51,7 +55,9 @@ def arg_parser():
     parser.add_argument('-D', '--dir', default='', dest='dir', help='path to downloaded videos')
     parser.add_argument('-d', '--definition', default='', dest='definition', choices=['fhd', 'shd', 'hd', 'sd'])
     parser.add_argument('-p', '--proxy', dest='proxy', help='proxy in the form of "http://[user:password@]host:port"')
-    parser.add_argument('--playlist-items', default='', dest='playlist_items', type=_segment_playlist_items, help='')
+    parser.add_argument('--playlist-items', default='', dest='playlist_items', type=_segment_playlist_items,
+                        help='desired episode indices in a playlist separated by commas, while the playlists are separated by semicolons,'
+                             'e.g. "--playlist-items 1,2,5-10", "--playlist-items 1,2,5-10;3-", and "--playlist-items 1,2,5-10;;-20"')
 
     parser.add_argument('--QQVideo-no-logo', dest='QQVideo_no_logo', default='', choices=['True', 'False'])
 
