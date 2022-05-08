@@ -3,4 +3,5 @@ bdownload
 setuptools
 wheel
 
+pyparsing==2.4.7; python_version=="3.6"
 twine

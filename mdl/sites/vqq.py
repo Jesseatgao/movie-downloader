@@ -479,10 +479,3 @@ class QQVideoVC(VideoConfig):
             if format_name:  # may not be same as preferred definition
                 fmt = dict(ext=ext, urls=urls)
                 vi['defns'].setdefault(format_name, []).append(fmt)
-
-    def get_video_config_info(self, url):
-        cover_info = self.get_cover_info(url)
-        if cover_info:
-            self.update_video_dwnld_info(cover_info)
-
-        return cover_info

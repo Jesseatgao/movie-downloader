@@ -4,6 +4,7 @@ import os
 import logging
 import errno
 from shutil import which
+from itertools import zip_longest
 
 from argparse import ArgumentParser
 from configparser import ConfigParser
@@ -15,6 +16,33 @@ from .utils import build_logger, change_logging_level
 MOD_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGGER = build_logger('MDL', os.path.normpath(os.path.join(MOD_DIR, 'log/mdl.log')))
 
+MAX_EPISODE_NUM = 10000
+
+
+def _segment_playlist_items(items):
+    """1, 2,5-10; ; 3 -, 1 ; -3,; ,4 ,6"""
+    res = []
+
+    playlist = items.split(';')
+    for pi in playlist:
+        pl = []
+        pli = pi.split(',')
+        for it in pli:
+            if '-' in it:
+                itr = it.split('-')
+                itr[0] = int(itr[0]) if itr[0].strip() else 1
+                itr[1] = int(itr[1]) if itr[1].strip() else MAX_EPISODE_NUM
+                pl.append(tuple(itr))
+            else:
+                if it.strip():
+                    pl.append(int(it))
+
+        if not pl:
+            pl = None
+        res.append(pl)
+
+    return res
+
 
 def arg_parser():
     parser = ArgumentParser()
@@ -23,6 +51,7 @@ def arg_parser():
     parser.add_argument('-D', '--dir', default='', dest='dir', help='path to downloaded videos')
     parser.add_argument('-d', '--definition', default='', dest='definition', choices=['fhd', 'shd', 'hd', 'sd'])
     parser.add_argument('-p', '--proxy', dest='proxy', help='proxy in the form of "http://[user:password@]host:port"')
+    parser.add_argument('--playlist-items', default='', dest='playlist_items', type=_segment_playlist_items, help='')
 
     parser.add_argument('--QQVideo-no-logo', dest='QQVideo_no_logo', default='', choices=['True', 'False'])
 
@@ -112,6 +141,12 @@ def parse_dlops_default(args, confs):
                 confs[site]['proxy'] = args.proxy
 
 
+def parse_other_ops(args, confs):
+    # associate the playlist URLs with desired video episodes
+    url_plist = zip_longest(args.url, args.playlist_items) if len(args.url) >= len(args.playlist_items) else zip(args.url, args.playlist_items)
+    confs['playlist_items'] = {url: items for url, items in url_plist}
+
+
 def main():
     confs = conf_parser()  # parse the config file
     parser = arg_parser()
@@ -122,6 +157,7 @@ def main():
 
     parse_3rd_party_progs(args, confs)
     parse_dlops_default(args, confs)
+    parse_other_ops(args, confs)
 
     dl = MDownloader(args, confs)
     dl.download(args.url)

@@ -299,10 +299,3 @@ class M1905VC(VideoConfig):
                 self._update_video_dwnld_info_sd(vi)
             else:
                 self._update_video_dwnld_info_hd(vi)
-
-    def get_video_config_info(self, url):
-        cover_info = self.get_cover_info(url)
-        if cover_info:
-            self.update_video_dwnld_info(cover_info)
-
-        return cover_info
