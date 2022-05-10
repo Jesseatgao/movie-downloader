@@ -87,11 +87,12 @@ Step 2: get and install third-party dependency programs
  `third_parties/aria2/`, `third_parties/ffmpeg/`, and `third_parties/mkvtoolnix/` according to the target platform, respectively.
 
 ### Usage
-`mdl [-h] [-D DIR] [-d {fhd,shd,hd,sd}] [-p PROXY] [--QQVideo-no-logo {True,False}]
-     [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-L {debug,info,warning,error,critical}]
-     url [url ...] [--playlist-items PLAYLIST_ITEMS]
-`
-     
+```
+mdl [-h] [-D DIR] [-d {fhd,shd,hd,sd}] [-p PROXY] [--QQVideo-no-logo {True,False}]
+    [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-L {debug,info,warning,error,critical}]
+    url [url ...] [--playlist-items PLAYLIST_ITEMS]
+```
+
 **Description**:
 
 `-D DIR`: specify _DIR_ to save downloaded videos.
@@ -116,8 +117,8 @@ Step 2: get and install third-party dependency programs
 
 `url [url ...]`: one or more web page URLs of video episodes, cover and playlist.
 
-`--playlist-items PLAYLIST_ITEMS`: desired episode indices in a playlist separated by commas, while the playlists are separated by semicolons,e.g.
-    "--playlist-items 1,2,5-10", "--playlist-items 1,2,5-10;3-", and "--playlist-items 1,2,5-10;;-20".
+`--playlist-items PLAYLIST_ITEMS`: desired episode indices in a playlist separated by commas, while the playlists are separated by semicolons,
+    e.g. `--playlist-items 1,2,5-10`, `--playlist-items 1,2,5-10;3-`, and `--playlist-items 1,2,5-10;;-20`.
 
 ### Credits
 * [**youtube-dl** - an App to download videos from YouTube and other video platforms](https://github.com/ytdl-org/youtube-dl)

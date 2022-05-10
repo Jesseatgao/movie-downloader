@@ -57,7 +57,7 @@ class VideoConfig(object):
 
     def filter_video_episodes(self, url, cover_info):
         if self.confs['playlist_items'][url]:
-            # TODO: directly indexing the normal IDs list by rangeset should be more efficient
+            # TODO: directly indexing the normal IDs list by rangeset should be more efficient.
             cover_info['normal_ids'] = [dic for dic in cover_info['normal_ids'] if self._in_rangeset(dic['E'], self.confs['playlist_items'][url])]
 
         return cover_info

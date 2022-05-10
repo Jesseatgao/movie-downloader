@@ -16,7 +16,7 @@ from .utils import build_logger, change_logging_level
 MOD_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGGER = build_logger('MDL', os.path.normpath(os.path.join(MOD_DIR, 'log/mdl.log')))
 
-MAX_EPISODE_NUM = 10000  # a large number denoting the last episode (whose actual number doesn't matter)
+MAX_EPISODE_NUM = 10000  # a big number denoting the last episode (whose actual number doesn't matter)
 
 
 def _segment_playlist_items(items):
