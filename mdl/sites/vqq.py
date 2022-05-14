@@ -194,6 +194,8 @@ class QQVideoVC(VideoConfig):
                         ext = 'ts'
 
                         playlist_m3u8 = json_path_get(data, ['vl', 'vi', 0, 'ul', 'ui', -1, 'hls', 'pname'])
+                        if not playlist_m3u8:
+                            return self._get_video_urls_p10901(vid, definition)
                         playlist_url = chosen_url_prefixes[0] + playlist_m3u8
 
                         r = self._requester.get(playlist_url, cookies=self.user_token)

@@ -19,24 +19,24 @@ progs_conf = {
     'aria2': {
         'Windows': {
             '32-bit': {
-                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux/aria2-i686-win.zip',
+                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux--builder-win32-v1.2/aria2-i686-win.zip',
                 'content-path': ['i686/'],
                 'ext': '.zip'
             },
             '64-bit': {
-                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux/aria2-x86_64-win.zip',
+                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux--builder-win32-v1.2/aria2-x86_64-win.zip',
                 'content-path': ['x86_64/'],
                 'ext': '.zip'
             }
         },
         'Linux': {
             '32-bit': {
-                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux/aria2-i686-linux.tar.xz',
+                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux--builder-win32-v1.2/aria2-i686-linux.tar.xz',
                 'content-path': ['i686/'],
                 'ext': '.tar.xz'
             },
             '64-bit': {
-                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux/aria2-x86_64-linux.tar.xz',
+                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux--builder-win32-v1.2/aria2-x86_64-linux.tar.xz',
                 'content-path': ['x86_64/'],
                 'ext': '.tar.xz'
             }
