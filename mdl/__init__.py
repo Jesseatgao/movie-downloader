@@ -16,14 +16,12 @@ from .utils import build_logger, change_logging_level
 MOD_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGGER = build_logger('MDL', os.path.normpath(os.path.join(MOD_DIR, 'log/mdl.log')))
 
-MAX_EPISODE_NUM = 10000  # a big number denoting the last episode (whose actual number doesn't matter)
-
 
 def _segment_playlist_items(items):
     """Segment playlists' episode indices.
 
     >>> _segment_playlist_items("1, 2,5-10; ; 3 -; -3; 4 ,6")
-    [[1, 2, (5, 10)], None, [(3, 10000)], [(1, 3)], [4, 6]]
+    [[1, 2, (5, 10)], None, [(3, None)], [(1, 3)], [4, 6]]
     """
     res = []
 
@@ -35,7 +33,7 @@ def _segment_playlist_items(items):
             if '-' in it:
                 itr = it.split('-')
                 itr[0] = int(itr[0]) if itr[0].strip() else 1
-                itr[1] = int(itr[1]) if itr[1].strip() else MAX_EPISODE_NUM
+                itr[1] = int(itr[1]) if itr[1].strip() else None
                 pl.append(tuple(itr))
             else:
                 if it.strip():
