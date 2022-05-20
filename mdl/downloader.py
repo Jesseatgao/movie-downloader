@@ -52,7 +52,6 @@ class MDownloader(object):
             if cover_info:
                 cover_info["source_name"] = vcc.SOURCE_NAME
                 cover_info["vc_name"] = vcc.VC_NAME
-                cover_info['url'] = url
             return cover_info
         else:
             # check site domain name against URL
@@ -209,26 +208,33 @@ class MDownloader(object):
                 except OSError as e:
                     self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
             else:
-                '''
-                flist = ["file '{}'".format(os.path.join(episodedir, fn)) for fn in fnames]
-                flist = '\n'.join(flist)
+                if len(fnames) > 1:
+                    '''
+                    flist = ["file '{}'".format(os.path.join(episodedir, fn)) for fn in fnames]
+                    flist = '\n'.join(flist)
+    
+                    cmd = ['ffmpeg', '-y', '-safe', '0', '-protocol_whitelist', 'file,pipe', '-f', 'concat',
+                           '-i', 'pipe:0', '-c', 'copy', '-hide_banner', episode_name]
+                    cp = subprocess.run(cmd, input=flist.encode('utf-8'))
+                    '''
+                    flist = ["{}".format(os.path.join(episode_dir, fn)) for fn in fnames]
+                    episode_name = episode_name.rpartition('.')[0] + '.mkv'
 
-                cmd = ['ffmpeg', '-y', '-safe', '0', '-protocol_whitelist', 'file,pipe', '-f', 'concat',
-                       '-i', 'pipe:0', '-c', 'copy', '-hide_banner', episode_name]
-                cp = subprocess.run(cmd, input=flist.encode('utf-8'))
-                '''
-                flist = ["{}".format(os.path.join(episode_dir, fn)) for fn in fnames]
-                episode_name = episode_name.rpartition('.')[0] + '.mkv'
+                    mkvmerge = self.confs['progs']['mkvmerge']
+                    cmd = [mkvmerge, '-o', episode_name, '['] + flist + [']']
+                    try:
+                        with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
+                            with subprocess.Popen(cmd, bufsize=1, universal_newlines=True, encoding='utf-8',
+                                                  stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
+                                pass
+                    except OSError as e:
+                        self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
+                else:
+                    # just rename and move it into parent directory, no need to merge or transcode
+                    s_whole = os.path.join(episode_dir, fnames[0])
+                    shutil.move(s_whole, episode_name)
 
-                mkvmerge = self.confs['progs']['mkvmerge']
-                cmd = [mkvmerge, '-o', episode_name, '['] + flist + [']']
-                try:
-                    with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
-                        with subprocess.Popen(cmd, bufsize=1, universal_newlines=True, encoding='utf-8',
-                                              stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
-                            pass
-                except OSError as e:
-                    self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
+                    return True
 
             if proc and proc.returncode == 0:
                 return True

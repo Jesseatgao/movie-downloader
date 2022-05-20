@@ -87,6 +87,8 @@ class VideoConfig(object):
     def get_video_config_info(self, url):
         cover_info = self.get_cover_info(url)
         if cover_info:
+            cover_info['url'] = url  # original request URL
+
             cover_info = self.filter_video_episodes(url, cover_info)
             self.update_video_dwnld_info(cover_info)
 

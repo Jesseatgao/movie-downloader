@@ -131,6 +131,44 @@ progs_conf = {
                 'ext': '.tar.xz'
             }
         }
+    },
+    'ckey': {
+        'Windows': {
+            '32-bit': {
+                'url': 'https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208',
+                'content-path': [''],
+                'ext': '.wasm'
+            },
+            '64-bit': {
+                'url': 'https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208',
+                'content-path': [''],
+                'ext': '.wasm'
+            }
+        },
+        'Linux': {
+            '32-bit': {
+                'url': 'https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208',
+                'content-path': [''],
+                'ext': '.wasm'
+            },
+            '64-bit': {
+                'url': 'https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208',
+                'content-path': [''],
+                'ext': '.wasm'
+            }
+        },
+        'Darwin': {
+            '32-bit': {
+                'url': 'https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208',
+                'content-path': [''],
+                'ext': '.wasm'
+            },
+            '64-bit': {
+                'url': 'https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208',
+                'content-path': [''],
+                'ext': '.wasm'
+            }
+        }
     }
 }
 
@@ -210,6 +248,8 @@ def extract():
         elif pkg.endswith('.tar.xz'):
             with tarfile.open(name=pkg, mode='r:xz') as xz_prog:
                 xz_prog.extractall(path=os.path.dirname(pkg))
+        elif pkg.endswith('.wasm'):
+            continue
         else:
             LOGGER.error("Unsupported compression package format: {!r}".format(pkg))
             sys.exit(-1)
