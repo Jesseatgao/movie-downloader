@@ -231,8 +231,8 @@ class MDownloader(object):
                         self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
                 else:
                     # just rename and move it into parent directory, no need to merge or transcode
-                    s_whole = os.path.join(episode_dir, fnames[0])
-                    shutil.move(s_whole, episode_name)
+                    fn_whole = os.path.join(episode_dir, fnames[0])
+                    shutil.move(fn_whole, episode_name)
 
                     return True
 

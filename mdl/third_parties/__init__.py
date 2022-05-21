@@ -20,37 +20,49 @@ progs_conf = {
         'Windows': {
             '32-bit': {
                 'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux--builder-win32-v1.2/aria2-i686-win.zip',
+                'ext': '.zip',
                 'content-path': ['i686/'],
-                'ext': '.zip'
+                'content-base': 'aria2c',
+                'content-ext': '.exe'
             },
             '64-bit': {
                 'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux--builder-win32-v1.2/aria2-x86_64-win.zip',
+                'ext': '.zip',
                 'content-path': ['x86_64/'],
-                'ext': '.zip'
+                'content-base': 'aria2c',
+                'content-ext': '.exe'
             }
         },
         'Linux': {
             '32-bit': {
                 'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux--builder-win32-v1.2/aria2-i686-linux.tar.xz',
+                'ext': '.tar.xz',
                 'content-path': ['i686/'],
-                'ext': '.tar.xz'
+                'content-base': 'aria2c',
+                'content-ext': ''
             },
             '64-bit': {
                 'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux--builder-win32-v1.2/aria2-x86_64-linux.tar.xz',
+                'ext': '.tar.xz',
                 'content-path': ['x86_64/'],
-                'ext': '.tar.xz'
+                'content-base': 'aria2c',
+                'content-ext': ''
             }
         },
         'Darwin': {
             '32-bit': {
                 'url': '',  # FIXME
+                'ext': '.tar.xz',
                 'content-path': ['.'],
-                'ext': '.tar.xz'
+                'content-base': 'aria2c',
+                'content-ext': ''
             },
             '64-bit': {
                 'url': '',  # FIXME
+                'ext': '.tar.xz',
                 'content-path': ['.'],
-                'ext': '.tar.xz'
+                'content-base': 'aria2c',
+                'content-ext': ''
             }
         }
     },
@@ -59,38 +71,50 @@ progs_conf = {
             '32-bit': {
                 'url': 'https://archive.org/download/zeranoe/win32/static/ffmpeg-4.2.2-win32-static.zip'
                        '\thttps://www.videohelp.com/download/ffmpeg-4.2.2-win32-static.zip',
+                'ext': '.zip',
                 'content-path': ['ffmpeg-4.2.2-win32-static/', 'bin/'],
-                'ext': '.zip'
+                'content-base': 'ffmpeg',
+                'content-ext': '.exe'
             },
             '64-bit': {
                 'url': 'https://archive.org/download/zeranoe/win64/static/ffmpeg-4.2.2-win64-static.zip'
                        '\thttps://www.videohelp.com/download/ffmpeg-4.2.2-win64-static.zip',
+                'ext': '.zip',
                 'content-path': ['ffmpeg-4.2.2-win64-static/', 'bin/'],
-                'ext': '.zip'
+                'content-base': 'ffmpeg',
+                'content-ext': '.exe'
             }
         },
         'Linux': {
             '32-bit': {
                 'url': 'https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-4.2.2-i686-static.tar.xz',
+                'ext': '.tar.xz',
                 'content-path': ['ffmpeg-4.2.2-i686-static/'],
-                'ext': '.tar.xz'
+                'content-base': 'ffmpeg',
+                'content-ext': ''
             },
             '64-bit': {
                 'url': 'https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-4.2.2-amd64-static.tar.xz',
+                'ext': '.tar.xz',
                 'content-path': ['ffmpeg-4.2.2-amd64-static/'],
-                'ext': '.tar.xz'
+                'content-base': 'ffmpeg',
+                'content-ext': ''
             }
         },
         'Darwin': {
             '32-bit': {
                 'url': '',  # FIXME
+                'ext': '.tar.xz',
                 'content-path': ['.'],
-                'ext': '.tar.xz'
+                'content-base': 'ffmpeg',
+                'content-ext': ''
             },
             '64-bit': {
                 'url': 'https://evermeet.cx/pub/ffmpeg/ffmpeg-4.2.2.zip',
+                'ext': '.zip',
                 'content-path': ['.'],
-                'ext': '.zip'
+                'content-base': 'ffmpeg',
+                'content-ext': ''
             }
         }
     },
@@ -98,37 +122,49 @@ progs_conf = {
         'Windows': {
             '32-bit': {
                 'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v47.0.0-mingw-w64-win32v1.0/mkvtoolnix-i686-win.zip',
+                'ext': '.zip',
                 'content-path': ['i686/'],
-                'ext': '.zip'
+                'content-base': 'mkvmerge',
+                'content-ext': '.exe'
             },
             '64-bit': {
                 'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v47.0.0-mingw-w64-win32v1.0/mkvtoolnix-x86_64-win.zip',
+                'ext': '.zip',
                 'content-path': ['x86_64/'],
-                'ext': '.zip'
+                'content-base': 'mkvmerge',
+                'content-ext': '.exe'
             }
         },
         'Linux': {
             '32-bit': {
                 'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v47.0.0-mingw-w64-win32v1.0/mkvtoolnix-i686-linux.tar.xz',
+                'ext': '.tar.xz',
                 'content-path': ['i686/'],
-                'ext': '.tar.xz'
+                'content-base': 'mkvmerge',
+                'content-ext': ''
             },
             '64-bit': {
                 'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v47.0.0-mingw-w64-win32v1.0/mkvtoolnix-x86_64-linux.tar.xz',
+                'ext': '.tar.xz',
                 'content-path': ['x86_64/'],
-                'ext': '.tar.xz'
+                'content-base': 'mkvmerge',
+                'content-ext': ''
             }
         },
         'Darwin': {
             '32-bit': {
                 'url': '',  # FIXME
+                'ext': '.tar.xz',
                 'content-path': ['.'],
-                'ext': '.tar.xz'
+                'content-base': 'mkvmerge',
+                'content-ext': ''
             },
             '64-bit': {
                 'url': '',  # FIXME
+                'ext': '.tar.xz',
                 'content-path': ['.'],
-                'ext': '.tar.xz'
+                'content-base': 'mkvmerge',
+                'content-ext': ''
             }
         }
     },
@@ -136,37 +172,99 @@ progs_conf = {
         'Windows': {
             '32-bit': {
                 'url': 'https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208',
+                'ext': '.wasm',
                 'content-path': [''],
-                'ext': '.wasm'
+                'content-base': 'ckey',
+                'content-ext': '.wasm'
             },
             '64-bit': {
                 'url': 'https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208',
+                'ext': '.wasm',
                 'content-path': [''],
-                'ext': '.wasm'
+                'content-base': 'ckey',
+                'content-ext': '.wasm'
             }
         },
         'Linux': {
             '32-bit': {
                 'url': 'https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208',
+                'ext': '.wasm',
                 'content-path': [''],
-                'ext': '.wasm'
+                'content-base': 'ckey',
+                'content-ext': '.wasm'
             },
             '64-bit': {
                 'url': 'https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208',
+                'ext': '.wasm',
                 'content-path': [''],
-                'ext': '.wasm'
+                'content-base': 'ckey',
+                'content-ext': '.wasm'
             }
         },
         'Darwin': {
             '32-bit': {
                 'url': 'https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208',
+                'ext': '.wasm',
                 'content-path': [''],
-                'ext': '.wasm'
+                'content-base': 'ckey',
+                'content-ext': '.wasm'
             },
             '64-bit': {
                 'url': 'https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208',
+                'ext': '.wasm',
                 'content-path': [''],
-                'ext': '.wasm'
+                'content-base': 'ckey',
+                'content-ext': '.wasm'
+            }
+        }
+    },
+    'node': {
+        'Windows': {
+            '32-bit': {
+                'url': 'https://nodejs.org/dist/v16.15.0/node-v16.15.0-win-x86.zip',
+                'ext': '.zip',
+                'content-path': ['node-v16.15.0-win-x86/'],
+                'content-base': 'node',
+                'content-ext': '.exe'
+            },
+            '64-bit': {
+                'url': 'https://nodejs.org/dist/v16.15.0/node-v16.15.0-win-x64.zip',
+                'ext': '.zip',
+                'content-path': ['node-v16.15.0-win-x64/'],
+                'content-base': 'node',
+                'content-ext': '.exe'
+            }
+        },
+        'Linux': {
+            '32-bit': {
+                'url': 'https://unofficial-builds.nodejs.org/download/release/v16.15.0/node-v16.15.0-linux-x86.tar.xz',
+                'ext': '.tar.xz',
+                'content-path': ['node-v16.15.0-linux-x86/'],
+                'content-base': 'bin/node',
+                'content-ext': ''
+            },
+            '64-bit': {
+                'url': 'https://nodejs.org/dist/v16.15.0/node-v16.15.0-linux-x64.tar.xz',
+                'ext': '.tar.xz',
+                'content-path': ['node-v16.15.0-linux-x64/'],
+                'content-base': 'bin/node',
+                'content-ext': ''
+            }
+        },
+        'Darwin': {
+            '32-bit': {
+                'url': '',  # FIXME
+                'ext': '.tar.xz',
+                'content-path': ['.'],
+                'content-base': '',
+                'content-ext': ''
+            },
+            '64-bit': {
+                'url': '',  # FIXME
+                'ext': '.tar.xz',
+                'content-path': ['.'],
+                'content-base': '',
+                'content-ext': ''
             }
         }
     }
@@ -263,10 +361,11 @@ def finalize():
 
     for idx, src_path in enumerate(tmp_progs_bin_path):
         dst_path = progs_base_path[idx]
-        copy_tree(src_path, dst_path)
+        if not os.path.samefile(src_path, dst_path):
+            copy_tree(src_path, dst_path)
 
         src_base_path = tmp_progs_base_path[idx]
-        if src_base_path != dst_path:
+        if not os.path.samefile(src_base_path, dst_path):
             remove_tree(src_base_path)
 
 
@@ -277,6 +376,17 @@ def download_3rd_parties():
     download(**kwargs)
     extract()
     finalize()
+
+
+progs_full_path = [os.path.normpath(os.path.join(base, progs_conf[prog][system][bitness]['content-base'] + progs_conf[prog][system][bitness]['content-ext'])) for prog, base in zip(progs_name, progs_base_path)]
+
+
+def exists_3rd_parties():
+    return all(map(os.path.exists, progs_full_path))
+
+
+# aria2c ffmpeg mkvmerge node
+third_party_progs_default = [os.path.normpath(os.path.join(MOD_DIR, prog, progs_conf[prog][system][bitness]['content-base'])) for prog in ('aria2', 'ffmpeg', 'mkvtoolnix', 'node')]
 
 
 if __name__ == '__main__':

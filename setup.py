@@ -40,9 +40,12 @@ setup(
         'mdl': [
             'log/mdl.log',
             'conf/*.conf',
+            'js/*',
             'third_parties/aria2/README',
             'third_parties/ffmpeg/README',
             'third_parties/mkvtoolnix/README',
+            'third_parties/node/README',
+            'third_parties/ckey/README',
             'third_parties/setupext_janitor/janitor.py', 'third_parties/setupext_janitor/README.rst'
         ]
     },

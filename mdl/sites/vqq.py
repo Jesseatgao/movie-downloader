@@ -409,7 +409,8 @@ class QQVideoVC(VideoConfig):
                 keyids = [chap.get('keyid') for chap in json_path_get(data, ['vl', 'vi', 0, 'cl', 'ci'], [])] if fc \
                     else [json_path_get(data, ['vl', 'vi', 0, 'cl', 'keyid'])]
 
-                cmd_nodejs = ['node', self.jsfile]
+                nodejs = self.confs['progs']['node']
+                cmd_nodejs = [nodejs, self.jsfile]
                 with subprocess.Popen(cmd_nodejs, bufsize=1, universal_newlines=True, encoding='utf-8',
                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE) as node_proc:
                     for keyid in keyids:

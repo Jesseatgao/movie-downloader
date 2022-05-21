@@ -9,6 +9,7 @@ from itertools import zip_longest
 from argparse import ArgumentParser
 from configparser import ConfigParser
 
+from .third_parties import exists_3rd_parties, third_party_progs_default
 from .downloader import MDownloader
 from .utils import build_logger, change_logging_level
 
@@ -62,6 +63,7 @@ def arg_parser():
     parser.add_argument('-A', '--aria2c', dest='aria2c', default='', help='path to the aria2 executable')
     parser.add_argument('-F', '--ffmpeg', dest='ffmpeg', default='', help='path to the ffmpeg executable')
     parser.add_argument('-M', '--mkvmerge', dest='mkvmerge', default='', help='path to the mkvmerge executable')
+    parser.add_argument('-N', '--node', dest='node', default='', help='path to the node executable')
 
     parser.add_argument('-L', '--log-level', dest='log_level', default='', choices=['debug', 'info', 'warning', 'error', 'critical'])
 
@@ -90,15 +92,14 @@ def conf_parser():
 def parse_3rd_party_progs(args, confs):
     """Option precedence: cmdline args > confs(config file) > default"""
 
-    aria2c_default = os.path.normpath(os.path.join(MOD_DIR, 'third_parties/aria2/aria2c'))
-    ffmpeg_default = os.path.normpath(os.path.join(MOD_DIR, 'third_parties/ffmpeg/ffmpeg'))
-    mkvmerge_default = os.path.normpath(os.path.join(MOD_DIR, 'third_parties/mkvtoolnix/mkvmerge'))
+    aria2c_default, ffmpeg_default, mkvmerge_default, node_default = third_party_progs_default
 
     aria2c_path = args.aria2c or confs['progs']['aria2c'] or aria2c_default
     ffmpeg_path = args.ffmpeg or confs['progs']['ffmpeg'] or ffmpeg_default
     mkvmerge_path = args.mkvmerge or confs['progs']['mkvmerge'] or mkvmerge_default
+    node_path = args.node or confs['progs']['node'] or node_default
 
-    progs = (aria2c_path, ffmpeg_path, mkvmerge_path)
+    progs = (aria2c_path, ffmpeg_path, mkvmerge_path, node_path)
     try:
         for prog in progs:
             path, exe = os.path.split(prog)
@@ -106,7 +107,7 @@ def parse_3rd_party_progs(args, confs):
                 raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), exe)
     except Exception as e:
         LOGGER.error(str(e))
-        LOGGER.info('For how to get and install Aria2, FFmpeg and MKVToolnix(mkvmerge), please refer to README.md. '
+        LOGGER.info('For how to get and install Aria2, FFmpeg, MKVToolnix(mkvmerge) and Nodejs, please refer to README.md. '
                     'Or simply run "mdl_3rd_parties" from within the Shell. Note that "--proxy" option may be needed.')
         sys.exit(-1)
 
@@ -114,6 +115,7 @@ def parse_3rd_party_progs(args, confs):
     confs['progs']['aria2c'] = aria2c_path
     confs['progs']['ffmpeg'] = ffmpeg_path
     confs['progs']['mkvmerge'] = mkvmerge_path
+    confs['progs']['node'] = node_path
 
 
 def parse_con_log_level(args, confs):
@@ -151,7 +153,18 @@ def parse_other_ops(args, confs):
     confs['playlist_items'] = {url: items for url, items in url_plist}
 
 
+def check_deps():
+    if not exists_3rd_parties():
+        LOGGER.error('The third-parties such as Aria2, FFmpeg, MKVToolnix and Nodejs are required. Before moving on, '
+                     'simply run "mdl_3rd_parties" from within the Shell to automatically download and install them. '
+                     'Note that "--proxy" option may be needed.'
+                     'For how to get and install them manually, please refer to README.md.')
+        sys.exit(-1)
+
+
 def main():
+    check_deps()  # make sure the prerequisites are satisfied
+
     confs = conf_parser()  # parse the config file
     parser = arg_parser()
     args = parser.parse_args()
