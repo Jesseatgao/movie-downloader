@@ -419,7 +419,7 @@ class QQVideoVC(VideoConfig):
                             keyid_new[1] = vfmt_new
                             keyid_new = '.'.join(keyid_new)
                         else:
-                            if len(vfn) == 3:
+                            if len(vfn) == 3 and int(keyid_new[1]) != format_id:
                                 vfn[1] = vfn[1][0] + str(format_id)
                             keyid_new = '.'.join(vfn[:-1])
                         cfilename = keyid_new + '.' + ext
