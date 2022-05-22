@@ -131,7 +131,7 @@ class QQVideoVC(VideoConfig):
     # def is_url_valid(cls, url):
     #     return super().is_url_valid(url)
 
-    def _get_video_urls_p10801(self, vid, definition):
+    def _get_video_urls_p10801(self, vid, definition, vurl, referrer):
         urls = []
         ext = None
         format_name = None
@@ -215,7 +215,7 @@ class QQVideoVC(VideoConfig):
                         playlist_m3u8 = json_path_get(data, ['vl', 'vi', 0, 'ul', 'ui', -1, 'hls', 'pname'])
                         if not playlist_m3u8:
                             # return self._get_video_urls_p10901(vid, definition)
-                            return self._get_video_urls_p10201(vid, definition)
+                            return self._get_video_urls_p10201(vid, definition, vurl, referrer)
                         playlist_url = chosen_url_prefixes[0] + playlist_m3u8
 
                         r = self._requester.get(playlist_url, cookies=self.user_token)
@@ -228,7 +228,7 @@ class QQVideoVC(VideoConfig):
                                     urls.append(url_mirrors)
                     else:
                         # return self._get_video_urls_p10901(vid, definition)
-                        return self._get_video_urls_p10201(vid, definition)
+                        return self._get_video_urls_p10201(vid, definition, vurl, referrer)
 
                 format_name = ret_defn
 
@@ -478,7 +478,7 @@ class QQVideoVC(VideoConfig):
 
     def _get_video_urls(self, vid, definition, vurl, referrer):
         if self.no_logo:
-            return self._get_video_urls_p10801(vid, definition)
+            return self._get_video_urls_p10801(vid, definition, vurl, referrer)
         else:
             # return self._get_video_urls_p10901(vid, definition)
             return self._get_video_urls_p10201(vid, definition, vurl, referrer)
