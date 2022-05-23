@@ -2,4 +2,7 @@ graft mdl
 include VERSION
 include requirements.txt
 
-global-exclude *.py[cod] __pycache__ *.exe *.log.*
+global-exclude *.py[cod] __pycache__ *.exe *.wasm *.log.*
+
+prune mdl/third_parties/node
+include mdl/third_parties/node/README

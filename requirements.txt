@@ -1,3 +1,5 @@
+# pip>=21.3.1
+
 bdownload
 
 setuptools>=39.0.1

@@ -64,7 +64,32 @@ A fast movie downloader using Aria2
 
         x86_64 64-bit version:
         
-        https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v47.0.0-mingw-w64-win32v1.0/mkvtoolnix-x86_64-linux.tar.xz        
+        https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v47.0.0-mingw-w64-win32v1.0/mkvtoolnix-x86_64-linux.tar.xz
+        
+* [node](https://nodejs.org)
+    * For Windows:
+    
+        i686 32-bit version:
+    
+        https://nodejs.org/dist/v16.15.0/node-v16.15.0-win-x86.zip
+        
+        x86_64 64-bit version:
+        
+        https://nodejs.org/dist/v16.15.0/node-v16.15.0-win-x64.zip
+    * For Linux:
+    
+        i686 32-bit version:
+        
+        https://unofficial-builds.nodejs.org/download/release/v16.15.0/node-v16.15.0-linux-x86.tar.xz
+
+        x86_64 64-bit version:
+        
+        https://nodejs.org/dist/v16.15.0/node-v16.15.0-linux-x64.tar.xz
+        
+* [ckey](https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208)
+    * For Windows & Linux:
+    
+        https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208
 
 ### Installation
 Step 1: install core parsing modules
@@ -83,13 +108,14 @@ Step 2: get and install third-party dependency programs
 
 * Manually
 
-  Download, unzip and extract `aria2c[.exe]`, `ffmpeg[.exe]` and `mkvmerge[.exe]` into the directory
- `third_parties/aria2/`, `third_parties/ffmpeg/`, and `third_parties/mkvtoolnix/` according to the target platform, respectively.
+  Download, unzip and extract `aria2`, `ffmpeg`, `mkvmerge`, `node` and `ckey` into the directory
+ `third_parties/aria2/`, `third_parties/ffmpeg/`, `third_parties/mkvtoolnix/`, `third_parties/node/` and `third_parties/ckey/`
+ according to the target platform, respectively.
 
 ### Usage
 ```
 mdl [-h] [-D DIR] [-d {fhd,shd,hd,sd}] [-p PROXY] [--QQVideo-no-logo {True,False}]
-    [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-L {debug,info,warning,error,critical}]
+    [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-N NODE] [-L {debug,info,warning,error,critical}]
     url [url ...] [--playlist-items PLAYLIST_ITEMS]
 ```
 
@@ -113,6 +139,9 @@ mdl [-h] [-D DIR] [-d {fhd,shd,hd,sd}] [-p PROXY] [--QQVideo-no-logo {True,False
 `-M MKVMERGE`: specify the absolute path to `mkvmerge` executable, which takes precedence over the configuration in `conf/misc.conf`
     and the hard-coded fallback path `third_parties/mkvtoolnix/mkvmerge[.exe]`.
 
+`-N NODE`: specify the absolute path to `node` executable, which takes precedence over the configuration in `conf/misc.conf`
+    and the hard-coded fallback path `third_parties/node/node[.exe]`.
+
 `-L {debug,info,warning,error,critical}`: specify logging level.
 
 `url [url ...]`: one or more web page URLs of video episodes, cover and playlist.
@@ -123,3 +152,4 @@ mdl [-h] [-D DIR] [-d {fhd,shd,hd,sd}] [-p PROXY] [--QQVideo-no-logo {True,False
 ### Credits
 * [**youtube-dl** - an App to download videos from YouTube and other video platforms](https://github.com/ytdl-org/youtube-dl)
 * [**YouKuDownLoader** - a video downloader focused on China mainland video sites](https://github.com/SeaHOH/ykdl)
+* [**iqiyi-parser** - a video downloader for iqiyi, bilibili and TencentVideo sites](https://github.com/ZSAIm/iqiyi-parser)

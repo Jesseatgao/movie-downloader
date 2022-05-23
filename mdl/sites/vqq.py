@@ -463,6 +463,7 @@ class QQVideoVC(VideoConfig):
 
                             if key_data and isinstance(key_data, dict):
                                 vkey = key_data.get('key', fvkey)
+                                cfilename = key_data.get('filename', cfilename)
                                 if not vkey:
                                     return format_name, ext, urls
                                 url_mirrors = '\t'.join(['%s%s?sdtfrom=v1010&vkey=%s' % (url_prefix, cfilename, vkey)
