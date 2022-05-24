@@ -36,7 +36,8 @@ class QQVideoVC(VideoConfig):
     VC_NAME = "QQVideo"
     # _VIP_TOKEN = {}
 
-    APP_VER = "3.5.57"
+    APP_VER = '3.5.57'
+    ENCRYPT_VER = '9.1'
 
     _VQQ_TYPE_CODES = {
         VideoTypeCodes.MOVIE: VideoTypes.MOVIE,
@@ -346,73 +347,95 @@ class QQVideoVC(VideoConfig):
         ext = None
         format_name = None
 
-        params = {
-            'isHLS': False,
-            'charge': 0,
-            'vid': vid,
-            'defn': definition,
-            'defnpayver': 1,
-            'otype': 'json',
-            'platform': QQVideoPlatforms.P10201,
-            'sdtfrom': 'v1010',
-            'host': 'v.qq.com',
-            'fhdswitch': 0,
-            'show1080p': 1,
-        }
-        r = self._requester.get('https://h5vv.video.qq.com/getinfo', params=params, cookies=self.user_token)
-        if r.status_code == 200:
-            try:
-                data = json.loads(r.text[len('QZOutputJson='):-1])
-            except json.JSONDecodeError:
-                # logging
-                return format_name, ext, urls
+        nodejs = self.confs['progs']['node']
+        cmd_nodejs = [nodejs, self.jsfile]
+        with subprocess.Popen(cmd_nodejs, bufsize=1, universal_newlines=True, encoding='utf-8',
+                              stdin=subprocess.PIPE, stdout=subprocess.PIPE) as node_proc:
+            ckey_req = ' '.join([QQVideoPlatforms.P10201, self.APP_VER, vid, vurl, referrer])
+            node_proc.stdin.write(ckey_req)
+            node_proc.stdin.write(r'\n')
+            node_proc.stdin.flush()
+            ckey_resp = node_proc.stdout.readline().rstrip(r'\r\n')
+            ckey, tm, guid, flowid = ckey_resp.split()
 
-            if data:
-                url_prefixes = []
-                for url_dic in json_path_get(data, ['vl', 'vi', 0, 'ul', 'ui'], []):
-                    if isinstance(url_dic, dict):
-                        url = url_dic.get('url')
-                        if url and not url.startswith(self.cdn_blacklist):
-                            url_prefixes.append(url)
+            vinfoparam = {
+                'otype': 'ojson',
+                'isHLS': 0,
+                'charge': 0,
+                'fhdswitch': 0,
+                'show1080p': 1,
+                'defnpayver': 1,
+                'sdtfrom': 'v1010',
+                'host': 'v.qq.com',
+                'vid': vid,
+                'defn': definition,
+                'platform': QQVideoPlatforms.P10201,
+                'appVer': self.APP_VER,
+                'refer': referrer,
+                'ehost': vurl,
+                'logintoken': self.login_token,
+                'encryptVer': self.ENCRYPT_VER,
+                'guid': guid,
+                'flowid': flowid,
+                'tm': tm,
+                'cKey': ckey
+            }
+            params = {
+                'buid': 'vinfoad',
+                'vinfoparam': urlencode(vinfoparam)
+            }
+            r = self._requester.post('https://vd.l.qq.com/proxyhttp', json=params, cookies=self.user_token)
+            if r.status_code == 200:
+                try:
+                    data = json.loads(r.text)
+                    if data:
+                        data = json.loads(data.get('vinfo'))
+                except json.JSONDecodeError:
+                    # logging
+                    return format_name, ext, urls
 
-                chosen_url_prefixes = [prefix for prefix in url_prefixes if
-                                       prefix[:prefix.find('/', 8)].endswith('.tc.qq.com')]
-                if not chosen_url_prefixes:
-                    chosen_url_prefixes = url_prefixes
+                if data:
+                    url_prefixes = []
+                    for url_dic in json_path_get(data, ['vl', 'vi', 0, 'ul', 'ui'], []):
+                        if isinstance(url_dic, dict):
+                            url = url_dic.get('url')
+                            if url and not url.startswith(self.cdn_blacklist):
+                                url_prefixes.append(url)
 
-                if self.use_cdn:
-                    # use all URL prefixes but with default servers coming before CDN mirrors
-                    cdn = [prefix for prefix in url_prefixes if prefix not in chosen_url_prefixes]
-                    chosen_url_prefixes += cdn
+                    chosen_url_prefixes = [prefix for prefix in url_prefixes if
+                                           prefix[:prefix.find('/', 8)].endswith('.tc.qq.com')]
+                    if not chosen_url_prefixes:
+                        chosen_url_prefixes = url_prefixes
 
-                # drm = json_path_get(data, ['vl', 'vi', 0, 'drm'])
+                    if self.use_cdn:
+                        # use all URL prefixes but with default servers coming before CDN mirrors
+                        cdn = [prefix for prefix in url_prefixes if prefix not in chosen_url_prefixes]
+                        chosen_url_prefixes += cdn
 
-                # pick the best matched definition from available formats
-                formats = {fmt.get('name'): fmt.get('id') for fmt in json_path_get(data, ['fl', 'fi'], [])}
-                ret_defn = definition  # not necessarily equal to requested `definition`
-                if ret_defn not in formats:
-                    for defn in self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10201]:
-                        if defn in formats:
-                            ret_defn = defn
-                            break
+                    # drm = json_path_get(data, ['vl', 'vi', 0, 'drm'])
 
-                format_id = formats.get(ret_defn) or self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10201][ret_defn]
-                vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
-                vfn = vfilename.split('.')  # e.g. ['egmovie', 'p201', 'mp4'], ['egmovie', 'mp4']
-                ext = vfn[-1]  # video extension, e.g. 'mp4'
-                # vfmt = vfn[1]  # e.g. 'p201'
-                # fmt_prefix = vfmt[0]  # e.g. 'p' in 'p201'
-                vfmt_new = vfn[1][0] + str(format_id % 10000) if len(vfn) == 3 else ''
+                    # pick the best matched definition from available formats
+                    formats = {fmt.get('name'): fmt.get('id') for fmt in json_path_get(data, ['fl', 'fi'], [])}
+                    ret_defn = definition  # not necessarily equal to requested `definition`
+                    if ret_defn not in formats:
+                        for defn in self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10201]:
+                            if defn in formats:
+                                ret_defn = defn
+                                break
 
-                fvkey = json_path_get(data, ['vl', 'vi', 0, 'fvkey'])
-                fc = json_path_get(data, ['vl', 'vi', 0, 'cl', 'fc'])
-                keyids = [chap.get('keyid') for chap in json_path_get(data, ['vl', 'vi', 0, 'cl', 'ci'], [])] if fc \
-                    else [json_path_get(data, ['vl', 'vi', 0, 'cl', 'keyid'])]
+                    format_id = formats.get(ret_defn) or self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10201][ret_defn]
+                    vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
+                    vfn = vfilename.split('.')  # e.g. ['egmovie', 'p201', 'mp4'], ['egmovie', 'mp4']
+                    ext = vfn[-1]  # video extension, e.g. 'mp4'
+                    # vfmt = vfn[1]  # e.g. 'p201'
+                    # fmt_prefix = vfmt[0]  # e.g. 'p' in 'p201'
+                    vfmt_new = vfn[1][0] + str(format_id % 10000) if len(vfn) == 3 else ''
 
-                nodejs = self.confs['progs']['node']
-                cmd_nodejs = [nodejs, self.jsfile]
-                with subprocess.Popen(cmd_nodejs, bufsize=1, universal_newlines=True, encoding='utf-8',
-                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE) as node_proc:
+                    # fvkey = json_path_get(data, ['vl', 'vi', 0, 'fvkey'])
+                    fc = json_path_get(data, ['vl', 'vi', 0, 'cl', 'fc'])
+                    keyids = [chap.get('keyid') for chap in json_path_get(data, ['vl', 'vi', 0, 'cl', 'ci'], [])] if fc \
+                        else [json_path_get(data, ['vl', 'vi', 0, 'cl', 'keyid'])]
+
                     for keyid in keyids:
                         keyid_new = keyid.split('.')
                         if len(keyid_new) == 3:
@@ -444,7 +467,7 @@ class QQVideoVC(VideoConfig):
                             'refer': referrer,
                             'ehost': vurl,
                             'logintoken': self.login_token,
-                            'encryptVer': '9.1',
+                            'encryptVer': self.ENCRYPT_VER,
                             'cKey': ckey
                         }
                         params = {
@@ -462,18 +485,19 @@ class QQVideoVC(VideoConfig):
                                 return format_name, ext, urls
 
                             if key_data and isinstance(key_data, dict):
-                                vkey = key_data.get('key', fvkey)
-                                cfilename = key_data.get('filename', cfilename)
+                                vkey = key_data.get('key')
                                 if not vkey:
                                     return format_name, ext, urls
+                                if not fc:
+                                    cfilename = key_data.get('filename', cfilename)
                                 url_mirrors = '\t'.join(['%s%s?sdtfrom=v1010&vkey=%s' % (url_prefix, cfilename, vkey)
                                                         for url_prefix in chosen_url_prefixes])
                                 if url_mirrors:
                                     urls.append(url_mirrors)
 
-                # check if the URLs for the file parts have all been successfully obtained
-                if len(keyids) == len(urls):
-                    format_name = ret_defn
+                    # check if the URLs for the file parts have all been successfully obtained
+                    if len(keyids) == len(urls):
+                        format_name = ret_defn
 
         return format_name, ext, urls
 
