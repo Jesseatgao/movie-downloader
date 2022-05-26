@@ -110,8 +110,7 @@ class QQVideoVC(VideoConfig):
         self._vip_token = build_cookiejar_from_kvp(confs[self.VC_NAME]['vip_user_token'])
         self.user_token = self._vip_token if self._vip_token else self._regular_token
         self.has_vip = True if self._vip_token else False
-        self.login_token = {"main_login": None, "openid": None, "appid": None, "access_token": None, "vuserid": None,
-                            "vusession": None}  # FIXME: populate it with Cookies
+        self.login_token = self._get_logintoken_from_cookies(self.user_token)
 
         self.jsfile = os.path.join(mdl_dir, 'js', 'vqq.js')
 
@@ -131,6 +130,18 @@ class QQVideoVC(VideoConfig):
     # @classmethod
     # def is_url_valid(cls, url):
     #     return super().is_url_valid(url)
+
+    @staticmethod
+    def _get_logintoken_from_cookies(cookies):
+        login_token = {'openid': None, 'appid': None, 'access_token': None, 'vuserid': None, 'vusession': None}
+
+        if cookies:
+            for cookie_name in login_token:
+                login_token.update({cookie_name: cookies.get('vqq_' + cookie_name)})
+
+        login_token['main_login'] = 'qq'
+
+        return login_token
 
     def _get_video_urls_p10801(self, vid, definition, vurl, referrer):
         urls = []

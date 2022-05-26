@@ -51,13 +51,16 @@ def json_path_get(nested_data, key_path, default=None):
 
 
 def build_cookiejar_from_kvp(key_values):
-    """
-    build a CookieJar from key-value pairs of the form "cookie_key=cookie_value cookie_key2=cookie_value2"
+    """build a CookieJar from key-value pairs.
+
+     Args:
+         key_values (str): The cookies must take the form of ``'cookie_key=cookie_value'``, with multiple pairs separated
+                by whitespace and/or semicolon if applicable, e.g. ``'key1=val1 key2=val2; key3=val3'``.
 
     """
     if key_values:
         cookiejar = requests.cookies.RequestsCookieJar()
-        kvps = key_values.split()
+        kvps = [cookie for cookies in key_values.split(";") for cookie in cookies.split()]
         for kvp in kvps:
             key, value = kvp.split("=")
             cookiejar.set(key, value)
