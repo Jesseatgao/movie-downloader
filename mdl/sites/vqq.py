@@ -165,7 +165,7 @@ class QQVideoVC(VideoConfig):
                 # logging
                 return format_name, ext, urls
 
-            if data:
+            if data and data.get('dltype'):
                 url_prefixes = []
                 for url_dic in json_path_get(data, ['vl', 'vi', 0, 'ul', 'ui'], []):
                     if isinstance(url_dic, dict):
@@ -272,7 +272,7 @@ class QQVideoVC(VideoConfig):
                 # logging
                 return format_name, ext, urls
 
-            if data:
+            if data and data.get('dltype'):
                 url_prefixes = []
                 for url_dic in json_path_get(data, ['vl', 'vi', 0, 'ul', 'ui'], []):
                     if isinstance(url_dic, dict):
@@ -405,7 +405,7 @@ class QQVideoVC(VideoConfig):
                     # logging
                     return format_name, ext, urls
 
-                if data:
+                if data and data.get('dltype'):
                     url_prefixes = []
                     for url_dic in json_path_get(data, ['vl', 'vi', 0, 'ul', 'ui'], []):
                         if isinstance(url_dic, dict):
