@@ -93,7 +93,8 @@ class QQVideoVC(VideoConfig):
     def __init__(self, requester, args, confs):
         super().__init__(requester, args, confs)
 
-        self._COVER_PAT_RE = re.compile(r"var\s+COVER_INFO\s*=\s*(.+?);?var\s+COLUMN_INFO",
+        self._COVER_PAT_RE = re.compile(r"var\s+COVER_INFO\s*=\s*(.+?);?var\s+COLUMN_INFO"
+                                        r"|\"coverInfo\"\s*:\s*(.+?),\s*\"videoInfo\"",
                                         re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._VIDEO_INFO_RE = re.compile(r"var\s+VIDEO_INFO\s*=\s*(.+?);?</script>"
                                          r"|\"episodeSinglePlay\".+?\"item_params\"\s*:\s*({.+?})\s*,\s*\"\s*sub_items",
@@ -540,11 +541,8 @@ class QQVideoVC(VideoConfig):
 
                 video_id = cover_info.get('vid')
                 if video_id is None:
-                    normal_ids = cover_info.get('nomal_ids') or []
-
-                    for cnt, vi in enumerate(normal_ids, start=1):
-                        # del vi['F']
-                        vi['E'] = cnt  # add/update episode number 'cause the returned info may not include it
+                    video_ids = cover_info.get('video_ids') or []
+                    normal_ids = [{'V': vid, 'E': ep} for ep, vid in enumerate(video_ids, start=1)]
                 else:
                     normal_ids = [{"V": video_id, "E": 1}]
                 info['normal_ids'] = normal_ids
