@@ -9,8 +9,7 @@ from math import trunc, log10
 from certifi import where
 from bdownload.download import requests_retry_session
 
-from .commons import VIDEO_DEFINITIONS
-from .commons import VideoTypes
+from .commons import VIDEO_DEFINITIONS, VideoTypes, DEFAULT_YEAR
 from .sites import get_all_sites_vcs
 from .utils import logging_with_pipe, normalize_filename
 
@@ -92,7 +91,7 @@ class MDownloader(object):
         video_list = cover_info.get('normal_ids')
         if video_list:
             cover_name = '.'.join([cover_info.get('title') if cover_info.get('title') else cover_info['source_name'] + '_' + cover_info.get('cover_id', ''),
-                                   cover_info.get('year', '1900')])
+                                   cover_info.get('year', DEFAULT_YEAR)])
             cover_name = normalize_filename(cover_name, repl='_')
             cover_default_dir = '.'.join([cover_name, cover_info.get('type', VideoTypes.MOVIE)])
             cover_dir = os.path.abspath(os.path.join(save_dir, cover_default_dir))
@@ -107,8 +106,11 @@ class MDownloader(object):
                     if not (defn and vi['defns'].get(defn)):
                         defn = pick_highest_definition(vi['defns'])
                     if ep_fmt_numbering:
+                        ep_name = vi.get('title')
+                        ep_name = '-({})'.format(ep_name) if ep_name else ''
+
                         episode_default_dir = '.'.join(
-                            [cover_name, 'EP' + '{:0{width}}'.format(vi['E'], width=ep_fmt_width),
+                            [cover_name, 'EP' + '{:0{width}}'.format(vi['E'], width=ep_fmt_width) + ep_name,
                              'WEBRip', cover_info['source_name'] + '_' + defn])
                     else:
                         episode_default_dir = '.'.join([cover_name, 'WEBRip', cover_info['source_name'] + '_' + defn])

@@ -7,7 +7,7 @@ import subprocess
 
 from urllib.parse import urlencode
 
-from ..commons import VideoTypeCodes, VideoTypes
+from ..commons import VideoTypeCodes, VideoTypes, DEFAULT_YEAR
 from ..videoconfig import VideoConfig
 from ..utils import json_path_get, build_cookiejar_from_kvp
 
@@ -98,6 +98,8 @@ class QQVideoVC(VideoConfig):
                                         re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._VIDEO_INFO_RE = re.compile(r"var\s+VIDEO_INFO\s*=\s*(.+?);?</script>"
                                          r"|\"episodeSinglePlay\".+?\"item_params\"\s*:\s*({.+?})\s*,\s*\"\s*sub_items",
+                                         re.MULTILINE | re.DOTALL | re.IGNORECASE)
+        self._ALL_LOADED_INFO_RE = re.compile(r"window\.__pinia\s*=\s*(.+?);?</script>",
                                          re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._VIDEO_COVER_PREFIX = 'https://v.qq.com/x/cover/'
 
@@ -528,12 +530,12 @@ class QQVideoVC(VideoConfig):
             info = {}
             cover_group = cover_match.group(1) or cover_match.group(2)
             try:
-                cover_info = json.loads(cover_group)
+                cover_info = json.loads(cover_group.replace('undefined', 'null'))
             except json.JSONDecodeError:
                 return result
             if cover_info and isinstance(cover_info, dict):
                 info['title'] = cover_info.get('title', '') or cover_info.get('title_new', '')
-                info['year'] = cover_info.get('year', '1900')
+                info['year'] = cover_info.get('year', DEFAULT_YEAR)
                 info['cover_id'] = cover_info.get('cover_id', '')
 
                 type_id = int(cover_info.get('type') or VideoTypeCodes.MOVIE)
@@ -551,6 +553,26 @@ class QQVideoVC(VideoConfig):
 
         return result
 
+    def _update_video_cover_info(self, cover_info, regex, text):
+        match = regex.search(text)
+        if match:
+            matched = match.group(1).replace('undefined', 'null')
+            try:
+                conf_info = json.loads(matched)
+            except json.JSONDecodeError:
+                return
+
+            if conf_info:
+                cover_info['year'] = json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'year'], cover_info['year'])
+
+                # set to the probably more specific title
+                ep_list = json_path_get(conf_info, ['episodeMain', 'listData'], [])
+                if not ep_list:
+                    return
+                vid2name = {item['item_params']['vid']: item['item_params']['title'] for item in ep_list[0]}
+                for eps in cover_info['normal_ids']:
+                    eps['title'] = vid2name[eps['V']]
+
     def _get_cover_info(self, cover_url):
         """"{
         "referrer": "https://v.qq.com/x/cover/nhtfh14i9y1egge.html",
@@ -561,10 +583,12 @@ class QQVideoVC(VideoConfig):
         "episode_all": 16,
         "normal_ids": [{
             "V": "d00249ld45q",
-            "E": 1
+            "E": 1,
+            # "title": "valid only for the MOVIE type"
         }, {
             "V": "q0024a27g9j",
-            "E": 2
+            "E": 2,
+            # "title": ""
         }]
         }"""
 
@@ -581,6 +605,9 @@ class QQVideoVC(VideoConfig):
                 info, _ = self._extract_video_cover_info(self._VIDEO_INFO_RE, r.text)
 
         if info:
+            if info['type'] == VideoTypes.MOVIE:
+                self._update_video_cover_info(info, self._ALL_LOADED_INFO_RE, r.text)
+
             info['episode_all'] = len(info['normal_ids']) if info['normal_ids'] else 1
             info['referrer'] = cover_url  # set the Referer to the address of the cover web page
 

@@ -1,6 +1,8 @@
 
 VIDEO_DEFINITIONS = {'fhd': '1080P', 'shd': '720P', 'hd': '480P', 'sd': '270P'}  # from highest to lowest
 
+DEFAULT_YEAR = '1900'
+
 #VIDEO_EXTENSIONS = ('mp4', 'flv', 'mpg', 'ts')  # stream segment MIME extensions
 
 # User-Agent strings for various platforms
