@@ -1,7 +1,5 @@
 import json
 import re
-import random
-import string
 import os
 import subprocess
 
@@ -100,7 +98,7 @@ class QQVideoVC(VideoConfig):
                                          r"|\"episodeSinglePlay\".+?\"item_params\"\s*:\s*({.+?})\s*,\s*\"\s*sub_items",
                                          re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._ALL_LOADED_INFO_RE = re.compile(r"window\.__pinia\s*=\s*(.+?);?</script>",
-                                         re.MULTILINE | re.DOTALL | re.IGNORECASE)
+                                              re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._VIDEO_COVER_PREFIX = 'https://v.qq.com/x/cover/'
 
         # make sure _VIDEO_URL_PATS has a compiled version, which should have been done in @classmethod is_url_valid
@@ -571,7 +569,7 @@ class QQVideoVC(VideoConfig):
                     return
                 vid2name = {item['item_params']['vid']: item['item_params']['title'] for item in ep_list[0]}
                 for eps in cover_info['normal_ids']:
-                    eps['title'] = vid2name[eps['V']]
+                    eps['title'] = vid2name.get(eps['V'])
 
     def _get_cover_info(self, cover_url):
         """"{
