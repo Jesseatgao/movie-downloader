@@ -561,15 +561,24 @@ class QQVideoVC(VideoConfig):
                 return
 
             if conf_info:
-                cover_info['year'] = json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'year'], cover_info['year'])
+                cover_info['year'] = json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'cover_year'])\
+                                     or json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'year'])\
+                                     or json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'show_year'])\
+                                     or cover_info['year']
 
                 # set to the probably more specific title
                 ep_list = json_path_get(conf_info, ['episodeMain', 'listData'], [])
                 if not ep_list:
                     return
-                vid2name = {item['item_params']['vid']: item['item_params']['title'] for item in ep_list[0]}
-                for eps in cover_info['normal_ids']:
-                    eps['title'] = vid2name.get(eps['V'])
+                ep_list = ep_list[0]
+
+                if len(ep_list) >= len(cover_info['normal_ids']):  # ensure the full list of episodes
+                    cover_info['normal_ids'] = [{'V': item['item_params']['vid'],
+                                                 'E': ep,
+                                                 'title': json_path_get(item, ['item_params', 'play_title']) or json_path_get(item, ['item_params', 'title'])
+                                                 # exclude the types of videos that are unlikely to have meaningful episode names
+                                                 if cover_info['type'] not in [VideoTypes.TV, ] else ''}
+                                                for ep, item in enumerate(ep_list, start=1)]
 
     def _get_cover_info(self, cover_url):
         """"{
@@ -582,7 +591,7 @@ class QQVideoVC(VideoConfig):
         "normal_ids": [{
             "V": "d00249ld45q",
             "E": 1,
-            # "title": "valid only for the MOVIE type"
+            # "title": ""
         }, {
             "V": "q0024a27g9j",
             "E": 2,
@@ -603,8 +612,7 @@ class QQVideoVC(VideoConfig):
                 info, _ = self._extract_video_cover_info(self._VIDEO_INFO_RE, r.text)
 
         if info:
-            if info['type'] == VideoTypes.MOVIE:
-                self._update_video_cover_info(info, self._ALL_LOADED_INFO_RE, r.text)
+            self._update_video_cover_info(info, self._ALL_LOADED_INFO_RE, r.text)
 
             info['episode_all'] = len(info['normal_ids']) if info['normal_ids'] else 1
             info['referrer'] = cover_url  # set the Referer to the address of the cover web page
