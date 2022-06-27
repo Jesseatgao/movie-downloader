@@ -69,16 +69,14 @@ progs_conf = {
     'ffmpeg': {
         'Windows': {
             '32-bit': {
-                'url': 'https://archive.org/download/zeranoe/win32/static/ffmpeg-4.2.2-win32-static.zip'
-                       '\thttps://www.videohelp.com/download/ffmpeg-4.2.2-win32-static.zip',
+                'url': 'https://www.videohelp.com/download/ffmpeg-4.2.2-win32-static.zip',
                 'ext': '.zip',
                 'content-path': ['ffmpeg-4.2.2-win32-static/', 'bin/'],
                 'content-base': 'ffmpeg',
                 'content-ext': '.exe'
             },
             '64-bit': {
-                'url': 'https://archive.org/download/zeranoe/win64/static/ffmpeg-4.2.2-win64-static.zip'
-                       '\thttps://www.videohelp.com/download/ffmpeg-4.2.2-win64-static.zip',
+                'url': 'https://www.videohelp.com/download/ffmpeg-4.2.2-win64-static.zip',
                 'ext': '.zip',
                 'content-path': ['ffmpeg-4.2.2-win64-static/', 'bin/'],
                 'content-base': 'ffmpeg',
@@ -121,14 +119,14 @@ progs_conf = {
     'mkvtoolnix': {
         'Windows': {
             '32-bit': {
-                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v47.0.0-mingw-w64-win32v1.0/mkvtoolnix-i686-win.zip',
+                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.4/mkvtoolnix-i686-win.zip',
                 'ext': '.zip',
                 'content-path': ['i686/'],
                 'content-base': 'mkvmerge',
                 'content-ext': '.exe'
             },
             '64-bit': {
-                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v47.0.0-mingw-w64-win32v1.0/mkvtoolnix-x86_64-win.zip',
+                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.4/mkvtoolnix-x86_64-win.zip',
                 'ext': '.zip',
                 'content-path': ['x86_64/'],
                 'content-base': 'mkvmerge',
@@ -137,14 +135,14 @@ progs_conf = {
         },
         'Linux': {
             '32-bit': {
-                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v47.0.0-mingw-w64-win32v1.0/mkvtoolnix-i686-linux.tar.xz',
+                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.4/mkvtoolnix-i686-linux.tar.xz',
                 'ext': '.tar.xz',
                 'content-path': ['i686/'],
                 'content-base': 'mkvmerge',
                 'content-ext': ''
             },
             '64-bit': {
-                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v47.0.0-mingw-w64-win32v1.0/mkvtoolnix-x86_64-linux.tar.xz',
+                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.4/mkvtoolnix-x86_64-linux.tar.xz',
                 'ext': '.tar.xz',
                 'content-path': ['x86_64/'],
                 'content-base': 'mkvmerge',
