@@ -533,7 +533,7 @@ class QQVideoVC(VideoConfig):
                 return result
             if cover_info and isinstance(cover_info, dict):
                 info['title'] = cover_info.get('title', '') or cover_info.get('title_new', '')
-                info['year'] = cover_info.get('year') or cover_info.get('publish_date', '').split('-')[0] or DEFAULT_YEAR
+                info['year'] = cover_info.get('year') or (cover_info.get('publish_date') or '').split('-')[0] or DEFAULT_YEAR
                 info['cover_id'] = cover_info.get('cover_id', '')
 
                 type_id = int(cover_info.get('type') or VideoTypeCodes.MOVIE)
