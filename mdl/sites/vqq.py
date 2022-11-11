@@ -567,15 +567,15 @@ class QQVideoVC(VideoConfig):
                                      or cover_info['year']
 
                 # set to the probably more specific title
-                ep_list = json_path_get(conf_info, ['episodeMain', 'listData'], [])
+                ep_list = json_path_get(conf_info, ['episodeMain', 'listData', 0, 'list'], [])
                 if not ep_list:
                     return
                 ep_list = ep_list[0]
 
                 if len(ep_list) >= len(cover_info['normal_ids']):  # ensure the full list of episodes
-                    cover_info['normal_ids'] = [{'V': item['item_params']['vid'],
+                    cover_info['normal_ids'] = [{'V': item['vid'],
                                                  'E': ep,
-                                                 'title': json_path_get(item, ['item_params', 'play_title']) or json_path_get(item, ['item_params', 'title'])
+                                                 'title': item.get('playTitle') or item.get('title', '')
                                                  # exclude the types of videos that are unlikely to have meaningful episode names
                                                  if cover_info['type'] not in [VideoTypes.TV, ] else ''}
                                                 for ep, item in enumerate(ep_list, start=1)]
