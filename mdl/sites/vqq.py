@@ -513,9 +513,166 @@ class QQVideoVC(VideoConfig):
 
         return format_name, ext, urls
 
+    def _get_video_urls_p10201_ts(self, vid, definition, vurl, referrer):
+        urls = []
+        ext = None
+        format_name = None
+
+        nodejs = self.confs['progs']['node']
+        cmd_nodejs = [nodejs, self.jsfile]
+        with subprocess.Popen(cmd_nodejs, bufsize=1, universal_newlines=True, encoding='utf-8',
+                              stdin=subprocess.PIPE, stdout=subprocess.PIPE) as node_proc:
+            ckey_req = ' '.join([QQVideoPlatforms.P10201, self.APP_VER, vid, vurl, referrer])
+            node_proc.stdin.write(ckey_req)
+            node_proc.stdin.write(r'\n')
+            node_proc.stdin.flush()
+            ckey_resp = node_proc.stdout.readline().rstrip(r'\r\n')
+            ckey, tm, guid, flowid = ckey_resp.split()
+
+            vinfoparam = {
+                'otype': 'ojson',
+                'isHLS': 0,
+                'charge': 0,
+                'fhdswitch': 0,
+                'show1080p': 1,
+                'defnpayver': 1,
+                'sdtfrom': 'v1010',
+                'host': 'v.qq.com',
+                'vid': vid,
+                'defn': definition,
+                'platform': QQVideoPlatforms.P10201,
+                'appVer': self.APP_VER,
+                'refer': referrer,
+                'ehost': vurl,
+                'logintoken': self.login_token,
+                'encryptVer': self.ENCRYPT_VER,
+                'guid': guid,
+                'flowid': flowid,
+                'tm': tm,
+                'cKey': ckey,
+                'dtype': 3
+            }
+            params = {
+                'buid': 'vinfoad',
+                'vinfoparam': urlencode(vinfoparam)
+            }
+            r = self._requester.post('https://vd.l.qq.com/proxyhttp', json=params, cookies=self.user_token)
+            if r.status_code == 200:
+                try:
+                    data = json.loads(r.text)
+                    if data:
+                        data = json.loads(data.get('vinfo'))
+                except json.JSONDecodeError:
+                    # logging
+                    return format_name, ext, urls
+
+                if data and data.get('dltype'):
+                    url_prefixes = []
+                    for url_dic in json_path_get(data, ['vl', 'vi', 0, 'ul', 'ui'], []):
+                        if isinstance(url_dic, dict):
+                            url = url_dic.get('url')
+                            if url and not url.startswith(self.cdn_blacklist):
+                                url_prefixes.append(url)
+
+                    chosen_url_prefixes = [prefix for prefix in url_prefixes if
+                                           prefix[:prefix.find('/', 8)].endswith('.tc.qq.com')]
+                    if not chosen_url_prefixes:
+                        chosen_url_prefixes = url_prefixes
+
+                    if self.use_cdn:
+                        # use all URL prefixes but with default servers coming before CDN mirrors
+                        cdn = [prefix for prefix in url_prefixes if prefix not in chosen_url_prefixes]
+                        chosen_url_prefixes += cdn
+
+                    drm = json_path_get(data, ['vl', 'vi', 0, 'drm'])
+                    preview = data.get('preview')
+
+                    formats = {fmt.get('id'): fmt.get('name') for fmt in json_path_get(data, ['fl', 'fi'], [])}
+                    keyid = json_path_get(data, ['vl', 'vi', 0, 'keyid'], '')
+
+                    vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
+                    vfn = vfilename.rpartition('.')  # e.g. ['egmovie.f323013001', '.', 'ts']
+                    ext = vfn[-1]  # video extension, e.g. 'ts' 'mp4'
+
+                    ret_defn = ''  # not necessarily equal to requested `definition`
+
+                    if ext == 'ts':
+                        if drm == 1 and not preview and not self.has_vip:
+                            return format_name, ext, urls
+
+                        # determine the true definition `ret_defn` from the returned formats
+                        cfilename = '.'.join([keyid, '1', ext])
+                        for format_id in sorted(formats, reverse=True):
+                            ckey_req = ' '.join([QQVideoPlatforms.P10201, self.APP_VER, vid, vurl, referrer, r'\n'])
+                            node_proc.stdin.write(ckey_req)
+                            node_proc.stdin.flush()
+                            ckey_resp = node_proc.stdout.readline().rstrip(r'\r\n')
+                            ckey, tm, guid, flowid = ckey_resp.split()
+
+                            vkeyparam = {
+                                'otype': 'ojson',
+                                'vid': vid,
+                                'format': format_id,
+                                'filename': cfilename,
+                                'platform': QQVideoPlatforms.P10201,
+                                'appVer': self.APP_VER,
+                                'sdtfrom': 'v1010',
+                                'guid': guid,
+                                'flowid': flowid,
+                                'tm': tm,
+                                'refer': referrer,
+                                'ehost': vurl,
+                                'logintoken': self.login_token,
+                                'encryptVer': self.ENCRYPT_VER,
+                                'cKey': ckey
+                            }
+                            params = {
+                                'buid': 'onlyvkey',
+                                'vkeyparam': urlencode(vkeyparam)
+                            }
+                            r = self._requester.post('https://vd.l.qq.com/proxyhttp', json=params, cookies=self.user_token)
+                            if r.status_code == 200:
+                                try:
+                                    key_data = json.loads(r.text)
+                                    if key_data:
+                                        key_data = json.loads(key_data.get('vkey'))
+                                except json.JSONDecodeError:
+                                    # logging
+                                    return format_name, ext, urls
+
+                                if key_data and isinstance(key_data, dict):
+                                    vkey = key_data.get('key')
+                                    if not vkey:
+                                        return format_name, ext, urls
+
+                                    cfilename = key_data.get('filename', '')
+                                    if cfilename and cfilename == vfilename:
+                                        ret_defn = formats.get(format_id, ret_defn)
+                                        break
+
+                        fc = json_path_get(data, ['vl', 'vi', 0, 'fc'])  # always >= 1?
+                        # start = 0 if fc == 0 else 1  # start counting number of the video clip file indexes
+                        start = 1
+
+                        for idx in range(start, fc + 1):
+                            vfilename_new = '.'.join([vfn[0], str(idx), 'ts'])
+                            url_mirrors = '\t'.join(
+                                ['%s%s?sdtfrom=v1010' % (prefix, vfilename_new) for prefix in chosen_url_prefixes])
+                            urls.append(url_mirrors)
+                    else:  # 'mp4'
+                        if drm == 1 and not self.has_vip:
+                            return format_name, ext, urls
+
+                        return self._get_video_urls_p10201(vid, definition, vurl, referrer)
+
+                    format_name = ret_defn
+
+        return format_name, ext, urls
+
     def _get_video_urls(self, vid, definition, vurl, referrer):
         if self.no_logo:
-            return self._get_video_urls_p10801(vid, definition, vurl, referrer)
+            # return self._get_video_urls_p10801(vid, definition, vurl, referrer)
+            return self._get_video_urls_p10201_ts(vid, definition, vurl, referrer)
         else:
             # return self._get_video_urls_p10901(vid, definition)
             return self._get_video_urls_p10201(vid, definition, vurl, referrer)
