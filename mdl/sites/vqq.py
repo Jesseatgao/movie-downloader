@@ -215,7 +215,7 @@ class QQVideoVC(VideoConfig):
                     for idx in range(start, fc + 1):
                         vfilename_new = '.'.join([vfn[0], str(idx), 'ts'])
                         url_mirrors = '\t'.join(
-                            ['%s%s' % (prefix, vfilename_new) for prefix in chosen_url_prefixes])
+                            ['%s%s?sdtfrom=v1010' % (prefix, vfilename_new) for prefix in chosen_url_prefixes])
                         urls.append(url_mirrors)
                 else:  # 'mp4'
                     if drm == 1 and not self.has_vip:
@@ -601,54 +601,61 @@ class QQVideoVC(VideoConfig):
                             return format_name, ext, urls
 
                         # determine the true definition `ret_defn` from the returned formats
-                        cfilename = '.'.join([keyid, '1', ext])
-                        for format_id in sorted(formats, reverse=True):
-                            ckey_req = ' '.join([QQVideoPlatforms.P10201, self.APP_VER, vid, vurl, referrer, r'\n'])
-                            node_proc.stdin.write(ckey_req)
-                            node_proc.stdin.flush()
-                            ckey_resp = node_proc.stdout.readline().rstrip(r'\r\n')
-                            ckey, tm, guid, flowid = ckey_resp.split()
+                        key_format_id = keyid.split('.')[-1]
+                        try:
+                            key_format_id = int(key_format_id)
+                            ret_defn = formats.get(key_format_id, ret_defn)
+                        except ValueError:
+                            pass
 
-                            vkeyparam = {
-                                'otype': 'ojson',
-                                'vid': vid,
-                                'format': format_id,
-                                'filename': cfilename,
-                                'platform': QQVideoPlatforms.P10201,
-                                'appVer': self.APP_VER,
-                                'sdtfrom': 'v1010',
-                                'guid': guid,
-                                'flowid': flowid,
-                                'tm': tm,
-                                'refer': referrer,
-                                'ehost': vurl,
-                                'logintoken': self.login_token,
-                                'encryptVer': self.ENCRYPT_VER,
-                                'cKey': ckey
-                            }
-                            params = {
-                                'buid': 'onlyvkey',
-                                'vkeyparam': urlencode(vkeyparam)
-                            }
-                            r = self._requester.post('https://vd.l.qq.com/proxyhttp', json=params, cookies=self.user_token)
-                            if r.status_code == 200:
-                                try:
-                                    key_data = json.loads(r.text)
-                                    if key_data:
-                                        key_data = json.loads(key_data.get('vkey'))
-                                except json.JSONDecodeError:
-                                    # logging
-                                    return format_name, ext, urls
+                        if not ret_defn:
+                            for format_id in sorted(formats, reverse=True):
+                                ckey_req = ' '.join([QQVideoPlatforms.P10201, self.APP_VER, vid, vurl, referrer, r'\n'])
+                                node_proc.stdin.write(ckey_req)
+                                node_proc.stdin.flush()
+                                ckey_resp = node_proc.stdout.readline().rstrip(r'\r\n')
+                                ckey, tm, guid, flowid = ckey_resp.split()
 
-                                if key_data and isinstance(key_data, dict):
-                                    vkey = key_data.get('key')
-                                    if not vkey:
+                                vkeyparam = {
+                                    'otype': 'ojson',
+                                    'vid': vid,
+                                    'format': format_id,
+                                    'filename': vfilename,
+                                    'platform': QQVideoPlatforms.P10201,
+                                    'appVer': self.APP_VER,
+                                    'sdtfrom': 'v1010',
+                                    'guid': guid,
+                                    'flowid': flowid,
+                                    'tm': tm,
+                                    'refer': referrer,
+                                    'ehost': vurl,
+                                    'logintoken': self.login_token,
+                                    'encryptVer': self.ENCRYPT_VER,
+                                    'cKey': ckey
+                                }
+                                params = {
+                                    'buid': 'onlyvkey',
+                                    'vkeyparam': urlencode(vkeyparam)
+                                }
+                                r = self._requester.post('https://vd.l.qq.com/proxyhttp', json=params, cookies=self.user_token)
+                                if r.status_code == 200:
+                                    try:
+                                        key_data = json.loads(r.text)
+                                        if key_data:
+                                            key_data = json.loads(key_data.get('vkey'))
+                                    except json.JSONDecodeError:
+                                        # logging
                                         return format_name, ext, urls
 
-                                    cfilename = key_data.get('filename', '')
-                                    if cfilename and cfilename == vfilename:
-                                        ret_defn = formats.get(format_id, ret_defn)
-                                        break
+                                    if key_data and isinstance(key_data, dict):
+                                        vkey = key_data.get('key')
+                                        if not vkey:
+                                            return format_name, ext, urls
+
+                                        cfilename = key_data.get('filename', '')
+                                        if cfilename and cfilename == vfilename:
+                                            ret_defn = formats.get(format_id, ret_defn)
+                                            break
 
                         fc = json_path_get(data, ['vl', 'vi', 0, 'fc'])  # always >= 1?
                         # start = 0 if fc == 0 else 1  # start counting number of the video clip file indexes
