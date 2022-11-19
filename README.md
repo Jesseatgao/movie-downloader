@@ -114,7 +114,7 @@ Step 2: get and install third-party dependency programs
 
 ### Usage
 ```
-mdl [-h] [-D DIR] [-d {fhd,shd,hd,sd}] [-p PROXY] [--QQVideo-no-logo {True,False}]
+mdl [-h] [-D DIR] [-d {uhd,fhd,shd,hd,sd}] [-p PROXY] [--QQVideo-no-logo {True,False}]
     [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-N NODE] [-L {debug,info,warning,error,critical}]
     url [url ...] [--playlist-items PLAYLIST_ITEMS]
 ```
@@ -123,7 +123,7 @@ mdl [-h] [-D DIR] [-d {fhd,shd,hd,sd}] [-p PROXY] [--QQVideo-no-logo {True,False
 
 `-D DIR`: specify _DIR_ to save downloaded videos.
 
-`-d {fhd,shd,hd,sd}`: specify the definition of the video to download. `fhd,shd,hd,sd` correspond to `1080P, 720P, 480P, 270P` respectively.
+`-d {uhd,fhd,shd,hd,sd}`: specify the definition of the video to download. `uhd,fhd,shd,hd,sd` correspond to `4K, 1080P, 720P, 480P, 270P` respectively.
 
 `-p PROXY`: specify the proxy server _PROXY_ (in the form of `http://[user:password@]host:port`)
     used to get web pages or download videos (if configured in `conf/dlops.conf`).

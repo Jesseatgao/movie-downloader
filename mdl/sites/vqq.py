@@ -65,18 +65,21 @@ class QQVideoVC(VideoConfig):
 
     _VQQ_FORMAT_IDS_DEFAULT = {
         QQVideoPlatforms.P10901: {
+            'uhd': 10208,  # fixme
             'fhd': 10209,
             'shd': 10201,
             'hd': 10212,  # 10202
             'sd': 10203
         },
         QQVideoPlatforms.P10801: {
+            'uhd': 321005,  # fixme
             'fhd': 321004,
             'shd': 321003,
             'hd': 321002,
             'sd': 321001
         },
         QQVideoPlatforms.P10201: {
+            'uhd': 10219,  # fixme
             'fhd': 10218,
             'shd': 10217,
             'hd': 2,
