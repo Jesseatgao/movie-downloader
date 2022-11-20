@@ -15,7 +15,7 @@ from ..utils import json_path_get
 
 class M1905VC(VideoConfig):
     _VIDEO_URL_PATS = [
-        {'pat': r'^https?://www\.1905\.com/vod/play/(\d+)\.shtml',
+        {'pat': r'^https?://www\.1905\.com/(?:vod|video)/play/(\d+)\.shtml',
          'eg': 'https://www.1905.com/vod/play/1287886.shtml'}, # 'video_episode_sd'
         {'pat': r'^https?://www\.1905\.com/mdb/film/(\d+)/?',
          'eg': 'https://www.1905.com/mdb/film/2245563'},  # 'video_cover'
@@ -27,14 +27,14 @@ class M1905VC(VideoConfig):
     #_VIP_TOKEN = {}
 
     _M1905_DEFINITION = ['uhd', 'hd', 'sd']  # decremental! FIXME: VIP user
-    _M1905_DEFN_MAP_I2S = {'uhd': 'shd', 'hd': 'hd', 'sd': 'sd'}  # internal format name -> standard format name
-    _M1905_DEFN_MAP_S2I = {'fhd': 'fhd', 'shd': 'uhd', 'hd': 'hd', 'sd': 'sd'}  # standard -> internal | FIXME: VIP fhd?
+    _M1905_DEFN_MAP_I2S = {'fhd': 'fhd', 'uhd': 'shd', 'hd': 'hd', 'sd': 'sd'}  # internal format name -> standard format name
+    _M1905_DEFN_MAP_S2I = {'uhd': 'fhd', 'fhd': 'fhd', 'shd': 'uhd', 'hd': 'hd', 'sd': 'sd'}  # standard -> internal | FIXME: VIP fhd?
 
     def __init__(self, requester, args, confs):
         super().__init__(requester, args, confs)
 
         self._SD_CONF_PAT_RE = re.compile(
-            r"VODCONFIG.*vid\s*:\s*\"(\d+)\".*title\s*:\s*\"(.*?)\".*mdbfilmid\s*:\s*\"(\d+)\".*apikey\s*:\s*\"(.*?)\"",
+            r"(?:VODCONFIG|VIDEOCONFIG).*vid\s*:\s*\"(\d+)\".*title\s*:\s*\"(.*?)\".*apikey\s*:\s*\"(.*?)\"",  # (mdbfilmid\s*:\s*\"(\d+)\")?
             re.MULTILINE | re.DOTALL | re.IGNORECASE
         )
         self._COVER_YEAR_RE = re.compile(r"header-wrapper-h1.*?\(\s*(\d+)\s*\)",
@@ -90,10 +90,14 @@ class M1905VC(VideoConfig):
             r.encoding = 'utf-8'
             conf_match = self._SD_CONF_PAT_RE.search(r.text)
             if conf_match:
-                info = {'vid': conf_match.group(1), 'title': conf_match.group(2), 'cover_id': conf_match.group(3)}
+                info = {'vid': conf_match.group(1), 'title': conf_match.group(2)}
                 # info['year'] = video_info.get('year')  # extract it from the cover page
+                self._apikey = conf_match.group(3)
 
-                self._apikey = conf_match.group(4)
+                video_config = conf_match.group(0)  # VODCONFIG | VIDEOCONFIG
+                re_cover_id = r"mdbfilmid\s*:\s*\"(\d+)\""
+                cover_id_match = re.search(re_cover_id, video_config, flags=re.MULTILINE | re.DOTALL | re.IGNORECASE)
+                info['cover_id'] = cover_id_match.group(1) if cover_id_match else ""
 
         return info
 
@@ -156,8 +160,9 @@ class M1905VC(VideoConfig):
                 if typ == 1:  # 'video_episode_sd'
                     episode_info = self._get_episode_info_sd(url)
                     if episode_info:
-                        year, _ = self._get_cover_info(self._VIDEO_COVER_FORMAT.format(episode_info['cover_id']))
-                        episode_info['year'] = year
+                        if episode_info['cover_id']:
+                            year, _ = self._get_cover_info(self._VIDEO_COVER_FORMAT.format(episode_info['cover_id']))
+                            episode_info['year'] = year
 
                         cover_info["normal_ids"] = [dict(V=episode_info['vid'], E=1, vip=False, defns={}, page=url)]
                 elif typ == 2:  # 'video_cover'
@@ -183,10 +188,10 @@ class M1905VC(VideoConfig):
                         cover_info["normal_ids"] = [dict(V=episode_info['vid'], E=1, vip=True, defns={}, page=url)]
 
                 if episode_info:
-                    cover_info["title"] = episode_info["title"]
-                    cover_info["year"] = episode_info["year"]
+                    cover_info["title"] = episode_info.get("title") or ""
+                    cover_info["year"] = episode_info.get("year") or ""
                     cover_info["type"] = VideoTypes.MOVIE
-                    cover_info["cover_id"] = episode_info["cover_id"]
+                    cover_info["cover_id"] = episode_info.get("cover_id") or ""
                     cover_info["episode_all"] = len(cover_info["normal_ids"])
                     cover_info["referrer"] = url
 

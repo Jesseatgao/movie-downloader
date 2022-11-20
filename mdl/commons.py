@@ -1,5 +1,5 @@
 
-VIDEO_DEFINITIONS = {'fhd': '1080P', 'shd': '720P', 'hd': '480P', 'sd': '270P'}  # from highest to lowest
+VIDEO_DEFINITIONS = {'uhd': '4K', 'fhd': '1080P', 'shd': '720P', 'hd': '480P', 'sd': '270P'}  # from highest to lowest
 
 DEFAULT_YEAR = '1900'
 

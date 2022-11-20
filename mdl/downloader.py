@@ -90,8 +90,8 @@ class MDownloader(object):
 
         video_list = cover_info.get('normal_ids')
         if video_list:
-            cover_name = '.'.join([cover_info.get('title') if cover_info.get('title') else cover_info['source_name'] + '_' + cover_info.get('cover_id', ''),
-                                   cover_info.get('year', DEFAULT_YEAR)])
+            cover_name = '.'.join([cover_info.get('title') or cover_info['source_name'] + '_' + (cover_info.get('cover_id') or ''),
+                                   (cover_info.get('year') or DEFAULT_YEAR)])
             cover_name = normalize_filename(cover_name, repl='_')
             cover_default_dir = '.'.join([cover_name, cover_info.get('type', VideoTypes.MOVIE)])
             cover_dir = os.path.abspath(os.path.join(save_dir, cover_default_dir))

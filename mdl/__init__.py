@@ -52,7 +52,7 @@ def arg_parser():
 
     parser.add_argument('url', nargs='+', help='Episode or cover/playlist web page URL(s)')
     parser.add_argument('-D', '--dir', default='', dest='dir', help='path to downloaded videos')
-    parser.add_argument('-d', '--definition', default='', dest='definition', choices=['fhd', 'shd', 'hd', 'sd'])
+    parser.add_argument('-d', '--definition', default='', dest='definition', choices=['uhd', 'fhd', 'shd', 'hd', 'sd'])
     parser.add_argument('-p', '--proxy', dest='proxy', help='proxy in the form of "http://[user:password@]host:port"')
     parser.add_argument('--playlist-items', default='', dest='playlist_items', type=_segment_playlist_items,
                         help='desired episode indices in a playlist separated by commas, while the playlists are separated by semicolons,'
@@ -129,7 +129,7 @@ def parse_con_log_level(args, confs):
 
 def parse_dlops_default(args, confs):
     save_dir_default = '.'
-    definition_default = 'fhd'
+    definition_default = 'uhd'
 
     for site in confs:
         if site not in ('misc', 'progs'):
