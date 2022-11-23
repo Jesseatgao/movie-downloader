@@ -393,7 +393,8 @@ class QQVideoVC(VideoConfig):
                 'guid': guid,
                 'flowid': flowid,
                 'tm': tm,
-                'cKey': ckey
+                'cKey': ckey,
+                #'drm': 40
             }
             params = {
                 'buid': 'vinfoad',
@@ -451,8 +452,9 @@ class QQVideoVC(VideoConfig):
                     keyids = [chap.get('keyid') for chap in json_path_get(data, ['vl', 'vi', 0, 'cl', 'ci'], [])] if fc \
                         else [json_path_get(data, ['vl', 'vi', 0, 'cl', 'keyid'])]
 
-                    for keyid in keyids:
+                    for idx, keyid in enumerate(keyids, start=1):
                         keyid_new = keyid.split('.')
+                        keyid_new[0] = vfn[0]
                         if len(keyid_new) == 3:
                             keyid_new[1] = vfmt_new
                             keyid_new = '.'.join(keyid_new)
@@ -503,8 +505,16 @@ class QQVideoVC(VideoConfig):
                                 vkey = key_data.get('key')
                                 if not vkey:
                                     return format_name, ext, urls
-                                if not fc:
-                                    cfilename = key_data.get('filename', cfilename)
+
+                                ffilename = key_data.get('filename')
+                                if ffilename:
+                                    if fc:
+                                        cfilename = ffilename.split('.')
+                                        cfilename.insert(-1, str(idx))
+                                        cfilename = '.'.join(cfilename)
+                                    else:
+                                        cfilename = ffilename
+
                                 url_mirrors = '\t'.join(['%s%s?sdtfrom=v1010&vkey=%s' % (url_prefix, cfilename, vkey)
                                                         for url_prefix in chosen_url_prefixes])
                                 if url_mirrors:
@@ -534,7 +544,7 @@ class QQVideoVC(VideoConfig):
 
             vinfoparam = {
                 'otype': 'ojson',
-                'isHLS': 0,
+                'isHLS': 1,
                 'charge': 0,
                 'fhdswitch': 0,
                 'show1080p': 1,
@@ -553,7 +563,8 @@ class QQVideoVC(VideoConfig):
                 'flowid': flowid,
                 'tm': tm,
                 'cKey': ckey,
-                'dtype': 3
+                'dtype': 3,
+                #'drm': 40
             }
             params = {
                 'buid': 'vinfoad',

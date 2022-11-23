@@ -141,7 +141,7 @@ def parse_dlops_default(args, confs):
                 sys.exit(-1)
 
             definition = args.definition or confs[site]['definition'] or definition_default
-            confs[site]['definition'] = definition
+            confs[site]['definition'] = definition if definition != 'uhd' else 'fhd'  # fixme: no 'uhd' implemented for now
 
             if args.proxy:
                 confs[site]['proxy'] = args.proxy
