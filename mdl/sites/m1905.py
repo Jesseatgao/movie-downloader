@@ -34,7 +34,7 @@ class M1905VC(VideoConfig):
         super().__init__(requester, args, confs)
 
         self._SD_CONF_PAT_RE = re.compile(
-            r"(?:VODCONFIG|VIDEOCONFIG).*vid\s*:\s*\"(\d+)\".*title\s*:\s*\"(.*?)\".*apikey\s*:\s*\"(.*?)\"",  # (mdbfilmid\s*:\s*\"(\d+)\")?
+            r"(?:VODCONFIG|VIDEOCONFIG).*vid\s*:\s*\"(\d+)\".*?(?<!vip)title\s*:\s*\"(.*?)\".*?apikey\s*:\s*\"(.*?)\"",  # (mdbfilmid\s*:\s*\"(\d+)\")?
             re.MULTILINE | re.DOTALL | re.IGNORECASE
         )
         self._COVER_YEAR_RE = re.compile(r"header-wrapper-h1.*?\(\s*(\d+)\s*\)",
