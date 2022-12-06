@@ -3,10 +3,11 @@ import time
 import re
 import random
 import hashlib
-from urllib.parse import quote as urllib_parse_quote
+from urllib.parse import quote as urllib_parse_quote, urlencode
 from math import floor as math_floor
 
 # from requests.cookies import RequestsCookieJar
+from requests import RequestException
 
 from ..videoconfig import VideoConfig
 from ..commons import VideoTypes
@@ -85,19 +86,24 @@ class M1905VC(VideoConfig):
     def _get_episode_info_sd(self, epurl):
         info = None
 
-        r = self._requester.get(epurl, allow_redirects=True)
-        if r.status_code == 200:  # requests.codes.ok
-            r.encoding = 'utf-8'
-            conf_match = self._SD_CONF_PAT_RE.search(r.text)
-            if conf_match:
-                info = {'vid': conf_match.group(1), 'title': conf_match.group(2)}
-                # info['year'] = video_info.get('year')  # extract it from the cover page
-                self._apikey = conf_match.group(3)
+        try:
+            r = self._requester.get(epurl)
+            if r.status_code == 200:  # requests.codes.ok
+                r.encoding = 'utf-8'
+                conf_match = self._SD_CONF_PAT_RE.search(r.text)
+                if conf_match:
+                    info = {'vid': conf_match.group(1), 'title': conf_match.group(2)}
+                    # info['year'] = video_info.get('year')  # extract it from the cover page
+                    self._apikey = conf_match.group(3)
 
-                video_config = conf_match.group(0)  # VODCONFIG | VIDEOCONFIG
-                re_cover_id = r"mdbfilmid\s*:\s*\"(\d+)\""
-                cover_id_match = re.search(re_cover_id, video_config, flags=re.MULTILINE | re.DOTALL | re.IGNORECASE)
-                info['cover_id'] = cover_id_match.group(1) if cover_id_match else ""
+                    video_config = conf_match.group(0)  # VODCONFIG | VIDEOCONFIG
+                    re_cover_id = r"mdbfilmid\s*:\s*\"(\d+)\""
+                    cover_id_match = re.search(re_cover_id, video_config, flags=re.MULTILINE | re.DOTALL | re.IGNORECASE)
+                    info['cover_id'] = cover_id_match.group(1) if cover_id_match else ""
+            else:
+                raise RequestException("Unexpected status code %i" % r.status_code)
+        except RequestException as e:
+            self._logger.error("Request webpage '%s' failed: '%r'", epurl, e)
 
         return info
 
@@ -107,13 +113,18 @@ class M1905VC(VideoConfig):
         info = None
         regex_vip = r"movie-title\s*\"\s*>(?P<title>[^<]+)</h1>.*?年份[^\d]+(?P<year>\d+).*?www\.1905\.com/mdb/film/(?P<cover_id>\d+)"
 
-        r = self._requester.get(epurl, allow_redirects=True)
-        if r.status_code == 200:
-            r.encoding = 'utf-8'
-            conf_match = re.search(regex_vip, r.text, flags=re.MULTILINE|re.DOTALL|re.IGNORECASE)
-            if conf_match:
-                info = {'title': conf_match.group('title'), 'year': conf_match.group('year'),
-                        'cover_id': conf_match.group('cover_id'), 'vid': epurl.split('/')[-1].split('.')[0]}
+        try:
+            r = self._requester.get(epurl)
+            if r.status_code == 200:
+                r.encoding = 'utf-8'
+                conf_match = re.search(regex_vip, r.text, flags=re.MULTILINE|re.DOTALL|re.IGNORECASE)
+                if conf_match:
+                    info = {'title': conf_match.group('title'), 'year': conf_match.group('year'),
+                            'cover_id': conf_match.group('cover_id'), 'vid': epurl.split('/')[-1].split('.')[0]}
+            else:
+                raise RequestException("Unexpected status code %i" % r.status_code)
+        except RequestException as e:
+            self._logger.error("Request webpage '%s' failed: '%r'", epurl, e)
 
         return info
 
@@ -130,22 +141,25 @@ class M1905VC(VideoConfig):
         }
         urls = {}
 
-        r = self._requester.get(cvurl)
-        if r.status_code == 200:
-            r.encoding = 'utf-8'
-            year_match = self._COVER_YEAR_RE.search(r.text)
-            if year_match:
-                year = year_match.group(1)
-                cover_match = self._ONLINE_COVER_RE.search(r.text[year_match.end(0):])
-            else:
-                cover_match = self._ONLINE_COVER_RE.search(r.text)
+        try:
+            r = self._requester.get(cvurl)
+            if r.status_code == 200:
+                r.encoding = 'utf-8'
+                year_match = self._COVER_YEAR_RE.search(r.text)
+                if year_match:
+                    year = year_match.group(1)
+                    cover_match = self._ONLINE_COVER_RE.search(r.text[year_match.end(0):])
+                else:
+                    cover_match = self._ONLINE_COVER_RE.search(r.text)
 
-            if cover_match:
-                episodes_match = self._ONLINE_EPISODE_RE.finditer(cover_match.group(1))
-                for mo in episodes_match:
-                    urls[defns[mo.group(2)]] = mo.group(1)
-        else:
-            print("Request webpage failed: {}".format(cvurl))  # logging
+                if cover_match:
+                    episodes_match = self._ONLINE_EPISODE_RE.finditer(cover_match.group(1))
+                    for mo in episodes_match:
+                        urls[defns[mo.group(2)]] = mo.group(1)
+            else:
+                raise RequestException("Unexpected status code %i" % r.status_code)
+        except RequestException as e:
+            self._logger.error("Request webpage '%s' failed: '%r'", cvurl, e)
 
         return year, urls
 
@@ -242,8 +256,10 @@ class M1905VC(VideoConfig):
                                 mpeg_urls = ["%s/%s" % (url_prefix, ts) for ts in r.text.splitlines() if
                                              ts and not ts.startswith('#')]
                                 return mpeg_urls
-        except Exception:
-            print("Failed to fetch {!r}".format(m3u8_url))  # logging
+                else:
+                    raise RequestException("Unexpected status code %i" % r.status_code)
+        except RequestException as e:
+            self._logger.error("Failed to fetch '%s': '%r'", playlist, e)
 
     def _update_video_dwnld_info_sd(self, vi):
         """
@@ -261,38 +277,44 @@ class M1905VC(VideoConfig):
         }
         params['signature'] = self._signature(params, self._appid)
 
-        r = self._requester.get(self._PROFILE_CONFIG_URL, params=params)
-        if r.status_code == 200:
-            # cookie_jar = RequestsCookieJar()
-            # set_cookie = r.headers.get("Set-Cookie")
-            # if set_cookie:
-            #     cookie_info = set_cookie.split(";")
-            #     name, val = cookie_info[0].split("=")
-            #     _, path = cookie_info[-2].split("=")
-            #     _, domain = cookie_info[-1].split("=")
-            #     cookie_jar.set(name, val, path=path, domain=domain)
-            try:
-                data = json.loads(r.text[len("null("):-1]).get('data')
-            except json.JSONDecodeError:
-                return
+        try:
+            r = self._requester.get(self._PROFILE_CONFIG_URL, params=params)
+            if r.status_code == 200:
+                # cookie_jar = RequestsCookieJar()
+                # set_cookie = r.headers.get("Set-Cookie")
+                # if set_cookie:
+                #     cookie_info = set_cookie.split(";")
+                #     name, val = cookie_info[0].split("=")
+                #     _, path = cookie_info[-2].split("=")
+                #     _, domain = cookie_info[-1].split("=")
+                #     cookie_jar.set(name, val, path=path, domain=domain)
+                try:
+                    data = json.loads(r.text[len("null("):-1]).get('data')
+                except json.JSONDecodeError:
+                    return
 
-            playlist_m3u8 = ""
-            defn = self._M1905_DEFN_MAP_S2I[self.preferred_defn]
-            defns = [defn] if json_path_get(data, ['sign', defn]) else self._M1905_DEFINITION
-            for defn in defns:
-                host = json_path_get(data, ['quality', defn, 'host'])
-                sign = json_path_get(data, ['sign', defn, 'sign'])
-                path = json_path_get(data, ['path', defn, 'path'])
+                playlist_m3u8 = ""
+                defn = self._M1905_DEFN_MAP_S2I[self.preferred_defn]
+                defns = [defn] if json_path_get(data, ['sign', defn]) else self._M1905_DEFINITION
+                for defn in defns:
+                    host = json_path_get(data, ['quality', defn, 'host'])
+                    sign = json_path_get(data, ['sign', defn, 'sign'])
+                    path = json_path_get(data, ['path', defn, 'path'])
 
-                if host and sign and path:
-                    playlist_m3u8 = (host + sign + path).replace('\\', '')
-                    break
+                    if host and sign and path:
+                        playlist_m3u8 = (host + sign + path).replace('\\', '')
+                        break
 
-            if playlist_m3u8:
-                mpeg_urls = self._get_ts_playlist(playlist_m3u8)
-                if mpeg_urls:
-                    std_defn = self._M1905_DEFN_MAP_I2S[defn]
-                    vi["defns"].setdefault(std_defn, []).append(dict(ext="ts", urls=mpeg_urls))
+                if playlist_m3u8:
+                    mpeg_urls = self._get_ts_playlist(playlist_m3u8)
+                    if mpeg_urls:
+                        std_defn = self._M1905_DEFN_MAP_I2S[defn]
+                        vi["defns"].setdefault(std_defn, []).append(dict(ext="ts", urls=mpeg_urls))
+            else:
+                raise RequestException("Unexpected status code %i" % r.status_code)
+        except RequestException as e:
+            request_url = "%s?%s" % (self._PROFILE_CONFIG_URL, urlencode(params))
+            self._logger.error("Failed to fetch '%s': '%r'", request_url, e)
 
     def _update_video_dwnld_info_hd(self, vi):
         pass

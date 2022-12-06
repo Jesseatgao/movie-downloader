@@ -5,6 +5,8 @@ import subprocess
 
 from urllib.parse import urlencode
 
+from requests import RequestException
+
 from ..commons import VideoTypeCodes, VideoTypes, DEFAULT_YEAR
 from ..videoconfig import VideoConfig
 from ..utils import json_path_get, build_cookiejar_from_kvp
@@ -103,6 +105,7 @@ class QQVideoVC(VideoConfig):
         self._ALL_LOADED_INFO_RE = re.compile(r"window\.__pinia\s*=\s*(.+?);?</script>",
                                               re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._VIDEO_COVER_PREFIX = 'https://v.qq.com/x/cover/'
+        self._VIDEO_CONFIG_URL = 'https://vd.l.qq.com/proxyhttp'
 
         # make sure _VIDEO_URL_PATS has a compiled version, which should have been done in @classmethod is_url_valid
         for pat in self._VIDEO_URL_PATS:
@@ -400,14 +403,19 @@ class QQVideoVC(VideoConfig):
                 'buid': 'vinfoad',
                 'vinfoparam': urlencode(vinfoparam)
             }
-            r = self._requester.post('https://vd.l.qq.com/proxyhttp', json=params, cookies=self.user_token)
-            if r.status_code == 200:
+
+            try:
+                r = self._requester.post(self._VIDEO_CONFIG_URL, json=params, cookies=self.user_token)
+                r.raise_for_status()
+                if r.status_code != 200:
+                    raise RequestException("Unexpected status code %i" % r.status_code)
+
                 try:
                     data = json.loads(r.text)
                     if data:
                         data = json.loads(data.get('vinfo'))
-                except json.JSONDecodeError:
-                    # logging
+                except json.JSONDecodeError as e:
+                    self._logger.error("Received ill-formed video config info for '%i': '%r'", vid, e)
                     return format_name, ext, urls
 
                 if data and data.get('dltype'):
@@ -491,20 +499,25 @@ class QQVideoVC(VideoConfig):
                             'buid': 'onlyvkey',
                             'vkeyparam': urlencode(vkeyparam)
                         }
-                        r = self._requester.post('https://vd.l.qq.com/proxyhttp', json=params, cookies=self.user_token)
-                        if r.status_code == 200:
+
+                        try:
+                            r = self._requester.post(self._VIDEO_CONFIG_URL, json=params, cookies=self.user_token)
+                            r.raise_for_status()
+                            if r.status_code != 200:
+                                raise RequestException("Unexpected status code %i" % r.status_code)
+
                             try:
                                 key_data = json.loads(r.text)
                                 if key_data:
                                     key_data = json.loads(key_data.get('vkey'))
-                            except json.JSONDecodeError:
-                                # logging
-                                return format_name, ext, urls
+                            except json.JSONDecodeError as e:
+                                self._logger.error("Received ill-formed video key data for the clip '%s' from video '%i': '%r'", cfilename, vid, e)
+                                break
 
                             if key_data and isinstance(key_data, dict):
                                 vkey = key_data.get('key')
                                 if not vkey:
-                                    return format_name, ext, urls
+                                    break
 
                                 ffilename = key_data.get('filename')
                                 if ffilename:
@@ -519,10 +532,15 @@ class QQVideoVC(VideoConfig):
                                                         for url_prefix in chosen_url_prefixes])
                                 if url_mirrors:
                                     urls.append(url_mirrors)
+                        except RequestException as e:
+                            self._logger.error("Error while requesting the key for the clip '%s' from video '%i': '%r'", cfilename, vid, e)
+                            break
 
                     # check if the URLs for the file parts have all been successfully obtained
                     if len(keyids) == len(urls):
                         format_name = ret_defn
+            except RequestException as e:
+                self._logger.error("Error while requesting the config info of video '%i': '%r'", vid, e)
 
         return format_name, ext, urls
 
@@ -570,14 +588,19 @@ class QQVideoVC(VideoConfig):
                 'buid': 'vinfoad',
                 'vinfoparam': urlencode(vinfoparam)
             }
-            r = self._requester.post('https://vd.l.qq.com/proxyhttp', json=params, cookies=self.user_token)
-            if r.status_code == 200:
+
+            try:
+                r = self._requester.post(self._VIDEO_CONFIG_URL, json=params, cookies=self.user_token)
+                r.raise_for_status()
+                if r.status_code != 200:
+                    raise RequestException("Unexpected status code %i" % r.status_code)
+
                 try:
                     data = json.loads(r.text)
                     if data:
                         data = json.loads(data.get('vinfo'))
-                except json.JSONDecodeError:
-                    # logging
+                except json.JSONDecodeError as e:
+                    self._logger.error("Received ill-formed video config info for '%i': '%r'", vid, e)
                     return format_name, ext, urls
 
                 if data and data.get('dltype'):
@@ -651,14 +674,18 @@ class QQVideoVC(VideoConfig):
                                     'buid': 'onlyvkey',
                                     'vkeyparam': urlencode(vkeyparam)
                                 }
-                                r = self._requester.post('https://vd.l.qq.com/proxyhttp', json=params, cookies=self.user_token)
-                                if r.status_code == 200:
+
+                                try:
+                                    r = self._requester.post(self._VIDEO_CONFIG_URL, json=params, cookies=self.user_token)
+                                    if r.status_code != 200:
+                                        raise RequestException("Unexpected status code %i" % r.status_code)
+
                                     try:
                                         key_data = json.loads(r.text)
                                         if key_data:
                                             key_data = json.loads(key_data.get('vkey'))
-                                    except json.JSONDecodeError:
-                                        # logging
+                                    except json.JSONDecodeError as e:
+                                        self._logger.error("Received ill-formed video key data for the file '%s' of video '%i': '%r'", vfilename, vid, e)
                                         return format_name, ext, urls
 
                                     if key_data and isinstance(key_data, dict):
@@ -670,6 +697,9 @@ class QQVideoVC(VideoConfig):
                                         if cfilename and cfilename == vfilename:
                                             ret_defn = formats.get(format_id, ret_defn)
                                             break
+                                except RequestException as e:
+                                    self._logger.error("Error while requesting the key for the file '%s' of video '%i': '%r'", vfilename, vid, e)
+                                    return format_name, ext, urls
 
                         fc = json_path_get(data, ['vl', 'vi', 0, 'fc'])  # always >= 1?
                         # start = 0 if fc == 0 else 1  # start counting number of the video clip file indexes
@@ -687,6 +717,8 @@ class QQVideoVC(VideoConfig):
                         return self._get_video_urls_p10201(vid, definition, vurl, referrer)
 
                     format_name = ret_defn
+            except RequestException as e:
+                self._logger.error("Error while requesting the config info of video '%i': '%r'", vid, e)
 
         return format_name, ext, urls
 
