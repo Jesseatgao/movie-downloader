@@ -811,8 +811,11 @@ class QQVideoVC(VideoConfig):
 
         info = None
 
-        r = self._requester.get(cover_url)
-        if r.status_code == 200:
+        try:
+            r = self._requester.get(cover_url)
+            if r.status_code != 200:
+                raise RequestException("Unexpected status code %i" % r.status_code)
+
             r.encoding = 'utf-8'
             info, pos_end = self._extract_video_cover_info(self._COVER_PAT_RE, r.text)
             if info:
@@ -821,11 +824,13 @@ class QQVideoVC(VideoConfig):
             else:
                 info, _ = self._extract_video_cover_info(self._VIDEO_INFO_RE, r.text)
 
-        if info:
-            self._update_video_cover_info(info, self._ALL_LOADED_INFO_RE, r.text)
+            if info:
+                self._update_video_cover_info(info, self._ALL_LOADED_INFO_RE, r.text)
 
-            info['episode_all'] = len(info['normal_ids']) if info['normal_ids'] else 1
-            info['referrer'] = cover_url  # set the Referer to the address of the cover web page
+                info['episode_all'] = len(info['normal_ids']) if info['normal_ids'] else 1
+                info['referrer'] = cover_url  # set the Referer to the address of the cover web page
+        except RequestException as e:
+            self._logger.error("Error while requesting the webpage '%s': '%r'", cover_url, e)
 
         return info
 
