@@ -8,7 +8,7 @@ var document = {
 var window = {
     document: document,
     navigator: {
-        userAgent: "Mozilla/5.0 (Linux; U; Android 2.3.7; zh-cn) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1",
+        userAgent: "Mozilla/5.0 (Linux; U; Android 9; zh-cn) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Safari/537.36",
         appCodeName: "Mozilla",
         appName: "Netscape",
         platform: "Linux"

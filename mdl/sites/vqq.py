@@ -37,7 +37,6 @@ class QQVideoVC(VideoConfig):
     # _VIP_TOKEN = {}
 
     APP_VER = '3.5.57'
-    ENCRYPT_VER = '9.1'
 
     _VQQ_TYPE_CODES = {
         VideoTypeCodes.MOVIE: VideoTypes.MOVIE,
@@ -119,7 +118,9 @@ class QQVideoVC(VideoConfig):
         self.has_vip = True if self._vip_token else False
         self.login_token = self._get_logintoken_from_cookies(self.user_token)
 
-        self.jsfile = os.path.join(mdl_dir, 'js', 'vqq.js')
+        self.encrypt_ver = confs[self.VC_NAME]['ckey_ver']
+        ckey_js = 'vqq_ckey-' + self.encrypt_ver + '.js'
+        self.jsfile = os.path.join(mdl_dir, 'js', ckey_js)
 
         # parse cmdline args and config file for "QQVideo" site
         no_logo_default = 'True'
@@ -140,11 +141,11 @@ class QQVideoVC(VideoConfig):
 
     @staticmethod
     def _get_logintoken_from_cookies(cookies):
-        login_token = {'openid': None, 'appid': None, 'access_token': None, 'vuserid': None, 'vusession': None}
+        login_token = {'openid': '', 'appid': '', 'access_token': '', 'vuserid': '', 'vusession': ''}
 
         if cookies:
             for cookie_name in login_token:
-                login_token.update({cookie_name: cookies.get('vqq_' + cookie_name)})
+                login_token.update({cookie_name: cookies.get('vqq_' + cookie_name, '')})
 
         login_token['main_login'] = 'qq'
 
@@ -391,8 +392,8 @@ class QQVideoVC(VideoConfig):
                 'appVer': self.APP_VER,
                 'refer': referrer,
                 'ehost': vurl,
-                'logintoken': self.login_token,
-                'encryptVer': self.ENCRYPT_VER,
+                'logintoken': json.dumps(self.login_token, separators=(',', ':')),
+                'encryptVer': self.encrypt_ver,
                 'guid': guid,
                 'flowid': flowid,
                 'tm': tm,
@@ -491,8 +492,8 @@ class QQVideoVC(VideoConfig):
                             'tm': tm,
                             'refer': referrer,
                             'ehost': vurl,
-                            'logintoken': self.login_token,
-                            'encryptVer': self.ENCRYPT_VER,
+                            'logintoken': json.dumps(self.login_token, separators=(',', ':')),
+                            'encryptVer': self.encrypt_ver,
                             'cKey': ckey
                         }
                         params = {
@@ -566,7 +567,7 @@ class QQVideoVC(VideoConfig):
                 'charge': 0,
                 'fhdswitch': 0,
                 'show1080p': 1,
-                'defnpayver': 1,
+                'defnpayver': 7,
                 'sdtfrom': 'v1010',
                 'host': 'v.qq.com',
                 'vid': vid,
@@ -575,14 +576,27 @@ class QQVideoVC(VideoConfig):
                 'appVer': self.APP_VER,
                 'refer': referrer,
                 'ehost': vurl,
-                'logintoken': self.login_token,
-                'encryptVer': self.ENCRYPT_VER,
+                'logintoken': json.dumps(self.login_token, separators=(',', ':')),
+                'encryptVer': self.encrypt_ver,
                 'guid': guid,
                 'flowid': flowid,
                 'tm': tm,
                 'cKey': ckey,
                 'dtype': 3,
-                #'drm': 40
+                'drm': 40,
+                'spau': 1,
+                'spaudio': 68,
+                'spwm': 1,
+                'sphls': 2,
+                'sphttps': 1,
+                'clip': 4,
+                'spsrt': 2,
+                'spvvpay': 1,
+                'spadseg': 3,
+                'spav1': 15,
+                'hevclv': 28,
+                'spsfrhdr': 100,
+                'spvideo': 20
             }
             params = {
                 'buid': 'vinfoad',
@@ -609,6 +623,8 @@ class QQVideoVC(VideoConfig):
                         if isinstance(url_dic, dict):
                             url = url_dic.get('url')
                             if url and not url.startswith(self.cdn_blacklist):
+                                if not url.endswith('/'):
+                                    url = url[:url.rfind('/')+1]
                                 url_prefixes.append(url)
 
                     chosen_url_prefixes = [prefix for prefix in url_prefixes if
@@ -666,8 +682,8 @@ class QQVideoVC(VideoConfig):
                                     'tm': tm,
                                     'refer': referrer,
                                     'ehost': vurl,
-                                    'logintoken': self.login_token,
-                                    'encryptVer': self.ENCRYPT_VER,
+                                    'logintoken': json.dumps(self.login_token, separators=(',', ':')),
+                                    'encryptVer': self.encrypt_ver,
                                     'cKey': ckey
                                 }
                                 params = {
