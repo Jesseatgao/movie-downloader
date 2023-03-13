@@ -379,11 +379,11 @@ class QQVideoVC(VideoConfig):
 
             vinfoparam = {
                 'otype': 'ojson',
-                'isHLS': 0,
+                'isHLS': 1,
                 'charge': 0,
                 'fhdswitch': 0,
                 'show1080p': 1,
-                'defnpayver': 1,
+                'defnpayver': 7,
                 'sdtfrom': 'v1010',
                 'host': 'v.qq.com',
                 'vid': vid,
@@ -441,35 +441,38 @@ class QQVideoVC(VideoConfig):
 
                     # pick the best matched definition from available formats
                     formats = {fmt.get('name'): fmt.get('id') for fmt in json_path_get(data, ['fl', 'fi'], [])}
-                    ret_defn = definition  # not necessarily equal to requested `definition`
+                    ret_defn = definition  # not necessarily the requested `definition`
                     if ret_defn not in formats:
                         for defn in self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10201]:
                             if defn in formats:
                                 ret_defn = defn
                                 break
 
-                    format_id = formats.get(ret_defn) or self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10201][ret_defn]
+                    new_format_id = formats.get(ret_defn) or self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10201][ret_defn]
                     vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
                     vfn = vfilename.split('.')  # e.g. ['egmovie', 'p201', 'mp4'], ['egmovie', 'mp4']
                     ext = vfn[-1]  # video extension, e.g. 'mp4'
-                    # vfmt = vfn[1]  # e.g. 'p201'
-                    # fmt_prefix = vfmt[0]  # e.g. 'p' in 'p201'
-                    vfmt_new = vfn[1][0] + str(format_id % 10000) if len(vfn) == 3 else ''
+                    fmt_prefix = vfn[1][0] if len(vfn) == 3 else 'p'  # e.g. 'p' in 'p201'
+                    vfmt_new = fmt_prefix + str(new_format_id % 10000)
 
                     # fvkey = json_path_get(data, ['vl', 'vi', 0, 'fvkey'])
                     fc = json_path_get(data, ['vl', 'vi', 0, 'cl', 'fc'])
-                    keyids = [chap.get('keyid') for chap in json_path_get(data, ['vl', 'vi', 0, 'cl', 'ci'], [])] if fc \
-                        else [json_path_get(data, ['vl', 'vi', 0, 'cl', 'keyid'])]
+                    keyid = json_path_get(data, ['vl', 'vi', 0, 'cl', 'ci', 0, 'keyid']) if fc else json_path_get(data, ['vl', 'vi', 0, 'cl', 'keyid'])
+                    orig_format_id = int(keyid.split('.')[1])
 
-                    for idx, keyid in enumerate(keyids, start=1):
+                    max_fc = 80  # large enough try limit such that we don't miss any clip
+                    for idx in range(1, max_fc + 1):
                         keyid_new = keyid.split('.')
                         keyid_new[0] = vfn[0]
                         if len(keyid_new) == 3:
-                            keyid_new[1] = vfmt_new
+                            keyid_new[1:] = [vfmt_new, str(idx)]
                             keyid_new = '.'.join(keyid_new)
                         else:
-                            if len(vfn) == 3 and int(keyid_new[1]) != format_id:
-                                vfn[1] = vfn[1][0] + str(format_id)
+                            if int(keyid_new[1]) != new_format_id:
+                                if len(vfn) == 3:
+                                    vfn[1] = vfn[1][0] + str(new_format_id)
+                                else:
+                                    vfn.insert(1, vfmt_new)
                             keyid_new = '.'.join(vfn[:-1])
                         cfilename = keyid_new + '.' + ext
 
@@ -482,7 +485,7 @@ class QQVideoVC(VideoConfig):
                         vkeyparam = {
                             'otype': 'ojson',
                             'vid': vid,
-                            'format': format_id,
+                            'format': new_format_id,
                             'filename': cfilename,
                             'platform': QQVideoPlatforms.P10201,
                             'appVer': self.APP_VER,
@@ -513,16 +516,18 @@ class QQVideoVC(VideoConfig):
                                     key_data = json.loads(key_data.get('vkey'))
                             except json.JSONDecodeError as e:
                                 self._logger.error("Received ill-formed video key data for the clip '%s' from video '%i': '%r'", cfilename, vid, e)
-                                break
+                                return format_name, ext, urls
 
                             if key_data and isinstance(key_data, dict):
                                 vkey = key_data.get('key')
                                 if not vkey:
                                     break
 
+                                keyid = key_data.get('keyid')
+                                keyid_nseg = len(keyid.split('.'))
                                 ffilename = key_data.get('filename')
                                 if ffilename:
-                                    if fc:
+                                    if keyid_nseg == 3:
                                         cfilename = ffilename.split('.')
                                         cfilename.insert(-1, str(idx))
                                         cfilename = '.'.join(cfilename)
@@ -533,12 +538,15 @@ class QQVideoVC(VideoConfig):
                                                         for url_prefix in chosen_url_prefixes])
                                 if url_mirrors:
                                     urls.append(url_mirrors)
+
+                                if (orig_format_id == new_format_id and fc == idx) or (not fc and keyid_nseg != 3):
+                                    break
                         except RequestException as e:
                             self._logger.error("Error while requesting the key for the clip '%s' from video '%i': '%r'", cfilename, vid, e)
-                            break
+                            return format_name, ext, urls
 
-                    # check if the URLs for the file parts have all been successfully obtained
-                    if len(keyids) == len(urls):
+                    # hopefully the URLs for the file parts have all been successfully obtained
+                    if len(urls) > 0:
                         format_name = ret_defn
             except RequestException as e:
                 self._logger.error("Error while requesting the config info of video '%i': '%r'", vid, e)
