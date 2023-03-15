@@ -27,9 +27,9 @@ class M1905VC(VideoConfig):
     VC_NAME = "m1905"
     #_VIP_TOKEN = {}
 
-    _M1905_DEFINITION = ['uhd', 'hd', 'sd']  # decremental! FIXME: VIP user
+    _M1905_DEFINITION = ['fhd', 'uhd', 'hd', 'sd']  # decremental! FIXME: VIP user
     _M1905_DEFN_MAP_I2S = {'fhd': 'fhd', 'uhd': 'shd', 'hd': 'hd', 'sd': 'sd'}  # internal format name -> standard format name
-    _M1905_DEFN_MAP_S2I = {'uhd': 'fhd', 'fhd': 'fhd', 'shd': 'uhd', 'hd': 'hd', 'sd': 'sd'}  # standard -> internal | FIXME: VIP fhd?
+    _M1905_DEFN_MAP_S2I = {'dolby': 'fhd', 'sfr_hdr': 'fhd', 'hdr10': 'fhd', 'uhd': 'fhd', 'fhd': 'fhd', 'shd': 'uhd', 'hd': 'hd', 'sd': 'sd'}  # standard -> internal | FIXME: VIP fhd?
 
     def __init__(self, requester, args, confs):
         super().__init__(requester, args, confs)

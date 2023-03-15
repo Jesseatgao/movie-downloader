@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 
 from requests import RequestException
 
-from ..commons import VideoTypeCodes, VideoTypes, DEFAULT_YEAR
+from ..commons import pick_highest_definition, VideoTypeCodes, VideoTypes, DEFAULT_YEAR
 from ..videoconfig import VideoConfig
 from ..utils import json_path_get, build_cookiejar_from_kvp
 
@@ -398,6 +398,7 @@ class QQVideoVC(VideoConfig):
                 'flowid': flowid,
                 'tm': tm,
                 'cKey': ckey,
+                'dtype': 1,
                 #'drm': 40
             }
             params = {
@@ -443,10 +444,7 @@ class QQVideoVC(VideoConfig):
                     formats = {fmt.get('name'): fmt.get('id') for fmt in json_path_get(data, ['fl', 'fi'], [])}
                     ret_defn = definition  # not necessarily the requested `definition`
                     if ret_defn not in formats:
-                        for defn in self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10201]:
-                            if defn in formats:
-                                ret_defn = defn
-                                break
+                        ret_defn = pick_highest_definition(formats)
 
                     new_format_id = formats.get(ret_defn) or self._VQQ_FORMAT_IDS_DEFAULT[QQVideoPlatforms.P10201][ret_defn]
                     vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')

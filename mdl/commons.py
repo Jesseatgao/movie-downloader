@@ -1,5 +1,5 @@
 
-VIDEO_DEFINITIONS = {'uhd': '4K', 'fhd': '1080P', 'shd': '720P', 'hd': '480P', 'sd': '270P'}  # from highest to lowest
+VIDEO_DEFINITIONS = ('dolby', 'sfr_hdr', 'hdr10', 'uhd', 'fhd', 'shd', 'hd', 'sd')  # from highest to lowest
 
 DEFAULT_YEAR = '1900'
 
@@ -59,3 +59,16 @@ class VideoTypeCodes:
     CHILD = 106
     ART = 111
 
+
+def pick_highest_definition(defns):
+    """"
+    Pick the definition format of the highest quality from given `defns`
+
+    :param defns: List of definition formats to pick the definition from
+    :type defns: Iterable[str]
+    :return: The definition format
+    :rtype: str
+    """
+    for definition in VIDEO_DEFINITIONS:
+        if definition in defns:
+            return definition

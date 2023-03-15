@@ -9,7 +9,7 @@ from math import trunc, log10
 from certifi import where
 from bdownload.download import requests_retry_session
 
-from .commons import VIDEO_DEFINITIONS, VideoTypes, DEFAULT_YEAR
+from .commons import pick_highest_definition, VideoTypes, DEFAULT_YEAR
 from .sites import get_all_sites_vcs
 from .utils import logging_with_pipe, normalize_filename
 
@@ -62,11 +62,6 @@ class MDownloader(object):
         :returns:
         (abs_cover_dir, [(abs_episode1_dir, [fname1.1.mp4, fname1.2.mp4]),(abs_episode2_dir, [fname2.1.mp4, fname2.2.mp4])])
         """
-
-        def pick_highest_definition(defns):
-            for definition in VIDEO_DEFINITIONS:
-                if defns.get(definition):
-                    return definition
 
         def pick_format(formats):
             for format in formats:
