@@ -72,3 +72,24 @@ def pick_highest_definition(defns):
     for definition in VIDEO_DEFINITIONS:
         if definition in defns:
             return definition
+
+
+def sort_definitions(defns, reverse=True):
+    """
+    Sort the given set of definition formats
+
+    :param defns: List of definition formats to sort
+    :type defns: Iterable[str]
+    :param reverse: The order in which the definitions are sorted. If set to `True`, then the definitions are arranged
+        from the highest quality to the lowest
+    :type reverse: bool
+    :return: The sorted definitions
+    :rtype: list
+    """
+    sorted_defns = []
+    full_defns = VIDEO_DEFINITIONS if reverse else VIDEO_DEFINITIONS[::-1]
+    for defn in full_defns:
+        if defn in defns:
+            sorted_defns.append(defn)
+
+    return sorted_defns

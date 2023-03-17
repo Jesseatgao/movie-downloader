@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 
 from requests import RequestException
 
-from ..commons import pick_highest_definition, VideoTypeCodes, VideoTypes, DEFAULT_YEAR
+from ..commons import pick_highest_definition, sort_definitions, VideoTypeCodes, VideoTypes, DEFAULT_YEAR
 from ..videoconfig import VideoConfig
 from ..utils import json_path_get, build_cookiejar_from_kvp
 
@@ -646,7 +646,8 @@ class QQVideoVC(VideoConfig):
                     drm = json_path_get(data, ['vl', 'vi', 0, 'drm'])
                     preview = data.get('preview')
 
-                    formats = {fmt.get('id'): fmt.get('name') for fmt in json_path_get(data, ['fl', 'fi'], [])}
+                    formats_id2nm = {fmt.get('id'): fmt.get('name') for fmt in json_path_get(data, ['fl', 'fi'], [])}
+                    formats_nm2id = {fmt_nm: fmt_id for fmt_id, fmt_nm in formats_id2nm.items()}
                     keyid = json_path_get(data, ['vl', 'vi', 0, 'keyid'], '')
 
                     vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
@@ -663,12 +664,13 @@ class QQVideoVC(VideoConfig):
                         key_format_id = keyid.split('.')[-1]
                         try:
                             key_format_id = int(key_format_id)
-                            ret_defn = formats.get(key_format_id, ret_defn)
+                            ret_defn = formats_id2nm.get(key_format_id) or ret_defn
                         except ValueError:
                             pass
 
                         if not ret_defn:
-                            for format_id in sorted(formats, reverse=True):
+                            for format_defn in sort_definitions(formats_nm2id):
+                                format_id = formats_nm2id.get(format_defn)
                                 ckey_req = ' '.join([QQVideoPlatforms.P10201, self.APP_VER, vid, vurl, referrer, r'\n'])
                                 node_proc.stdin.write(ckey_req)
                                 node_proc.stdin.flush()
@@ -717,7 +719,7 @@ class QQVideoVC(VideoConfig):
 
                                         cfilename = key_data.get('filename', '')
                                         if cfilename and cfilename == vfilename:
-                                            ret_defn = formats.get(format_id, ret_defn)
+                                            ret_defn = format_defn
                                             break
                                 except RequestException as e:
                                     self._logger.error("Error while requesting the key for the file '%s' of video '%i': '%r'", vfilename, vid, e)
