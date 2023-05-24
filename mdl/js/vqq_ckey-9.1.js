@@ -392,23 +392,26 @@ function createGUID(a) {
 
 /////////////////////////
 
-function processRequest(recordLine) {
+async function processRequest(recordLine) {
     var req = recordLine.trim().split(' ');  // Input Record Format: < platform appVer vid vURL referrer >
     setDocument(req[3], req[4]);
     var flowid = flowGuid + "_" + req[0];
+
+    await delay((Math.floor(Math.random() * 2) + 1) * 1000);  // sleep for 1 or 2s
     var tm = Math.floor(Date.now() / 1000);
     var cKey = getCkey(req[0], req[1], req[2], "", guid, tm);
-
-    delay((Math.floor(Math.random() * 2) + 1) * 1000);  // 'sleep' (busy-waiting) 1 or 2s
 
     var resp = [cKey, tm, guid, flowid];
     process.stdout.write(resp.join(' '));  // Output Record Format: < cKey tm guid flowid >
     process.stdout.write('\n');
 }
 
-function delay(millis) {
-    const start = Date.now();
-    while ((Date.now() - start) < millis) {}
+async function delay(millis) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            resolve();
+        }, millis);
+    });
 }
 
 var guid = createGUID();
