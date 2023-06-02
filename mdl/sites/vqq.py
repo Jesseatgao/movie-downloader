@@ -101,7 +101,7 @@ class QQVideoVC(VideoConfig):
         self._VIDEO_INFO_RE = re.compile(r"var\s+VIDEO_INFO\s*=\s*(.+?);?</script>"
                                          r"|\"episodeSinglePlay\".+?\"item_params\"\s*:\s*({.+?})\s*,\s*\"\s*sub_items",
                                          re.MULTILINE | re.DOTALL | re.IGNORECASE)
-        self._ALL_LOADED_INFO_RE = re.compile(r"window\.__pinia\s*=\s*(.+?);?</script>",
+        self._ALL_LOADED_INFO_RE = re.compile(r"window\.__PINIA__\s*=\s*(.+?);?</script>",
                                               re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._VIDEO_COVER_PREFIX = 'https://v.qq.com/x/cover/'
         self._VIDEO_CONFIG_URL = 'https://vd.l.qq.com/proxyhttp'
