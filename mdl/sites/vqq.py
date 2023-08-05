@@ -767,7 +767,7 @@ class QQVideoVC(VideoConfig):
                 return result
             if cover_info and isinstance(cover_info, dict):
                 info['title'] = cover_info.get('title', '') or cover_info.get('title_new', '')
-                info['year'] = cover_info.get('year') or (cover_info.get('publish_date') or '').split('-')[0] or DEFAULT_YEAR
+                info['year'] = cover_info.get('year') or (cover_info.get('publish_date') or '').split('-')[0]
                 info['cover_id'] = cover_info.get('cover_id', '')
 
                 type_id = int(cover_info.get('type') or VideoTypeCodes.MOVIE)
@@ -795,10 +795,10 @@ class QQVideoVC(VideoConfig):
                 return
 
             if conf_info:
-                cover_info['year'] = json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'cover_year'])\
-                                     or json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'year'])\
-                                     or json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'show_year'])\
-                                     or cover_info['year']
+                year = json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'year']) \
+                       or json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'show_year'])
+                if year and (not cover_info['year'] or cover_info['year'] != year):
+                    cover_info['year'] = year
 
                 # set to the probably more specific title
                 ep_list = json_path_get(conf_info, ['episodeMain', 'listData', 0, 'list'], [])
