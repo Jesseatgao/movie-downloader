@@ -103,6 +103,8 @@ class QQVideoVC(VideoConfig):
                                          re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._ALL_LOADED_INFO_RE = re.compile(r"window\.__PINIA__\s*=\s*(.+?);?</script>",
                                               re.MULTILINE | re.DOTALL | re.IGNORECASE)
+        self._EP_LIST_RE = re.compile(r"Array\.prototype\.slice\.call\({\"\d+\":(.+?\}\]),\"length\":\d+}\)",
+                                      re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._VIDEO_COVER_PREFIX = 'https://v.qq.com/x/cover/'
         self._VIDEO_CONFIG_URL = 'https://vd.l.qq.com/proxyhttp'
 
@@ -781,16 +783,17 @@ class QQVideoVC(VideoConfig):
                     normal_ids = [{"V": video_id, "E": 1}]
                 info['normal_ids'] = normal_ids
 
-                result = (info, cover_match.end)
+                result = (info, cover_match.end())
 
         return result
 
     def _update_video_cover_info(self, cover_info, regex, text):
         match = regex.search(text)
         if match:
-            matched = match.group(1).replace('undefined', 'null')
+            matched = match.group(1)
+            matched_norm = re.sub(self._EP_LIST_RE, r"[\1]", matched).replace('undefined', 'null')
             try:
-                conf_info = json.loads(matched)
+                conf_info = json.loads(matched_norm)
             except json.JSONDecodeError:
                 return
 
