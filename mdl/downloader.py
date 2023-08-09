@@ -28,11 +28,24 @@ class MDownloader(object):
 
     def download(self, urls):
         for url in urls:
-            cover_info = self.extract_config_info(url)
-            if cover_info:
-                cover_dir, episodes = self.dwnld_videos_with_aria2(
-                    cover_info, save_dir=self.confs[cover_info["vc_name"]]["dir"],
-                    defn=self.confs[cover_info["vc_name"]]['definition'])
+            vci, cover_info = self.extract_config_info(url)
+            if not cover_info or not cover_info.get('normal_ids'):
+                self._logger.warning("No files to download for '{}'.".format(url))
+                continue
+
+            # download the list of videos in batches, instead of all at once
+            batch_size = int(self.confs[vci.VC_NAME]['episode_batch_size'])
+            batch_cover_info = cover_info.copy()
+            video_list = cover_info['normal_ids']
+
+            for batch_start in range(0, len(video_list), batch_size):
+                batch_cover_info['normal_ids'] = video_list[batch_start:batch_start + batch_size]
+
+                vci.update_video_dwnld_info(batch_cover_info)
+                cover_dir, episodes = self.dwnld_videos_with_aria2(batch_cover_info,
+                                                                   save_dir=self.confs[vci.VC_NAME]['dir'],
+                                                                   defn=self.confs[vci.VC_NAME]['definition'])
+
                 self.join_videos(cover_dir, episodes)
 
     def extract_config_info(self, url):
@@ -49,13 +62,13 @@ class MDownloader(object):
 
             cover_info = vci.get_video_config_info(url)
             if cover_info:
-                cover_info["source_name"] = vcc.SOURCE_NAME
-                cover_info["vc_name"] = vcc.VC_NAME
-            return cover_info
+                cover_info['source_name'] = vcc.SOURCE_NAME
+                cover_info['vc_name'] = vcc.VC_NAME
+            return vci, cover_info
         else:
             # check site domain name against URL
             self._logger.error("Video URL {!r} is invalid".format(url))
-            return None
+            return None, None
 
     def dwnld_videos_with_aria2(self, cover_info, save_dir='.', defn=None):
         """
