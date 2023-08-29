@@ -103,7 +103,7 @@ class QQVideoVC(VideoConfig):
                                          re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._ALL_LOADED_INFO_RE = re.compile(r"window\.__PINIA__\s*=\s*(.+?);?</script>",
                                               re.MULTILINE | re.DOTALL | re.IGNORECASE)
-        self._EP_LIST_RE = re.compile(r"Array\.prototype\.slice\.call\({\"\d+\":(.+?\}\]),\"length\":\d+}\)",
+        self._EP_LIST_RE = re.compile(r"(?:\[{\"list\":)?Array\.prototype\.slice\.call\({\"\d+\":(?:{\"list\":\[)?\[(.+?})\]\]?,.*?\"length\":\d+}\).*?(?=,\"listMeta\")",
                                       re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._VIDEO_COVER_PREFIX = 'https://v.qq.com/x/cover/'
         self._VIDEO_CONFIG_URL = 'https://vd.l.qq.com/proxyhttp'
@@ -791,7 +791,7 @@ class QQVideoVC(VideoConfig):
         match = regex.search(text)
         if match:
             matched = match.group(1)
-            matched_norm = re.sub(self._EP_LIST_RE, r"[\1]", matched).replace('undefined', 'null')
+            matched_norm = re.sub(self._EP_LIST_RE, r'[{"list":[[\1]]}]', matched).replace('undefined', 'null')
             try:
                 conf_info = json.loads(matched_norm)
             except json.JSONDecodeError:
