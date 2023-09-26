@@ -36,7 +36,11 @@ class QQVideoVC(VideoConfig):
     VC_NAME = "QQVideo"
     # _VIP_TOKEN = {}
 
-    APP_VER = '3.5.57'
+    _ENCRYPTVER_to_APPVER = {
+        '8.1': '3.5.57',
+        '9.1': '3.5.57',
+        '8.5': '1.27.3'
+    }
 
     _VQQ_TYPE_CODES = {
         VideoTypeCodes.MOVIE: VideoTypes.MOVIE,
@@ -123,6 +127,8 @@ class QQVideoVC(VideoConfig):
         self.encrypt_ver = confs[self.VC_NAME]['ckey_ver']
         ckey_js = 'vqq_ckey-' + self.encrypt_ver + '.js'
         self.jsfile = os.path.join(mdl_dir, 'js', ckey_js)
+
+        self.app_ver = self._ENCRYPTVER_to_APPVER[self.encrypt_ver]
 
         # parse cmdline args and config file for "QQVideo" site
         no_logo_default = 'True'
@@ -372,7 +378,7 @@ class QQVideoVC(VideoConfig):
         cmd_nodejs = [nodejs, self.jsfile]
         with subprocess.Popen(cmd_nodejs, bufsize=1, universal_newlines=True, encoding='utf-8',
                               stdin=subprocess.PIPE, stdout=subprocess.PIPE) as node_proc:
-            ckey_req = ' '.join([QQVideoPlatforms.P10201, self.APP_VER, vid, vurl, referrer])
+            ckey_req = ' '.join([QQVideoPlatforms.P10201, self.app_ver, vid, vurl, referrer])
             node_proc.stdin.write(ckey_req)
             node_proc.stdin.write(r'\n')
             node_proc.stdin.flush()
@@ -391,7 +397,7 @@ class QQVideoVC(VideoConfig):
                 'vid': vid,
                 'defn': definition,
                 'platform': QQVideoPlatforms.P10201,
-                'appVer': self.APP_VER,
+                'appVer': self.app_ver,
                 'refer': referrer,
                 'ehost': vurl,
                 'logintoken': json.dumps(self.login_token, separators=(',', ':')),
@@ -476,7 +482,7 @@ class QQVideoVC(VideoConfig):
                             keyid_new = '.'.join(vfn[:-1])
                         cfilename = keyid_new + '.' + ext
 
-                        ckey_req = ' '.join([QQVideoPlatforms.P10201, self.APP_VER, vid, vurl, referrer, r'\n'])
+                        ckey_req = ' '.join([QQVideoPlatforms.P10201, self.app_ver, vid, vurl, referrer, r'\n'])
                         node_proc.stdin.write(ckey_req)
                         node_proc.stdin.flush()
                         ckey_resp = node_proc.stdout.readline().rstrip(r'\r\n')
@@ -488,7 +494,7 @@ class QQVideoVC(VideoConfig):
                             'format': new_format_id,
                             'filename': cfilename,
                             'platform': QQVideoPlatforms.P10201,
-                            'appVer': self.APP_VER,
+                            'appVer': self.app_ver,
                             'sdtfrom': 'v1010',
                             'guid': guid,
                             'flowid': flowid,
@@ -562,7 +568,7 @@ class QQVideoVC(VideoConfig):
         cmd_nodejs = [nodejs, self.jsfile]
         with subprocess.Popen(cmd_nodejs, bufsize=1, universal_newlines=True, encoding='utf-8',
                               stdin=subprocess.PIPE, stdout=subprocess.PIPE) as node_proc:
-            ckey_req = ' '.join([QQVideoPlatforms.P10201, self.APP_VER, vid, vurl, referrer])
+            ckey_req = ' '.join([QQVideoPlatforms.P10201, self.app_ver, vid, vurl, referrer])
             node_proc.stdin.write(ckey_req)
             node_proc.stdin.write(r'\n')
             node_proc.stdin.flush()
@@ -581,7 +587,7 @@ class QQVideoVC(VideoConfig):
                 'vid': vid,
                 'defn': definition,
                 'platform': QQVideoPlatforms.P10201,
-                'appVer': self.APP_VER,
+                'appVer': self.app_ver,
                 'refer': referrer,
                 'ehost': vurl,
                 'logintoken': json.dumps(self.login_token, separators=(',', ':')),
@@ -591,7 +597,6 @@ class QQVideoVC(VideoConfig):
                 'tm': tm,
                 'cKey': ckey,
                 'dtype': 3,
-                'drm': 40,
                 'spau': 1,
                 'spaudio': 68,
                 'spwm': 1,
@@ -604,7 +609,10 @@ class QQVideoVC(VideoConfig):
                 'spav1': 15,
                 'hevclv': 28,
                 'spsfrhdr': 100,
-                'spvideo': 20
+                'spvideo': 1044,
+                # 'drm': 40,
+                # 'spm3u8tag': 67,
+                # 'spmasterm3u8': 3
             }
             params = {
                 'buid': 'vinfoad',
@@ -673,7 +681,7 @@ class QQVideoVC(VideoConfig):
                         if not ret_defn:
                             for format_defn in sort_definitions(formats_nm2id):
                                 format_id = formats_nm2id.get(format_defn)
-                                ckey_req = ' '.join([QQVideoPlatforms.P10201, self.APP_VER, vid, vurl, referrer, r'\n'])
+                                ckey_req = ' '.join([QQVideoPlatforms.P10201, self.app_ver, vid, vurl, referrer, r'\n'])
                                 node_proc.stdin.write(ckey_req)
                                 node_proc.stdin.flush()
                                 ckey_resp = node_proc.stdout.readline().rstrip(r'\r\n')
@@ -685,7 +693,7 @@ class QQVideoVC(VideoConfig):
                                     'format': format_id,
                                     'filename': vfilename,
                                     'platform': QQVideoPlatforms.P10201,
-                                    'appVer': self.APP_VER,
+                                    'appVer': self.app_ver,
                                     'sdtfrom': 'v1010',
                                     'guid': guid,
                                     'flowid': flowid,
