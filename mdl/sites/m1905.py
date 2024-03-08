@@ -254,7 +254,7 @@ class M1905VC(VideoConfig):
                                 break
                             elif line.startswith("#EXTINF:"):  # in media playlist
                                 mpeg_urls = ["%s/%s" % (url_prefix, ts) for ts in r.text.splitlines() if
-                                             ts and not ts.startswith('#')]
+                                             ts and not ts.startswith('#') and ts.endswith('.ts')]
                                 return mpeg_urls
                 else:
                     raise RequestException("Unexpected status code %i" % r.status_code)
@@ -293,7 +293,6 @@ class M1905VC(VideoConfig):
                 except json.JSONDecodeError:
                     return
 
-                playlist_m3u8 = ""
                 defn = self._M1905_DEFN_MAP_S2I[self.preferred_defn]
                 defns = [defn] if json_path_get(data, ['sign', defn]) else self._M1905_DEFINITION
                 for defn in defns:
@@ -303,13 +302,12 @@ class M1905VC(VideoConfig):
 
                     if host and sign and path:
                         playlist_m3u8 = (host + sign + path).replace('\\', '')
-                        break
+                        mpeg_urls = self._get_ts_playlist(playlist_m3u8)
+                        if mpeg_urls:
+                            std_defn = self._M1905_DEFN_MAP_I2S[defn]
+                            vi["defns"].setdefault(std_defn, []).append(dict(ext="ts", urls=mpeg_urls))
 
-                if playlist_m3u8:
-                    mpeg_urls = self._get_ts_playlist(playlist_m3u8)
-                    if mpeg_urls:
-                        std_defn = self._M1905_DEFN_MAP_I2S[defn]
-                        vi["defns"].setdefault(std_defn, []).append(dict(ext="ts", urls=mpeg_urls))
+                            break
             else:
                 raise RequestException("Unexpected status code %i" % r.status_code)
         except RequestException as e:
