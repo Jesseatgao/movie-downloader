@@ -1,6 +1,6 @@
 # pip>=21.3.1
 
-bdownload
+bdownload>=0.1.8
 
 setuptools>=39.0.1
 wheel

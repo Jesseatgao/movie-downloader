@@ -1,5 +1,10 @@
 import re
 import logging
+import codecs
+import os
+from pathlib import Path
+
+import certifi
 
 
 class VideoConfig(object):
@@ -36,6 +41,25 @@ class VideoConfig(object):
                 return True
 
         return False
+
+    @classmethod
+    def make_ca_bundle(cls, args, confs):
+        """Combine the site-configured intermediate certificates with the CA bundle from `certifi`"""
+        if not (confs and confs[cls.VC_NAME]['ca_cert']):
+            return
+
+        here = os.path.abspath(os.path.dirname(__file__))
+        vc_ca_path = Path(os.path.join(here, 'certs'))
+        vc_ca_path.mkdir(parents=True, exist_ok=True)
+        vc_ca_bundle = os.path.join(vc_ca_path, ''.join([cls.VC_NAME, '_', 'cacert.pem']))
+        with codecs.open(vc_ca_bundle, 'w', 'utf-8') as vc_fd:
+            vc_fd.write('\n')
+            vc_fd.write(confs[cls.VC_NAME]['ca_cert'])
+            vc_fd.write('\n')
+            with codecs.open(certifi.where(), 'r', 'utf-8') as certifi_fd:
+                vc_fd.write(certifi_fd.read())
+
+        return vc_ca_bundle
 
     def get_cover_info(self, url):
         pass

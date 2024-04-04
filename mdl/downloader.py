@@ -14,9 +14,6 @@ from .sites import get_all_sites_vcs
 from .utils import logging_with_pipe, normalize_filename
 
 
-cert_path = where()
-
-
 class MDownloader(object):
     def __init__(self, args=None, confs=None):
         self._vcs = get_all_sites_vcs()
@@ -56,7 +53,12 @@ class MDownloader(object):
 
             vci = vc.get('instance')
             if vci is None:
-                requester = requests_retry_session()
+                verify = vcc.make_ca_bundle(self.args, self.confs)
+                if not verify:
+                    verify = True
+                else:
+                    self.confs[vcc.VC_NAME]['ca_cert'] = verify
+                requester = requests_retry_session(verify=verify)
                 vci = vcc(requester, self.args, self.confs)
                 vc['instance'] = vci
 
@@ -153,6 +155,9 @@ class MDownloader(object):
             retry_wait = self.confs[cover_info['vc_name']]['retry_wait']
             speed_limit = self.confs[cover_info['vc_name']]['lowest_speed_limit']
             referer = cover_info['referrer']
+            cert_path = self.confs[cover_info['vc_name']]['ca_cert']
+            if not cert_path:
+                cert_path = where()
 
             cmd_aria2c = [aria2c, '-c', '-j', mcd,  '-k', mss, '-s', split, '-x', mcps, '--max-file-not-found=5000', '-m0',
                           '--retry-wait', retry_wait, '--lowest-speed-limit', speed_limit, '--no-conf', '-i-',
