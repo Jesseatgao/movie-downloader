@@ -45,13 +45,16 @@ class VideoConfig(object):
     @classmethod
     def make_ca_bundle(cls, args, confs):
         """Combine the site-configured intermediate certificates with the CA bundle from `certifi`"""
-        if not (confs and confs[cls.VC_NAME]['ca_cert']):
-            return
-
         here = os.path.abspath(os.path.dirname(__file__))
         vc_ca_path = Path(os.path.join(here, 'certs'))
-        vc_ca_path.mkdir(parents=True, exist_ok=True)
         vc_ca_bundle = os.path.join(vc_ca_path, ''.join([cls.VC_NAME, '_', 'cacert.pem']))
+
+        if not confs[cls.VC_NAME]['ca_cert']:
+            if os.path.isfile(vc_ca_bundle):
+                os.remove(vc_ca_bundle)
+            return
+
+        vc_ca_path.mkdir(parents=True, exist_ok=True)
         with codecs.open(vc_ca_bundle, 'w', 'utf-8') as vc_fd:
             vc_fd.write('\n')
             vc_fd.write(confs[cls.VC_NAME]['ca_cert'])
