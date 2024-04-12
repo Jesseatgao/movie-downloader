@@ -135,6 +135,10 @@ class QQVideoVC(VideoConfig):
         no_logo = args.QQVideo_no_logo or confs[self.VC_NAME]['no_logo'] or no_logo_default
         self.no_logo = True if no_logo.lower() == 'true' else False
 
+        probe_mode_default = 'False'
+        probe_mode = confs[self.VC_NAME].get('probe_mode') or probe_mode_default
+        self.probe_mode = True if probe_mode.lower() == 'true' else False
+
         use_cdn = confs[self.VC_NAME].get('use_cdn')
         self.use_cdn = True if use_cdn and use_cdn.lower() == 'true' else False
 
@@ -545,7 +549,7 @@ class QQVideoVC(VideoConfig):
                                 if url_mirrors:
                                     urls.append(url_mirrors)
 
-                                if (orig_format_id == new_format_id and fc == idx) or (not fc and keyid_nseg != 3):
+                                if ((orig_format_id == new_format_id or not self.probe_mode) and fc == idx) or (not fc and keyid_nseg != 3):
                                     break
                         except RequestException as e:
                             self._logger.error("Error while requesting the key for the clip '%s' from video '%i': '%r'", cfilename, vid, e)
