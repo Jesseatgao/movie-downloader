@@ -157,7 +157,7 @@ def check_deps():
     if not exists_3rd_parties():
         LOGGER.error('The third-parties such as Aria2, FFmpeg, MKVToolnix and Nodejs are required. Before moving on, '
                      'simply run "mdl_3rd_parties" from within the Shell to automatically download and install them. '
-                     'Note that "--proxy" option may be needed.'
+                     'Note that "--proxy" option may be needed. '
                      'For how to get and install them manually, please refer to README.md.')
         sys.exit(-1)
 
