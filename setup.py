@@ -34,7 +34,7 @@ setup(
     package_dir={'': '.'},
     packages=find_packages(where='.'),
     python_requires='>=3.6',
-    install_requires=['bdownload>=0.2.0'],
+    install_requires=['bdownload>=0.2.1'],
     include_package_data=True,
     package_data={
         'mdl': [

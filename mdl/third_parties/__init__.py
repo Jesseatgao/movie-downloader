@@ -7,11 +7,10 @@ import hashlib
 from argparse import ArgumentParser
 import zipfile
 import tarfile
+from distutils.dir_util import copy_tree, remove_tree
 
 from bdownload.download import BDownloader, BDownloaderException
 from bdownload.cli import install_signal_handlers, ignore_termination_signals
-# After `bdownload` has been imported, `distutils` has also been defined by `setuptools` On Python 3.12 and newer
-from distutils.dir_util import copy_tree, remove_tree
 
 
 MOD_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -364,7 +363,7 @@ def download(**kwargs):
     if not result:
         LOGGER.info("Downloading 3rd-party files has succeeded.")
     else:
-        LOGGER.error("Downloading 3rd-party files has failed.")
+        LOGGER.error('Downloading 3rd-party files has failed. Try re-run the download, with "--proxy" option if possible')
         sys.exit(result)
 
 
@@ -420,7 +419,7 @@ def download_3rd_parties():
     LOGGER.info("Downloading ...")
     download(**kwargs)
 
-    LOGGER.info("Verifying ...")
+    LOGGER.info("Verifying  ...")
     integrity_check()
 
     LOGGER.info("Extracting ...")
@@ -428,6 +427,8 @@ def download_3rd_parties():
 
     LOGGER.info("Finalizing ...")
     finalize()
+
+    LOGGER.info("All set!")
 
 
 progs_full_path = [os.path.normpath(os.path.join(base, progs_conf[prog][system][bitness]['content-base'] + progs_conf[prog][system][bitness]['content-ext'])) for prog, base in zip(progs_name, progs_base_path)]

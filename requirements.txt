@@ -1,6 +1,6 @@
 # pip>=21.3.1
 
-bdownload>=0.2.0
+bdownload>=0.2.1
 
 setuptools>=40.8.0
 
