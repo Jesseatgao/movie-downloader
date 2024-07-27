@@ -3,7 +3,7 @@ import time
 import re
 import random
 import hashlib
-from urllib.parse import quote as urllib_parse_quote, urlencode
+from urllib.parse import quote as urllib_parse_quote, urlencode, urljoin
 from math import floor as math_floor
 
 # from requests.cookies import RequestsCookieJar
@@ -239,7 +239,6 @@ class M1905VC(VideoConfig):
         return bandwidth, m3u
 
     def _get_ts_playlist(self, m3u8_url):
-        url_prefix = m3u8_url.rpartition('/')[0]
         playlist = m3u8_url
         try:
             for _ in range(2):
@@ -247,15 +246,16 @@ class M1905VC(VideoConfig):
                 if r.status_code == 200:
                     r.encoding = "utf-8"
                     for line in r.iter_lines(decode_unicode=True):
-                        if line:
-                            if line.startswith("#EXT-X-STREAM-INF:"):  # in master playlist
-                                _, m3u = self._pick_highest_bandwidth_m3u8(r.text)
-                                playlist = "%s/%s" % (url_prefix, m3u)
-                                break
-                            elif line.startswith("#EXTINF:"):  # in media playlist
-                                mpeg_urls = ["%s/%s" % (url_prefix, ts) for ts in r.text.splitlines() if
-                                             ts and not ts.startswith('#') and ts.endswith('.ts')]
-                                return mpeg_urls
+                        if not line:
+                            continue
+                        if line.startswith("#EXT-X-STREAM-INF:"):  # in master playlist
+                            _, m3u = self._pick_highest_bandwidth_m3u8(r.text)
+                            playlist = urljoin(playlist, m3u)
+                            break
+                        elif line.startswith("#EXTINF:"):  # in media playlist
+                            mpeg_urls = [urljoin(playlist, ts) for ts in r.text.splitlines() if
+                                         ts and not ts.startswith('#') and ts.endswith('.ts')]
+                            return mpeg_urls
                 else:
                     raise RequestException("Unexpected status code %i" % r.status_code)
         except RequestException as e:

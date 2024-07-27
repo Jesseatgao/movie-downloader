@@ -84,30 +84,32 @@ progs_conf = {
                 'sha512': 'b384397b401c870041b21ae291f4e62e7030303057e4b6a81ed473b23613528ce4e5dcf10c4753e8321a17b78bac8c34de6c5e52ae8acf034718a2214aa669cb'
             },
             '64-bit': {
-                'url': 'https://www.videohelp.com/download/ffmpeg-4.2.2-win64-static.zip',
+                'url': 'https://github.com/GyanD/codexffmpeg/releases/download/7.0.1/ffmpeg-7.0.1-full_build.zip',
                 'ext': '.zip',
-                'content-path': ['ffmpeg-4.2.2-win64-static/', 'bin/'],
+                'content-path': ['ffmpeg-7.0.1-full_build/', 'bin/'],
                 'content-base': 'ffmpeg',
                 'content-ext': '.exe',
-                'sha512': '53dac6f1f8c23777bd01aac585e991d1b44390e0195bb76b10980cfef2d85a2187fa8fea59b109eaa01407d3f94a8df0952b5b950f3ae26c3c40752c3a9c70bd'
+                'sha512': 'deab7dee429bbae0e3e3f81e2c9cbd6ddaa9ad78b95224fdaf2e174b18d31f462812af9f18a0092487c4f33488c8280833e3a4c06b6e90c2f5f1c933ac648808'
             }
         },
         'Linux': {
             '32-bit': {
-                'url': 'https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-4.2.2-i686-static.tar.xz',
+                'url': 'https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-7.0.1-i686-static.tar.xz\t'
+                       'https://johnvansickle.com/ffmpeg/releases/ffmpeg-7.0.1-i686-static.tar.xz',
                 'ext': '.tar.xz',
-                'content-path': ['ffmpeg-4.2.2-i686-static/'],
+                'content-path': ['ffmpeg-7.0.1-i686-static/'],
                 'content-base': 'ffmpeg',
                 'content-ext': '',
-                'sha512': '9d92ef3bf8a3c19daa82835e7e039dc1ef228d41d7278c724beab4bc9c6ddf362382a7e351128d09951470262394b45262fa861e7f3e6039d0e8a073b5960aa8'
+                'sha512': '8bcedf5371b65397c572ae81e20fd4808ea4e919bc9d09a5c456682cf3b312b666fb4b3028aea36373b44c9c23f431a567a49e7741e7fc088ec6679ba9f05044'
             },
             '64-bit': {
-                'url': 'https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-4.2.2-amd64-static.tar.xz',
+                'url': 'https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-7.0.1-amd64-static.tar.xz\t'
+                       'https://johnvansickle.com/ffmpeg/releases/ffmpeg-7.0.1-amd64-static.tar.xz',
                 'ext': '.tar.xz',
-                'content-path': ['ffmpeg-4.2.2-amd64-static/'],
+                'content-path': ['ffmpeg-7.0.1-amd64-static/'],
                 'content-base': 'ffmpeg',
                 'content-ext': '',
-                'sha512': 'a666230e1b6de563c6ab95f804c6ce7bb4599f6bbe738a2c69f74062d3a6f68c82aab5026de12b550292f0565598dc7d21b3e14f0ccb89786e3a36f1537378dc'
+                'sha512': '279d3f4f49baff766d0032264cce422dcd1a8177f4d69ba54a8afc66d655a58292e58907e732b65f32784d12fa9d7cf68b7673f9c887cef4ad9db4818d87366a'
             }
         },
         'Darwin': {
