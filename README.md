@@ -35,16 +35,16 @@ A fast movie downloader using Aria2
         
         x86_64 64-bit version:
         
-        https://www.videohelp.com/download/ffmpeg-4.2.2-win64-static.zip
+        https://www.videohelp.com/download/ffmpeg-7.0.1-full_build.7z
     * For Linux:
     
         i686 32-bit version:
         
-        https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-4.2.2-i686-static.tar.xz
+        https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz
 
         x86_64 64-bit version:
         
-        https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-4.2.2-amd64-static.tar.xz
+        https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
         
 * [MKVToolnix(mkvmerge)](https://github.com/Jesseatgao/MKVToolNix-static-builds)
     * For Windows:
