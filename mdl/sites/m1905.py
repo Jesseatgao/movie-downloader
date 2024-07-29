@@ -254,7 +254,7 @@ class M1905VC(VideoConfig):
                             break
                         elif line.startswith("#EXTINF:"):  # in media playlist
                             mpeg_urls = [urljoin(playlist, ts) for ts in r.text.splitlines() if
-                                         ts and not ts.startswith('#')]
+                                         ts and not ts.startswith('#') and (ts.endswith('.ts') or '.ts?' in ts)]
                             return mpeg_urls
                 else:
                     raise RequestException("Unexpected status code %i" % r.status_code)
