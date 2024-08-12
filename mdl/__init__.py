@@ -1,21 +1,29 @@
-
 import sys
 import os
 import logging
-import errno
 from shutil import which
 from itertools import zip_longest
-
-from argparse import ArgumentParser
+import codecs
+from pathlib import Path
+from argparse import ArgumentParser, ArgumentTypeError
 from configparser import ConfigParser
+
+import certifi
 
 from .third_parties import exists_3rd_parties, third_party_progs_default
 from .downloader import MDownloader
-from .utils import build_logger, change_logging_level
+from .utils import build_logger, change_logging_level, json_path_get
 
 
 MOD_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGGER = build_logger('MDL', os.path.normpath(os.path.join(MOD_DIR, 'log/mdl.log')))
+
+
+def _validate_dir(directory):
+    if directory and not os.path.isdir(directory):
+        raise ArgumentTypeError('"{}" is not a valid directory!'.format(directory))
+
+    return directory
 
 
 def _segment_playlist_items(items):
@@ -51,21 +59,22 @@ def arg_parser():
     parser = ArgumentParser()
 
     parser.add_argument('url', nargs='+', help='Episode or cover/playlist web page URL(s)')
-    parser.add_argument('-D', '--dir', default='', dest='dir', help='path to downloaded videos')
-    parser.add_argument('-d', '--definition', default='', dest='definition', choices=['dolby', 'sfr_hdr', 'hdr10', 'uhd', 'fhd', 'shd', 'hd', 'sd'])
+    parser.add_argument('-D', '--dir', default=None, dest='dir', type=_validate_dir, help='path to downloaded videos')
+    parser.add_argument('-d', '--definition', default=None, dest='definition', choices=['dolby', 'sfr_hdr', 'hdr10', 'uhd', 'fhd', 'shd', 'hd', 'sd'])
     parser.add_argument('-p', '--proxy', dest='proxy', help='proxy in the form of "http://[user:password@]host:port"')
     parser.add_argument('--playlist-items', default='', dest='playlist_items', type=_segment_playlist_items,
                         help='desired episode indices in a playlist separated by commas, while the playlists are separated by semicolons,'
                              'e.g. "--playlist-items 1,2,5-10", "--playlist-items 1,2,5-10;3-", and "--playlist-items 1,2,5-10;;-20"')
 
-    parser.add_argument('--QQVideo-no-logo', dest='QQVideo_no_logo', default='', choices=['True', 'False'])
+    parser.add_argument('--no-logo', dest='no_logo', default=None, const='True', nargs='?', choices=['True', 'False'])
+    parser.add_argument('--ts-convert', dest='ts_convert', default=None, const='True', nargs='?', choices=['True', 'False'])
 
-    parser.add_argument('-A', '--aria2c', dest='aria2c', default='', help='path to the aria2 executable')
-    parser.add_argument('-F', '--ffmpeg', dest='ffmpeg', default='', help='path to the ffmpeg executable')
-    parser.add_argument('-M', '--mkvmerge', dest='mkvmerge', default='', help='path to the mkvmerge executable')
-    parser.add_argument('-N', '--node', dest='node', default='', help='path to the node executable')
+    parser.add_argument('-A', '--aria2c', dest='aria2c', default=None, help='path to the aria2 executable')
+    parser.add_argument('-F', '--ffmpeg', dest='ffmpeg', default=None, help='path to the ffmpeg executable')
+    parser.add_argument('-M', '--mkvmerge', dest='mkvmerge', default=None, help='path to the mkvmerge executable')
+    parser.add_argument('-N', '--node', dest='node', default=None, help='path to the node executable')
 
-    parser.add_argument('-L', '--log-level', dest='log_level', default='', choices=['debug', 'info', 'warning', 'error', 'critical'])
+    parser.add_argument('-L', '--log-level', dest='log_level', default=None, choices=['debug', 'info', 'warning', 'error', 'critical'])
 
     return parser
 
@@ -91,66 +100,76 @@ def conf_parser():
 
 def parse_3rd_party_progs(args, confs):
     """Option precedence: cmdline args > confs(config file) > default"""
-
     aria2c_default, ffmpeg_default, mkvmerge_default, node_default = third_party_progs_default
 
-    aria2c_path = args.aria2c or confs['progs']['aria2c'] or aria2c_default
-    ffmpeg_path = args.ffmpeg or confs['progs']['ffmpeg'] or ffmpeg_default
-    mkvmerge_path = args.mkvmerge or confs['progs']['mkvmerge'] or mkvmerge_default
-    node_path = args.node or confs['progs']['node'] or node_default
+    prog_defaults = {
+        'aria2c': aria2c_default,
+        'ffmpeg': ffmpeg_default,
+        'mkvmerge': mkvmerge_default,
+        'node': node_default
+    }
 
-    progs = (aria2c_path, ffmpeg_path, mkvmerge_path, node_path)
-    try:
-        for prog in progs:
-            path, exe = os.path.split(prog)
-            if which(exe, path=path) is None:
-                raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), exe)
-    except Exception as e:
-        LOGGER.error(str(e))
-        LOGGER.info('For how to get and install Aria2, FFmpeg, MKVToolnix(mkvmerge) and Nodejs, please refer to README.md. '
-                    'Or simply run "mdl_3rd_parties" from within the Shell. Note that "--proxy" option may be needed.')
-        sys.exit(-1)
-
-    # update config info
-    confs['progs']['aria2c'] = aria2c_path
-    confs['progs']['ffmpeg'] = ffmpeg_path
-    confs['progs']['mkvmerge'] = mkvmerge_path
-    confs['progs']['node'] = node_path
+    for prog, default in prog_defaults.items():
+        args[prog] = confs['progs'][prog] = args[prog] or json_path_get(confs, ['progs', prog]) or default
+        path, exe = os.path.split(args[prog])
+        if which(exe, path=path) is None:
+            LOGGER.error('Could not find {} executable: "{}"'.format(prog, args[prog]))
+            sys.exit(-1)
 
 
 def parse_con_log_level(args, confs):
     log_level_default = "info"
 
-    con_log_level = args.log_level or confs['misc']['log_level'] or log_level_default
+    con_log_level = args['log_level'] or confs['misc']['log_level'] or log_level_default
     con_log_level = getattr(logging, con_log_level.upper())
 
     confs['misc']['log_level'] = con_log_level
 
 
 def parse_dlops_default(args, confs):
-    save_dir_default = '.'
-    definition_default = 'uhd'
+    conf_defaults = {
+        'dir': '.',
+        'definition': 'uhd',
+        'no_logo': 'True',
+        'ts_convert': 'True',
+        'proxy': ''
+    }
 
     for site in confs:
         if site not in ('misc', 'progs'):
-            save_dir = args.dir or confs[site]['dir'] or save_dir_default
-            confs[site]['dir'] = save_dir
-            # Validate the file save directory
-            if not (os.path.exists(save_dir) and os.path.isdir(save_dir)):
-                LOGGER.error('"{}" is not a valid path!'.format(save_dir))
-                sys.exit(-1)
+            for conf, default in conf_defaults.items():
+                confs[site][conf] = args[conf] or json_path_get(confs, [site, conf]) or default
 
-            definition = args.definition or confs[site]['definition'] or definition_default
-            confs[site]['definition'] = definition
 
-            if args.proxy:
-                confs[site]['proxy'] = args.proxy
+def parse_ca_bundle(args, confs):
+    """Combine the site-configured intermediate certificates with the CA bundle from `certifi`"""
+    here = os.path.abspath(os.path.dirname(__file__))
+    vc_ca_path = Path(os.path.join(here, 'certs'))
+
+    for site in confs:
+        if site not in ('misc', 'progs'):
+            vc_ca_bundle = os.path.join(vc_ca_path, ''.join([site, '_', 'cacert.pem']))
+
+            if not confs[site]['ca_cert']:
+                if os.path.isfile(vc_ca_bundle):
+                    os.remove(vc_ca_bundle)
+                continue
+
+            vc_ca_path.mkdir(parents=True, exist_ok=True)
+            with codecs.open(vc_ca_bundle, 'w', 'utf-8') as vc_fd:
+                vc_fd.write('\n')
+                vc_fd.write(confs[site]['ca_cert'])
+                vc_fd.write('\n')
+                with codecs.open(certifi.where(), 'r', 'utf-8') as certifi_fd:
+                    vc_fd.write(certifi_fd.read())
+
+            confs[site]['ca_cert'] = vc_ca_bundle
 
 
 def parse_other_ops(args, confs):
     # associate the playlist URLs with desired video episodes
-    url_plist = zip_longest(args.url, args.playlist_items) if len(args.url) >= len(args.playlist_items) else zip(args.url, args.playlist_items)
-    confs['playlist_items'] = {url: items for url, items in url_plist}
+    url_plist = zip_longest(args['url'], args['playlist_items']) if len(args['url']) >= len(args['playlist_items']) else zip(args['url'], args['playlist_items'])
+    args['playlist_items'] = {url: items for url, items in url_plist}
 
 
 def check_deps():
@@ -167,16 +186,17 @@ def main():
 
     confs = conf_parser()  # parse the config file
     parser = arg_parser()
-    args = parser.parse_args()
+    args = vars(parser.parse_args())
 
     parse_con_log_level(args, confs)
     change_logging_level('MDL', console_level=confs['misc']['log_level'])
 
     parse_3rd_party_progs(args, confs)
     parse_dlops_default(args, confs)
+    parse_ca_bundle(args, confs)
     parse_other_ops(args, confs)
 
     dl = MDownloader(args, confs)
-    dl.download(args.url)
+    dl.download(args['url'])
 
 # __all__ = ["main"]

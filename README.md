@@ -114,7 +114,7 @@ Step 2: get and install third-party dependency programs
 
 ### Usage
 ```
-mdl [-h] [-D DIR] [-d {uhd,fhd,shd,hd,sd}] [-p PROXY] [--QQVideo-no-logo {True,False}]
+mdl [-h] [-D DIR] [-d {uhd,fhd,shd,hd,sd}] [-p PROXY] [--no-logo [{True,False}]] [--ts-convert [{True,False}]]
     [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-N NODE] [-L {debug,info,warning,error,critical}]
     url [url ...] [--playlist-items PLAYLIST_ITEMS]
 ```
@@ -128,7 +128,9 @@ mdl [-h] [-D DIR] [-d {uhd,fhd,shd,hd,sd}] [-p PROXY] [--QQVideo-no-logo {True,F
 `-p PROXY`: specify the proxy server _PROXY_ (in the form of `http://[user:password@]host:port`)
     used to get web pages or download videos (if configured in `conf/dlops.conf`).
 
-`--QQVideo-no-logo {True,False}`: indicate whether we're trying to download no-watermarked QQVideos or not.
+`--no-logo [{True,False}]`: indicate whether we're trying to download no-watermarked videos or not.
+
+`--ts-convert [{True,False}]`: specify whether convert (aggregated) TS file to MP4 format or not.
 
 `-A ARIA2C`: specify the absolute path to `aria2c` executable, which takes precedence over the configuration in `conf/misc.conf`
     and the hard-coded fallback path `third_parties/aria2/aria2c[.exe]`.

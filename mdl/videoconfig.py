@@ -1,10 +1,7 @@
 import re
 import logging
-import codecs
-import os
-from pathlib import Path
 
-import certifi
+from bdownload.download import requests_retry_session
 
 
 class VideoConfig(object):
@@ -13,21 +10,26 @@ class VideoConfig(object):
     _requester = None  # Web content downloader, e.g. requests
     VC_NAME = 'vc'
 
-    def __init__(self, requester, args, confs):
-        self._requester = requester
+    def __init__(self, args, confs):
         self.args = args
         self.confs = confs
         logger_name = '.'.join(['MDL', self.VC_NAME])  # 'MDL.vc'
         self._logger = logging.getLogger(logger_name)
 
+        self.no_logo = True if self.confs['no_logo'].lower() == 'true' else False
+        self.ts_convert = True if self.confs['ts_convert'].lower() == 'true' else False
+
+        verify = self.confs['ca_cert'] or True
+        self._requester = requests_retry_session(verify=verify)
+
         # set proxy
-        proxy = confs[self.VC_NAME]['proxy']
+        proxy = self.confs['proxy']
         if proxy:
             proxies = dict(http=proxy, https=proxy)
             self._requester.proxies = proxies
 
         # set default user agent
-        user_agent = confs[self.VC_NAME]['user_agent']
+        user_agent = self.confs['user_agent']
         if user_agent:
             self._requester.headers.update({'User-Agent': user_agent})
 
@@ -41,28 +43,6 @@ class VideoConfig(object):
                 return True
 
         return False
-
-    @classmethod
-    def make_ca_bundle(cls, args, confs):
-        """Combine the site-configured intermediate certificates with the CA bundle from `certifi`"""
-        here = os.path.abspath(os.path.dirname(__file__))
-        vc_ca_path = Path(os.path.join(here, 'certs'))
-        vc_ca_bundle = os.path.join(vc_ca_path, ''.join([cls.VC_NAME, '_', 'cacert.pem']))
-
-        if not confs[cls.VC_NAME]['ca_cert']:
-            if os.path.isfile(vc_ca_bundle):
-                os.remove(vc_ca_bundle)
-            return
-
-        vc_ca_path.mkdir(parents=True, exist_ok=True)
-        with codecs.open(vc_ca_bundle, 'w', 'utf-8') as vc_fd:
-            vc_fd.write('\n')
-            vc_fd.write(confs[cls.VC_NAME]['ca_cert'])
-            vc_fd.write('\n')
-            with codecs.open(certifi.where(), 'r', 'utf-8') as certifi_fd:
-                vc_fd.write(certifi_fd.read())
-
-        return vc_ca_bundle
 
     def get_cover_info(self, url):
         pass
@@ -99,9 +79,9 @@ class VideoConfig(object):
         return slic
 
     def filter_video_episodes(self, url, cover_info):
-        if cover_info['normal_ids'] and self.confs['playlist_items'][url]:
+        if cover_info['normal_ids'] and self.args['playlist_items'][url]:
             normal_ids = cover_info['normal_ids']
-            playlist_items = self.confs['playlist_items'][url]
+            playlist_items = self.args['playlist_items'][url]
 
             if len(normal_ids) == 1:
                 if not self._in_rangeset(normal_ids[0]['E'], playlist_items):

@@ -31,8 +31,8 @@ class M1905VC(VideoConfig):
     _M1905_DEFN_MAP_I2S = {'fhd': 'fhd', 'uhd': 'shd', 'hd': 'hd', 'sd': 'sd'}  # internal format name -> standard format name
     _M1905_DEFN_MAP_S2I = {'dolby': 'fhd', 'sfr_hdr': 'fhd', 'hdr10': 'fhd', 'uhd': 'fhd', 'fhd': 'fhd', 'shd': 'uhd', 'hd': 'hd', 'sd': 'sd'}  # standard -> internal | FIXME: VIP fhd?
 
-    def __init__(self, requester, args, confs):
-        super().__init__(requester, args, confs)
+    def __init__(self, args, confs):
+        super().__init__(args, confs)
 
         self._SD_CONF_PAT_RE = re.compile(
             r"(?:VODCONFIG|VIDEOCONFIG).*vid\s*:\s*\"(\d+)\".*?(?<!vip)title\s*:\s*\"(.*?)\".*?apikey\s*:\s*\"(.*?)\"",  # (mdbfilmid\s*:\s*\"(\d+)\")?
@@ -60,7 +60,7 @@ class M1905VC(VideoConfig):
             if pat.get('cpat') is None:
                 pat['cpat'] = re.compile(pat['pat'], re.IGNORECASE)
 
-        self.preferred_defn = confs[self.VC_NAME]['definition']
+        self.preferred_defn = self.confs['definition']
 
     @staticmethod
     def _random_string():

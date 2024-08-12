@@ -7,7 +7,6 @@ import logging
 from math import trunc, log10
 
 from certifi import where
-from bdownload.download import requests_retry_session
 
 from .commons import pick_highest_definition, VideoTypes, DEFAULT_YEAR
 from .sites import get_all_sites_vcs
@@ -43,7 +42,7 @@ class MDownloader(object):
                                                                    save_dir=self.confs[vci.VC_NAME]['dir'],
                                                                    defn=self.confs[vci.VC_NAME]['definition'])
 
-                self.join_videos(cover_dir, episodes)
+                self.join_videos(cover_dir, episodes, ts_convert=vci.ts_convert)
 
     def extract_config_info(self, url):
         for name, vc in self._vcs.items():
@@ -53,13 +52,7 @@ class MDownloader(object):
 
             vci = vc.get('instance')
             if vci is None:
-                verify = vcc.make_ca_bundle(self.args, self.confs)
-                if not verify:
-                    verify = True
-                else:
-                    self.confs[vcc.VC_NAME]['ca_cert'] = verify
-                requester = requests_retry_session(verify=verify)
-                vci = vcc(requester, self.args, self.confs)
+                vci = vcc(self.args, self.confs[vcc.VC_NAME])
                 vc['instance'] = vci
 
             cover_info = vci.get_video_config_info(url)
@@ -155,9 +148,7 @@ class MDownloader(object):
             retry_wait = self.confs[cover_info['vc_name']]['retry_wait']
             speed_limit = self.confs[cover_info['vc_name']]['lowest_speed_limit']
             referer = cover_info['referrer']
-            cert_path = self.confs[cover_info['vc_name']]['ca_cert']
-            if not cert_path:
-                cert_path = where()
+            cert_path = self.confs[cover_info['vc_name']]['ca_cert'] or where()
 
             cmd_aria2c = [aria2c, '-c', '-j', mcd,  '-k', mss, '-s', split, '-x', mcps, '--max-file-not-found=5000', '-m0',
                           '--retry-wait', retry_wait, '--lowest-speed-limit', speed_limit, '--no-conf', '-i-',
@@ -180,7 +171,7 @@ class MDownloader(object):
 
         return "", []
 
-    def join_videos_with_ffmpeg_mkvmerge(self, cover_dir, episode_dir, fnames):
+    def _join_videos_with_ffmpeg_mkvmerge(self, cover_dir, episode_dir, fnames, ts_convert=True):
         """abs_cover_dir > abs_episode_dir > video files """
 
         if cover_dir and episode_dir and fnames:
@@ -192,18 +183,20 @@ class MDownloader(object):
             proc = None
             if suffix in ['.ts', '.mpg', '.mpeg']:
                 if suffix == '.ts':
-                    episode_name = episode_name.rpartition('.')[0] + '.mp4'
-                '''
-                with tempfile.TemporaryFile(mode='w+b', suffix=suffix, dir=coverdir) as tmpf:
-                    for fn in fnames:
-                        with open(os.path.join(episodedir, fn), 'rb') as f:
-                            tmpf.write(f.read())
-                    tmpf.flush()
-                    tmpf.seek(0)
+                    if not ts_convert:
+                        if len(fnames) == 1:
+                            # just rename and move it into parent directory, no need to merge
+                            fn_whole = os.path.join(episode_dir, fnames[0])
+                            shutil.move(fn_whole, episode_name)
+                            return True
 
-                    cmd = ['ffmpeg', '-y', '-i', 'pipe:0', '-safe', '0', '-c', 'copy', '-hide_banner', episode_name]
-                    proc = subprocess.run(cmd, input=tmpf.read())
-                '''
+                        with open(episode_name, 'wb') as tsf:
+                            for fn in fnames:
+                                with open(os.path.join(episode_dir, fn), 'rb') as f:
+                                    tsf.write(f.read())
+                        return True
+
+                    episode_name = episode_name.rpartition('.')[0] + '.mp4'
                 ffmpeg = self.confs['progs']['ffmpeg']
                 cmd = [ffmpeg, '-y', '-i', 'pipe:0', '-safe', '0', '-c', 'copy', '-hide_banner', episode_name]
                 try:
@@ -254,10 +247,10 @@ class MDownloader(object):
             if proc and proc.returncode == 0:
                 return True
 
-    def join_videos(self, cover_dir, episodes):
+    def join_videos(self, cover_dir, episodes, ts_convert=True):
         for episode_dir, fnames in episodes:
             if len(fnames) > 0:
-                res = self.join_videos_with_ffmpeg_mkvmerge(cover_dir, episode_dir, fnames)
+                res = self._join_videos_with_ffmpeg_mkvmerge(cover_dir, episode_dir, fnames, ts_convert=ts_convert)
                 if res:
                     shutil.rmtree(episode_dir, ignore_errors=True)
                 else:

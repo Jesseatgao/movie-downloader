@@ -96,8 +96,8 @@ class QQVideoVC(VideoConfig):
                          321004: 'fhd', 321003: 'shd', 321002: 'hd', 321001: 'sd',
                          320090: 'hd', 320089: 'sd'}
 
-    def __init__(self, requester, args, confs):
-        super().__init__(requester, args, confs)
+    def __init__(self, args, confs):
+        super().__init__(args, confs)
 
         self._COVER_PAT_RE = re.compile(r"var\s+COVER_INFO\s*=\s*(.+?);?var\s+COLUMN_INFO"
                                         r"|\"coverInfo\"\s*:\s*(.+?),\s*\"videoInfo\"",
@@ -118,34 +118,29 @@ class QQVideoVC(VideoConfig):
                 pat['cpat'] = re.compile(pat['pat'], re.IGNORECASE)
 
         # get user tokens/cookies from configuration file
-        self._regular_token = build_cookiejar_from_kvp(confs[self.VC_NAME]['regular_user_token'])
-        self._vip_token = build_cookiejar_from_kvp(confs[self.VC_NAME]['vip_user_token'])
+        self._regular_token = build_cookiejar_from_kvp(self.confs['regular_user_token'])
+        self._vip_token = build_cookiejar_from_kvp(self.confs['vip_user_token'])
         self.user_token = self._vip_token if self._vip_token else self._regular_token
         self.has_vip = True if self._vip_token else False
         self.login_token = self._get_logintoken_from_cookies(self.user_token)
 
-        self.encrypt_ver = confs[self.VC_NAME]['ckey_ver']
+        self.encrypt_ver = self.confs['ckey_ver']
         ckey_js = 'vqq_ckey-' + self.encrypt_ver + '.js'
         self.jsfile = os.path.join(mdl_dir, 'js', ckey_js)
 
         self.app_ver = self._ENCRYPTVER_to_APPVER[self.encrypt_ver]
 
-        # parse cmdline args and config file for "QQVideo" site
-        no_logo_default = 'True'
-        no_logo = args.QQVideo_no_logo or confs[self.VC_NAME]['no_logo'] or no_logo_default
-        self.no_logo = True if no_logo.lower() == 'true' else False
-
         probe_mode_default = 'False'
-        probe_mode = confs[self.VC_NAME].get('probe_mode') or probe_mode_default
+        probe_mode = self.confs.get('probe_mode') or probe_mode_default
         self.probe_mode = True if probe_mode.lower() == 'true' else False
 
-        use_cdn = confs[self.VC_NAME].get('use_cdn')
+        use_cdn = self.confs.get('use_cdn')
         self.use_cdn = True if use_cdn and use_cdn.lower() == 'true' else False
 
-        cdn_blacklist = confs[self.VC_NAME].get('cdn_blacklist')
+        cdn_blacklist = self.confs.get('cdn_blacklist')
         self.cdn_blacklist = tuple(cdn_blacklist.split()) if cdn_blacklist else ()
 
-        self.preferred_defn = confs[self.VC_NAME]['definition']
+        self.preferred_defn = self.confs['definition']
 
     # @classmethod
     # def is_url_valid(cls, url):
@@ -378,7 +373,7 @@ class QQVideoVC(VideoConfig):
         ext = None
         format_name = None
 
-        nodejs = self.confs['progs']['node']
+        nodejs = self.args['node']
         cmd_nodejs = [nodejs, self.jsfile]
         with subprocess.Popen(cmd_nodejs, bufsize=1, universal_newlines=True, encoding='utf-8',
                               stdin=subprocess.PIPE, stdout=subprocess.PIPE) as node_proc:
@@ -568,7 +563,7 @@ class QQVideoVC(VideoConfig):
         ext = None
         format_name = None
 
-        nodejs = self.confs['progs']['node']
+        nodejs = self.args['node']
         cmd_nodejs = [nodejs, self.jsfile]
         with subprocess.Popen(cmd_nodejs, bufsize=1, universal_newlines=True, encoding='utf-8',
                               stdin=subprocess.PIPE, stdout=subprocess.PIPE) as node_proc:
