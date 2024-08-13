@@ -1,6 +1,5 @@
 import os
 import subprocess
-import tempfile
 import shutil
 import errno
 import logging
@@ -24,13 +23,18 @@ class MDownloader(object):
 
     def download(self, urls):
         for url in urls:
-            vci, cover_info = self.extract_config_info(url)
+            vci = self.get_video_extractor(url)
+            if not vci:
+                self._logger.error("Video URL {!r} is invalid".format(url))
+                continue
+
+            cover_info = vci.get_video_config_info(url)
             if not cover_info or not cover_info.get('normal_ids'):
                 self._logger.warning("No files to download for '{}'.".format(url))
                 continue
 
             # download the list of videos in batches, instead of all at once
-            batch_size = int(self.confs[vci.VC_NAME]['episode_batch_size'])
+            batch_size = int(vci.confs['episode_batch_size'])
             batch_cover_info = cover_info.copy()
             video_list = cover_info['normal_ids']
 
@@ -39,14 +43,15 @@ class MDownloader(object):
 
                 vci.update_video_dwnld_info(batch_cover_info)
                 cover_dir, episodes = self.dwnld_videos_with_aria2(batch_cover_info,
-                                                                   save_dir=self.confs[vci.VC_NAME]['dir'],
-                                                                   defn=self.confs[vci.VC_NAME]['definition'])
+                                                                   save_dir=vci.confs['dir'],
+                                                                   defn=vci.confs['definition'])
 
-                self.join_videos(cover_dir, episodes, ts_convert=vci.ts_convert)
+                self.join_videos(cover_dir, episodes, ts_convert=vci.confs['ts_convert'])
 
-    def extract_config_info(self, url):
+    def get_video_extractor(self, url):
         for name, vc in self._vcs.items():
             vcc = vc['class']
+            # check site domain name against URL
             if not vcc.is_url_valid(url):
                 continue
 
@@ -55,15 +60,7 @@ class MDownloader(object):
                 vci = vcc(self.args, self.confs[vcc.VC_NAME])
                 vc['instance'] = vci
 
-            cover_info = vci.get_video_config_info(url)
-            if cover_info:
-                cover_info['source_name'] = vcc.SOURCE_NAME
-                cover_info['vc_name'] = vcc.VC_NAME
-            return vci, cover_info
-        else:
-            # check site domain name against URL
-            self._logger.error("Video URL {!r} is invalid".format(url))
-            return None, None
+            return vci
 
     def dwnld_videos_with_aria2(self, cover_info, save_dir='.', defn=None):
         """
@@ -72,9 +69,9 @@ class MDownloader(object):
         """
 
         def pick_format(formats):
-            for format in formats:
-                if format['ext'] != 'ts':
-                    return format
+            for fmt in formats:
+                if fmt['ext'] != 'ts':
+                    return fmt
 
             return formats[0]
 
@@ -140,7 +137,7 @@ class MDownloader(object):
             aria2c = self.confs['progs']['aria2c']
             user_agent = self.confs[cover_info['vc_name']]['user_agent']
             proxy = self.confs[cover_info['vc_name']]['proxy'] \
-                if self.confs[cover_info['vc_name']]['enable_proxy_dl_video'].lower() == "true" else ''
+                if self.confs[cover_info['vc_name']]['enable_proxy_dl_video'] else ''
             mcd = self.confs[cover_info['vc_name']]['max_concurrent_downloads']
             mss = self.confs[cover_info['vc_name']]['min_split_size']
             split = self.confs[cover_info['vc_name']]['split']

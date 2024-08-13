@@ -8,6 +8,7 @@ class VideoConfig(object):
     # [{'pat': r'^https?://v\.qq\.com/x/cover/(\w+)\.html', 'eg': 'https://v.qq.com/x/cover/nhtfh14i9y1egge.html'}]
     _VIDEO_URL_PATS = []
     _requester = None  # Web content downloader, e.g. requests
+    SOURCE_NAME = 'vc'
     VC_NAME = 'vc'
 
     def __init__(self, args, confs):
@@ -15,9 +16,6 @@ class VideoConfig(object):
         self.confs = confs
         logger_name = '.'.join(['MDL', self.VC_NAME])  # 'MDL.vc'
         self._logger = logging.getLogger(logger_name)
-
-        self.no_logo = True if self.confs['no_logo'].lower() == 'true' else False
-        self.ts_convert = True if self.confs['ts_convert'].lower() == 'true' else False
 
         verify = self.confs['ca_cert'] or True
         self._requester = requests_retry_session(verify=verify)
@@ -97,6 +95,9 @@ class VideoConfig(object):
             cover_info['url'] = url  # original request URL
 
             cover_info = self.filter_video_episodes(url, cover_info)
+
+            cover_info['source_name'] = self.SOURCE_NAME
+            cover_info['vc_name'] = self.VC_NAME
 
         return cover_info
 

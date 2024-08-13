@@ -756,7 +756,7 @@ class QQVideoVC(VideoConfig):
         return format_name, ext, urls
 
     def _get_video_urls(self, vid, definition, vurl, referrer):
-        if self.no_logo:
+        if self.confs['no_logo']:
             # return self._get_video_urls_p10801(vid, definition, vurl, referrer)
             return self._get_video_urls_p10201_ts(vid, definition, vurl, referrer)
         else:

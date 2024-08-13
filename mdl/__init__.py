@@ -132,13 +132,19 @@ def parse_dlops_default(args, confs):
         'definition': 'uhd',
         'no_logo': 'True',
         'ts_convert': 'True',
+        'enable_proxy_dl_video': 'False',
+        'enable_vip_apis': 'False',
         'proxy': ''
     }
 
     for site in confs:
         if site not in ('misc', 'progs'):
             for conf, default in conf_defaults.items():
-                confs[site][conf] = args[conf] or json_path_get(confs, [site, conf]) or default
+                confs[site][conf] = args.get(conf) or json_path_get(confs, [site, conf]) or default
+
+                lconf = confs[site][conf].lower()
+                if lconf in ('true', 'false'):
+                    confs[site][conf] = True if lconf == 'true' else False
 
 
 def parse_ca_bundle(args, confs):
