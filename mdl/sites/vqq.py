@@ -368,6 +368,21 @@ class QQVideoVC(VideoConfig):
 
         return format_name, ext, urls
 
+    def _get_orig_format_id(self, data, platform):
+        file_format_id = None
+
+        vfilefs = json_path_get(data, ['vl', 'vi', 0, 'fs'])
+        if vfilefs:
+            for fmt in json_path_get(data, ['fl', 'fi'], []):
+                if vfilefs == fmt.get('fs'):
+                    file_format_id = fmt.get('id')
+                    break
+
+        if not file_format_id:
+            file_format_id = json_path_get(data, ['fl', 'fi', 0, 'id']) or self._VQQ_FORMAT_IDS_DEFAULT[platform]['sd']
+
+        return file_format_id
+
     def _get_video_urls_p10201(self, vid, definition, vurl, referrer):
         urls = []
         ext = None
@@ -460,10 +475,12 @@ class QQVideoVC(VideoConfig):
                     fmt_prefix = vfn[1][0] if len(vfn) == 3 else 'p'  # e.g. 'p' in 'p201'
                     vfmt_new = fmt_prefix + str(new_format_id % 10000)
 
-                    # fvkey = json_path_get(data, ['vl', 'vi', 0, 'fvkey'])
+                    orig_format_id = self._get_orig_format_id(data, QQVideoPlatforms.P10201)
                     fc = json_path_get(data, ['vl', 'vi', 0, 'cl', 'fc'])
                     keyid = json_path_get(data, ['vl', 'vi', 0, 'cl', 'ci', 0, 'keyid']) if fc else json_path_get(data, ['vl', 'vi', 0, 'cl', 'keyid'])
-                    orig_format_id = int(keyid.split('.')[1])
+                    keyid = keyid.split('.')
+                    keyid[1] = str(orig_format_id)
+                    keyid = '.'.join(keyid)
 
                     max_fc = 80  # large enough try limit such that we don't miss any clip
                     for idx in range(1, max_fc + 1):
