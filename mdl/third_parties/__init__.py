@@ -84,32 +84,32 @@ progs_conf = {
                 'sha512': 'b384397b401c870041b21ae291f4e62e7030303057e4b6a81ed473b23613528ce4e5dcf10c4753e8321a17b78bac8c34de6c5e52ae8acf034718a2214aa669cb'
             },
             '64-bit': {
-                'url': 'https://github.com/GyanD/codexffmpeg/releases/download/7.0.1/ffmpeg-7.0.1-full_build.zip',
+                'url': 'https://github.com/GyanD/codexffmpeg/releases/download/7.0.2/ffmpeg-7.0.2-full_build.zip',
                 'ext': '.zip',
-                'content-path': ['ffmpeg-7.0.1-full_build/', 'bin/'],
+                'content-path': ['ffmpeg-7.0.2-full_build/', 'bin/'],
                 'content-base': 'ffmpeg',
                 'content-ext': '.exe',
-                'sha512': 'deab7dee429bbae0e3e3f81e2c9cbd6ddaa9ad78b95224fdaf2e174b18d31f462812af9f18a0092487c4f33488c8280833e3a4c06b6e90c2f5f1c933ac648808'
+                'sha512': '345bce3bc4c95f3bd8ad74c79c37354318d371cd854a3ef5be3512f9868f606226f8e75c364691adeb60764ad1f67d0e6b334a92e45a2ee0a7d12595549a2500'
             }
         },
         'Linux': {
             '32-bit': {
-                'url': 'https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-7.0.1-i686-static.tar.xz\t'
-                       'https://johnvansickle.com/ffmpeg/releases/ffmpeg-7.0.1-i686-static.tar.xz',
+                'url': 'https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-7.0.2-i686-static.tar.xz\t'
+                       'https://johnvansickle.com/ffmpeg/releases/ffmpeg-7.0.2-i686-static.tar.xz',
                 'ext': '.tar.xz',
-                'content-path': ['ffmpeg-7.0.1-i686-static/'],
+                'content-path': ['ffmpeg-7.0.2-i686-static/'],
                 'content-base': 'ffmpeg',
                 'content-ext': '',
-                'sha512': '8bcedf5371b65397c572ae81e20fd4808ea4e919bc9d09a5c456682cf3b312b666fb4b3028aea36373b44c9c23f431a567a49e7741e7fc088ec6679ba9f05044'
+                'sha512': '1b2d58d55158606e4e45edb60475cb36f023960d66f7cce42b8f6e38eb1ec9a1775c0e5b3b77fd012055d93465e9a9586fbbefccda07fcba301f5823e832c9b2'
             },
             '64-bit': {
-                'url': 'https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-7.0.1-amd64-static.tar.xz\t'
-                       'https://johnvansickle.com/ffmpeg/releases/ffmpeg-7.0.1-amd64-static.tar.xz',
+                'url': 'https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-7.0.2-amd64-static.tar.xz\t'
+                       'https://johnvansickle.com/ffmpeg/releases/ffmpeg-7.0.2-amd64-static.tar.xz',
                 'ext': '.tar.xz',
-                'content-path': ['ffmpeg-7.0.1-amd64-static/'],
+                'content-path': ['ffmpeg-7.0.2-amd64-static/'],
                 'content-base': 'ffmpeg',
                 'content-ext': '',
-                'sha512': '279d3f4f49baff766d0032264cce422dcd1a8177f4d69ba54a8afc66d655a58292e58907e732b65f32784d12fa9d7cf68b7673f9c887cef4ad9db4818d87366a'
+                'sha512': 'e80880362208de7437f0eb98d25ec6676df122a04613a818bb14101c3e1ccf91feab06246d40359b887b147af65d80eef5dba99964cac469bcb560f1a063d737'
             }
         },
         'Darwin': {
@@ -246,7 +246,8 @@ progs_conf = {
     'node': {
         'Windows': {
             '32-bit': {
-                'url': 'https://nodejs.org/dist/v16.15.0/node-v16.15.0-win-x86.zip',
+                'url': 'https://nodejs.org/dist/v16.15.0/node-v16.15.0-win-x86.zip\t'
+                       'https://kernel.nullivex.com/nodejs/release/v16.15.0/node-v16.15.0-win-x86.zip',
                 'ext': '.zip',
                 'content-path': ['node-v16.15.0-win-x86/'],
                 'content-base': 'node',
@@ -254,7 +255,8 @@ progs_conf = {
                 'sha512': '75f44b97b361ea57697c02f0285b610683695357eaf364ecb2cdcb998d5eb1ca99d2a67d8eb61256ef8840a39c6d3c82b3a282f42ed6514400d69c03541161b9'
             },
             '64-bit': {
-                'url': 'https://nodejs.org/dist/v16.15.0/node-v16.15.0-win-x64.zip',
+                'url': 'https://nodejs.org/dist/v16.15.0/node-v16.15.0-win-x64.zip\t'
+                       'https://kernel.nullivex.com/nodejs/release/v16.15.0/node-v16.15.0-win-x64.zip',
                 'ext': '.zip',
                 'content-path': ['node-v16.15.0-win-x64/'],
                 'content-base': 'node',
@@ -272,7 +274,8 @@ progs_conf = {
                 'sha512': '090f5af497cc4daa5f053b55ddb7b8a26741e99d583d113abc08a25aad310cf2ff213cdd851e73f11cbbf3f921b6f595ae9929d2013fcbd056ae41402c6a50e8'
             },
             '64-bit': {
-                'url': 'https://nodejs.org/dist/v16.15.0/node-v16.15.0-linux-x64.tar.xz',
+                'url': 'https://nodejs.org/dist/v16.15.0/node-v16.15.0-linux-x64.tar.xz\t'
+                       'https://kernel.nullivex.com/nodejs/release/v16.15.0/node-v16.15.0-linux-x64.tar.xz',
                 'ext': '.tar.xz',
                 'content-path': ['node-v16.15.0-linux-x64/'],
                 'content-base': 'bin/node',

@@ -35,7 +35,7 @@ A fast movie downloader using Aria2
         
         x86_64 64-bit version:
         
-        https://www.videohelp.com/download/ffmpeg-7.0.1-full_build.7z
+        https://www.videohelp.com/download/ffmpeg-7.0.2-full_build.7z
     * For Linux:
     
         i686 32-bit version:
