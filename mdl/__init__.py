@@ -68,6 +68,7 @@ def arg_parser():
 
     parser.add_argument('--no-logo', dest='no_logo', default=None, const='True', nargs='?', choices=['True', 'False'])
     parser.add_argument('--ts-convert', dest='ts_convert', default=None, const='True', nargs='?', choices=['True', 'False'])
+    parser.add_argument('--proxy-dl-video', dest='enable_proxy_dl_video', default=None, const='True', nargs='?', choices=['True', 'False'])
 
     parser.add_argument('-A', '--aria2c', dest='aria2c', default=None, help='path to the aria2 executable')
     parser.add_argument('-F', '--ffmpeg', dest='ffmpeg', default=None, help='path to the ffmpeg executable')

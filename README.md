@@ -86,10 +86,10 @@ A fast movie downloader using Aria2
         
         https://nodejs.org/dist/v16.15.0/node-v16.15.0-linux-x64.tar.xz
         
-* [ckey](https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208)
+* [ckey](https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm)
     * For Windows & Linux:
     
-        https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm?v=20171208
+        https://vm.gtimg.cn/tencentvideo/txp/js/ckey.wasm
 
 ### Installation
 Step 1: install core parsing modules
@@ -114,8 +114,11 @@ Step 2: get and install third-party dependency programs
 
 ### Usage
 ```
-mdl [-h] [-D DIR] [-d {uhd,fhd,shd,hd,sd}] [-p PROXY] [--no-logo [{True,False}]] [--ts-convert [{True,False}]]
-    [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-N NODE] [-L {debug,info,warning,error,critical}]
+mdl [-h] [-D DIR] [-d {uhd,fhd,shd,hd,sd}]
+    [-p PROXY] [--proxy-dl-video [{True,False}]]
+    [--no-logo [{True,False}]] [--ts-convert [{True,False}]]
+    [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-N NODE]
+    [-L {debug,info,warning,error,critical}]
     url [url ...] [--playlist-items PLAYLIST_ITEMS]
 ```
 
@@ -126,7 +129,9 @@ mdl [-h] [-D DIR] [-d {uhd,fhd,shd,hd,sd}] [-p PROXY] [--no-logo [{True,False}]]
 `-d {uhd,fhd,shd,hd,sd}`: specify the definition of the video to download. `uhd,fhd,shd,hd,sd` correspond to `4K, 1080P, 720P, 480P, 270P` respectively.
 
 `-p PROXY`: specify the proxy server _PROXY_ (in the form of `http://[user:password@]host:port`)
-    used to get web pages or download videos (if configured in `conf/dlops.conf`).
+    used to get web pages, and download videos (if configured in `conf/dlops.conf` or enabled by the option `--proxy-dl-video`).
+
+`--proxy-dl-video [{True,False}]`: specify whether the proxy should be used to download video contents.
 
 `--no-logo [{True,False}]`: indicate whether we're trying to download no-watermarked videos or not.
 
