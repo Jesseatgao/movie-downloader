@@ -89,7 +89,7 @@ def conf_parser():
     conf_all = (conf_dlops, conf_misc)
 
     for conf_path in conf_all:
-        config = ConfigParser()
+        config = ConfigParser(interpolation=None)
         config.read(conf_path)
         for section in config.sections():
             confs[section] = {}

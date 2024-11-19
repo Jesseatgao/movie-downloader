@@ -9,7 +9,7 @@ from requests import RequestException
 
 from ..commons import pick_highest_definition, sort_definitions, VideoTypeCodes, VideoTypes, DEFAULT_YEAR
 from ..videoconfig import VideoConfig
-from ..utils import json_path_get, build_cookiejar_from_kvp
+from ..utils import json_path_get
 
 mdl_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -117,11 +117,6 @@ class QQVideoVC(VideoConfig):
             if pat.get('cpat') is None:
                 pat['cpat'] = re.compile(pat['pat'], re.IGNORECASE)
 
-        # get user tokens/cookies from configuration file
-        self._regular_token = build_cookiejar_from_kvp(self.confs['regular_user_token'])
-        self._vip_token = build_cookiejar_from_kvp(self.confs['vip_user_token'])
-        self.user_token = self._vip_token if self._vip_token else self._regular_token
-        self.has_vip = True if self._vip_token else False
         self.login_token = self._get_logintoken_from_cookies(self.user_token)
 
         self.encrypt_ver = self.confs['ckey_ver']
@@ -172,7 +167,7 @@ class QQVideoVC(VideoConfig):
             'show1080p': 1,
             'dtype': 3
         }
-        r = self._requester.get('https://vv.video.qq.com/getinfo', params=params, cookies=self.user_token)
+        r = self._requester.get('https://vv.video.qq.com/getinfo', params=params)
         if r.status_code == 200:
             try:
                 data = json.loads(r.text[len('QZOutputJson='):-1])
@@ -245,7 +240,7 @@ class QQVideoVC(VideoConfig):
                             return self._get_video_urls_p10201(vid, definition, vurl, referrer)
                         playlist_url = chosen_url_prefixes[0] + playlist_m3u8
 
-                        r = self._requester.get(playlist_url, cookies=self.user_token)
+                        r = self._requester.get(playlist_url)
                         if r.status_code == 200:
                             r.encoding = 'utf-8'
                             for line in r.iter_lines(decode_unicode=True):
@@ -279,7 +274,7 @@ class QQVideoVC(VideoConfig):
             'fhdswitch': 0,
             'show1080p': 1,
         }
-        r = self._requester.get('https://h5vv.video.qq.com/getinfo', params=params, cookies=self.user_token)
+        r = self._requester.get('https://h5vv.video.qq.com/getinfo', params=params)
         if r.status_code == 200:
             try:
                 data = json.loads(r.text[len('QZOutputJson='):-1])
@@ -345,7 +340,7 @@ class QQVideoVC(VideoConfig):
                         'vt': 217,
                         'charge': 0
                     }
-                    r = self._requester.get('https://h5vv.video.qq.com/getkey', params=params, cookies=self.user_token)
+                    r = self._requester.get('https://h5vv.video.qq.com/getkey', params=params)
                     if r.status_code == 200:
                         try:
                             key_data = json.loads(r.text[len('QZOutputJson='):-1])
@@ -429,7 +424,7 @@ class QQVideoVC(VideoConfig):
             }
 
             try:
-                r = self._requester.post(self._VIDEO_CONFIG_URL, json=params, cookies=self.user_token)
+                r = self._requester.post(self._VIDEO_CONFIG_URL, json=params)
                 r.raise_for_status()
                 if r.status_code != 200:
                     raise RequestException("Unexpected status code %i" % r.status_code)
@@ -527,7 +522,7 @@ class QQVideoVC(VideoConfig):
                         }
 
                         try:
-                            r = self._requester.post(self._VIDEO_CONFIG_URL, json=params, cookies=self.user_token)
+                            r = self._requester.post(self._VIDEO_CONFIG_URL, json=params)
                             r.raise_for_status()
                             if r.status_code != 200:
                                 raise RequestException("Unexpected status code %i" % r.status_code)
@@ -636,7 +631,7 @@ class QQVideoVC(VideoConfig):
             }
 
             try:
-                r = self._requester.post(self._VIDEO_CONFIG_URL, json=params, cookies=self.user_token)
+                r = self._requester.post(self._VIDEO_CONFIG_URL, json=params)
                 r.raise_for_status()
                 if r.status_code != 200:
                     raise RequestException("Unexpected status code %i" % r.status_code)
@@ -726,7 +721,7 @@ class QQVideoVC(VideoConfig):
                                 }
 
                                 try:
-                                    r = self._requester.post(self._VIDEO_CONFIG_URL, json=params, cookies=self.user_token)
+                                    r = self._requester.post(self._VIDEO_CONFIG_URL, json=params)
                                     if r.status_code != 200:
                                         raise RequestException("Unexpected status code %i" % r.status_code)
 
@@ -886,18 +881,17 @@ class QQVideoVC(VideoConfig):
         return info
 
     def get_cover_info(self, videourl):
-        cover_info = None
         for typ, pat in enumerate(self._VIDEO_URL_PATS, 1):
             match = pat['cpat'].match(videourl)
             if match:
+                videourl = match.group(0)
+
                 if typ == 1:  # 'video_cover'
                     cover_info = self._get_cover_info(videourl)
-                    break
                 elif typ == 2:  # 'video_detail'
                     cover_id = match.group(2)
                     cover_url = self._VIDEO_COVER_PREFIX + cover_id + '.html'
                     cover_info = self._get_cover_info(cover_url)
-                    break
                 elif typ == 3:  # 'video_episode'
                     cover_id = match.group(1)
                     video_id = match.group(2)
@@ -905,7 +899,6 @@ class QQVideoVC(VideoConfig):
                     cover_info = self._get_cover_info(cover_url)
                     if cover_info:
                         cover_info['normal_ids'] = [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id]
-                    break
                 else:  # typ == 4 'video_page'
                     video_id = match.group(1)
                     cover_info = self._get_cover_info(videourl)
@@ -916,9 +909,8 @@ class QQVideoVC(VideoConfig):
 
                         if not cover_info['cover_id']:
                             cover_info['cover_id'] = video_id
-                    break
 
-        return cover_info
+                return cover_info
 
     def update_video_dwnld_info(self, cover_info):
         """"
