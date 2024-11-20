@@ -1,8 +1,6 @@
 import re
 import logging
 
-from requests.cookies import RequestsCookieJar
-
 from bdownload.download import requests_retry_session
 from .utils import build_cookiejar_from_kvp
 
@@ -34,10 +32,9 @@ class VideoConfig(object):
         self._vip_token = build_cookiejar_from_kvp(self.confs['vip_user_token'])
         self.has_vip = True if self._vip_token else False
         self.user_token = self._vip_token if self._vip_token else self._regular_token
-        if not self.user_token:
-            self.user_token = RequestsCookieJar()
-        # set regular/VIP user cookie for the requesting session
-        self._requester.cookies = self.user_token
+        if self.user_token:
+            # set regular/VIP user cookie for the requesting session
+            self._requester.cookies = self.user_token
 
         # set default user agent
         user_agent = self.confs['user_agent']
