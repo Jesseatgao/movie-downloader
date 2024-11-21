@@ -40,13 +40,24 @@ class M1905VC(VideoConfig):
         super().__init__(args, confs)
 
         self._SD_CONF_PAT_RE = re.compile(
-            r"(?:VODCONFIG|VIDEOCONFIG).*vid\s*:\s*\"(\d+)\".*?(?<!vip)title\s*:\s*\"(.*?)\".*?apikey\s*:\s*\"(.*?)\"",  # (mdbfilmid\s*:\s*\"(\d+)\")?
+            r"(?:VODCONFIG|VIDEOCONFIG).*vid\s*:\s*\"(?P<vid>\d+)\".*?(?<!vip)title\s*:\s*\"(?P<title>.*?)\".*?apikey\s*:\s*\"(?P<apikey>.*?)\"",  # (mdbfilmid\s*:\s*\"(\d+)\")?
             re.MULTILINE | re.DOTALL | re.IGNORECASE
         )
         self._SD_YEAR_RE = re.compile(r"playerBox-info-year.*?\(\s*(\d+)\s*\)", re.MULTILINE | re.DOTALL | re.IGNORECASE)
 
-        self._HD_CONF_PAT_RE = re.compile(
+        self._HD_MV_CONF_PAT_RE = re.compile(
             r"movie-title\s*\"\s*>(?P<title>[^<]+)</h1>.*?年份[^\d]+(?P<year>\d+).*?www\.1905\.com/mdb/film/(?P<cover_id>\d+)",
+            re.MULTILINE | re.DOTALL | re.IGNORECASE
+        )
+
+        self._HD_TV_CONF_PAT_RE = re.compile(r"(?<!<!--)<h4\s+class=\"tv_title\">(?P<title>[^<]+)</h4>.*?年份[^\d]+(?P<year>\d+).+?CONFIG\['vipid'\][^\d]+(?P<cover_id>\d+)",
+                                             re.MULTILINE | re.DOTALL | re.IGNORECASE)
+        self._HD_TV_COVER_RE = re.compile(
+            r"<div\s+id=\"dramaList\">.+?(?P<dramalist><ul\s+.*?</ul>)\s*</div>",
+            re.MULTILINE | re.DOTALL | re.IGNORECASE
+        )
+        self._HD_TV_EPISODE_RE = re.compile(
+            r"<li.+?is_free=\"(?P<free>\d)\".+?vip\.1905\.com/play/(?P<vid>\d+)\.shtml[^\d]+(?P<ep>\d+).+?</li>",
             re.MULTILINE | re.DOTALL | re.IGNORECASE
         )
 
@@ -111,13 +122,15 @@ class M1905VC(VideoConfig):
                     conf_match = self._SD_CONF_PAT_RE.search(r.text)
 
                 if conf_match:
-                    info = {'vid': conf_match.group(1), 'title': conf_match.group(2), 'year': year, 'page': epurl, 'vip': False}
-                    self._apikey = conf_match.group(3)
+                    self._apikey = conf_match.group('apikey')
 
                     video_config = conf_match.group(0)  # VODCONFIG | VIDEOCONFIG
                     re_cover_id = r"mdbfilmid\s*:\s*\"(\d+)\""
                     cover_id_match = re.search(re_cover_id, video_config, flags=re.MULTILINE | re.DOTALL | re.IGNORECASE)
-                    info['cover_id'] = cover_id_match.group(1) if cover_id_match else ""
+                    cover_id = cover_id_match.group(1) if cover_id_match else ""
+
+                    info = {'title': conf_match.group('title'), 'year': year, 'cover_id': cover_id, 'type': VideoTypes.MOVIE,
+                            'normal_ids': [dict(V=conf_match.group('vid'), E=1, defns={}, free=True, vip=False, page=epurl)]}
             else:
                 raise RequestException("Unexpected status code %i" % r.status_code)
         except RequestException as e:
@@ -133,12 +146,25 @@ class M1905VC(VideoConfig):
             r = self._requester.get(epurl)
             if r.status_code == 200:
                 r.encoding = 'utf-8'
-                conf_match = self._HD_CONF_PAT_RE.search(r.text)
+                conf_match = self._HD_MV_CONF_PAT_RE.search(r.text)
                 if conf_match:
-                    info = {'vid': epurl.split('/')[-1].split('.')[0], 'title': conf_match.group('title'),
-                            'year': conf_match.group('year'), 'page': epurl, 'vip': True,
-                            'cover_id': conf_match.group('cover_id')
+                    info = {'title': conf_match.group('title'), 'year': conf_match.group('year'),
+                            'cover_id': conf_match.group('cover_id'), 'type': VideoTypes.MOVIE,
+                            'normal_ids': [dict(V=epurl.split('/')[-1].split('.')[0], E=1, defns={}, free=False, vip=True, page=epurl)]
                             }
+                else:
+                    cover_match = self._HD_TV_COVER_RE.search(r.text)
+                    if cover_match:
+                        conf_match = self._HD_TV_CONF_PAT_RE.search(r.text[cover_match.end(0):])
+                        episodes_match = self._HD_TV_EPISODE_RE.finditer(cover_match.group('dramalist'))
+                        if conf_match and episodes_match:
+                            info = {'title': conf_match.group('title'), 'year': conf_match.group('year'),
+                                    'cover_id': conf_match.group('cover_id'), 'type': VideoTypes.TV,
+                                    'normal_ids': [dict(V=mo.group('vid'), E=int(mo.group('ep')), defns={},
+                                                        free=bool(int(mo.group('free'))), vip=True,
+                                                        page="https://vip.1905.com/play/%s.shtml" % mo.group('vid')) for
+                                                   mo in episodes_match]
+                                    }
             else:
                 raise RequestException("Unexpected status code %i" % r.status_code)
         except RequestException as e:
@@ -185,8 +211,6 @@ class M1905VC(VideoConfig):
             match = pat['cpat'].match(url)
             if match:
                 episode_info = None
-                cover_info = None
-                url = match.group(0)
 
                 if typ == 1:  # 'video_episode_sd'
                     episode_info = self._get_episode_info_sd(url)
@@ -201,21 +225,21 @@ class M1905VC(VideoConfig):
                         if episode_info and not episode_info['year']:
                             episode_info['year'] = year
                 else:  # video_episode_hd
-                    if not self.has_vip:
-                        return
                     episode_info = self._get_episode_info_hd(url)
 
                 if episode_info:
                     if not episode_info['year'] and episode_info['cover_id'] and typ != 2:
                         year, _ = self._get_cover_info(self._VIDEO_COVER_FORMAT.format(episode_info['cover_id']))
                         episode_info['year'] = year
+                    episode_info['referrer'] = url
+                    episode_info['episode_all'] = len(episode_info['normal_ids'])
 
-                    cover_info = {'year': episode_info['year'], 'title': episode_info['title'], 'type': VideoTypes.MOVIE,
-                                  'cover_id': episode_info['cover_id'], 'referrer': url, 'episode_all': 1,
-                                  'normal_ids': [dict(V=episode_info['vid'], E=1, defns={}, vip=episode_info['vip'], page=episode_info['page'])]
-                                  }
+                    if episode_info['type'] == VideoTypes.TV:
+                        video_id = match.group(1)
+                        if not self.args['playlist_items'][url]:
+                            episode_info['normal_ids'] = [dic for dic in episode_info['normal_ids'] if dic['V'] == video_id]
 
-                return cover_info
+                return episode_info
 
     @staticmethod
     def _pick_highest_bandwidth_m3u8(playlist_variants):
@@ -361,5 +385,7 @@ class M1905VC(VideoConfig):
         for vi in vl:
             if not vi['vip']:
                 self._update_video_dwnld_info_sd(vi)
-            else:
+            elif vi['free'] or self.has_vip:
                 self._update_video_dwnld_info_hd(vi)
+            else:
+                self._logger.warning("Couldn't download the VIP video from '%s'. Please configure m1905 VIP cookies first!", vi['page'])

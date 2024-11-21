@@ -884,8 +884,6 @@ class QQVideoVC(VideoConfig):
         for typ, pat in enumerate(self._VIDEO_URL_PATS, 1):
             match = pat['cpat'].match(videourl)
             if match:
-                videourl = match.group(0)
-
                 if typ == 1:  # 'video_cover'
                     cover_info = self._get_cover_info(videourl)
                 elif typ == 2:  # 'video_detail'
@@ -897,15 +895,16 @@ class QQVideoVC(VideoConfig):
                     video_id = match.group(2)
                     cover_url = self._VIDEO_COVER_PREFIX + cover_id + '.html'
                     cover_info = self._get_cover_info(cover_url)
-                    if cover_info:
+                    if cover_info and not self.args['playlist_items'][videourl]:
                         cover_info['normal_ids'] = [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id]
                 else:  # typ == 4 'video_page'
                     video_id = match.group(1)
                     cover_info = self._get_cover_info(videourl)
                     if cover_info:
-                        cover_info['normal_ids'] = \
-                            [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id] if cover_info['normal_ids'] else \
-                            [{"V": video_id, "E": 1}]
+                        if not cover_info['normal_ids']:
+                            cover_info['normal_ids'] = [{"V": video_id, "E": 1}]
+                        elif not self.args['playlist_items'][videourl]:
+                            cover_info['normal_ids'] = [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id]
 
                         if not cover_info['cover_id']:
                             cover_info['cover_id'] = video_id
