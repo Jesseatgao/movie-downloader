@@ -159,9 +159,20 @@ class MDownloader(object):
                         proc.stdin.write(urllist)
                         proc.stdin.close()
             except OSError as e:
-                self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
+                self._logger.error("Error while running 'aria2c' with augmented options. OS error number {}: '{}'\n"
+                                   "Trying to fall back on standard options...\n".format(e.errno, e.strerror))
 
-            if not proc.returncode:
+                cmd_aria2c = cmd_aria2c[:-4]  # remove the augmented retry-on options
+                cmd_aria2c[5] = "1M"  # possible value for `--min-split-size`: 1M - 1024M
+                cmd_aria2c[9] = "16"  # possible value for `--max-connection-per-server`: 1 - 16
+
+                with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
+                    with subprocess.Popen(cmd_aria2c, bufsize=1, universal_newlines=True, encoding='utf-8',
+                                          stdin=subprocess.PIPE, stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
+                        proc.stdin.write(urllist)
+                        proc.stdin.close()
+
+            if proc and not proc.returncode:
                 return cover_dir, episodes
         else:
             self._logger.warning("No files to download for '{}'.".format(cover_info['url']))

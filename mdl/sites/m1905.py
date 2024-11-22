@@ -106,7 +106,7 @@ class M1905VC(VideoConfig):
 
         return hashlib.sha1((query + "." + appid).encode("utf-8")).hexdigest()
 
-    def _get_episode_info_sd(self, epurl):
+    def _get_cover_info_sd(self, epurl):
         info = None
 
         try:
@@ -138,9 +138,8 @@ class M1905VC(VideoConfig):
 
         return info
 
-    def _get_episode_info_hd(self, epurl):
+    def _get_cover_info_hd(self, epurl):
         """Parse VIP webpage"""
-
         info = None
         try:
             r = self._requester.get(epurl)
@@ -210,36 +209,36 @@ class M1905VC(VideoConfig):
         for typ, pat in enumerate(self._VIDEO_URL_PATS, 1):
             match = pat['cpat'].match(url)
             if match:
-                episode_info = None
+                cover_info = None
 
                 if typ == 1:  # 'video_episode_sd'
-                    episode_info = self._get_episode_info_sd(url)
+                    cover_info = self._get_cover_info_sd(url)
                 elif typ == 2:  # 'video_cover'
                     year, urls_dict = self._get_cover_info(self._VIDEO_COVER_FORMAT.format(match.group(1)))
                     if urls_dict:
                         if urls_dict.get('hd') and self.has_vip:
-                            episode_info = self._get_episode_info_hd(urls_dict['hd'])
+                            cover_info = self._get_cover_info_hd(urls_dict['hd'])
                         elif urls_dict.get('sd'):
-                            episode_info = self._get_episode_info_sd(urls_dict['sd'])
+                            cover_info = self._get_cover_info_sd(urls_dict['sd'])
 
-                        if episode_info and not episode_info['year']:
-                            episode_info['year'] = year
+                        if cover_info and not cover_info['year']:
+                            cover_info['year'] = year
                 else:  # video_episode_hd
-                    episode_info = self._get_episode_info_hd(url)
+                    cover_info = self._get_cover_info_hd(url)
 
-                if episode_info:
-                    if not episode_info['year'] and episode_info['cover_id'] and typ != 2:
-                        year, _ = self._get_cover_info(self._VIDEO_COVER_FORMAT.format(episode_info['cover_id']))
-                        episode_info['year'] = year
-                    episode_info['referrer'] = url
-                    episode_info['episode_all'] = len(episode_info['normal_ids'])
+                if cover_info:
+                    if not cover_info['year'] and cover_info['cover_id'] and typ != 2:
+                        year, _ = self._get_cover_info(self._VIDEO_COVER_FORMAT.format(cover_info['cover_id']))
+                        cover_info['year'] = year
+                    cover_info['referrer'] = url
+                    cover_info['episode_all'] = len(cover_info['normal_ids'])
 
-                    if episode_info['type'] == VideoTypes.TV:
+                    if cover_info['type'] == VideoTypes.TV:
                         video_id = match.group(1)
                         if not self.args['playlist_items'][url]:
-                            episode_info['normal_ids'] = [dic for dic in episode_info['normal_ids'] if dic['V'] == video_id]
+                            cover_info['normal_ids'] = [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id]
 
-                return episode_info
+                return cover_info
 
     @staticmethod
     def _pick_highest_bandwidth_m3u8(playlist_variants):
