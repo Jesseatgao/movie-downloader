@@ -152,25 +152,22 @@ class MDownloader(object):
                           '--console-log-level=warn', '--download-result=hide', '--summary-interval=0', '--uri-selector=adaptive',
                           '--referer', referer, '--ca-certificate', cert_path, '-U', user_agent, '--all-proxy', proxy,
                           '--retry-on-400=true', '--retry-on-403=true', '--retry-on-406=true', '--retry-on-unknown=true']
-            try:
-                with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
-                    with subprocess.Popen(cmd_aria2c, bufsize=1, universal_newlines=True, encoding='utf-8',
-                                          stdin=subprocess.PIPE, stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
-                        proc.stdin.write(urllist)
-                        proc.stdin.close()
-            except OSError as e:
-                self._logger.error("Error while running 'aria2c' with augmented options. OS error number {}: '{}'\n"
-                                   "Trying to fall back on standard options...\n".format(e.errno, e.strerror))
+            for _ in range(2):
+                try:
+                    with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
+                        with subprocess.Popen(cmd_aria2c, bufsize=1, universal_newlines=True, encoding='utf-8',
+                                              stdin=subprocess.PIPE, stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
+                            proc.stdin.write(urllist)
+                            proc.stdin.close()
 
-                cmd_aria2c = cmd_aria2c[:-4]  # remove the augmented retry-on options
-                cmd_aria2c[5] = "1M"  # possible value for `--min-split-size`: 1M - 1024M
-                cmd_aria2c[9] = "16"  # possible value for `--max-connection-per-server`: 1 - 16
+                    break
+                except OSError as e:
+                    self._logger.error("Error while running 'aria2c' with augmented options. OS error number {}: '{}'\n"
+                                       "Trying to fall back on standard options...\n".format(e.errno, e.strerror))
 
-                with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
-                    with subprocess.Popen(cmd_aria2c, bufsize=1, universal_newlines=True, encoding='utf-8',
-                                          stdin=subprocess.PIPE, stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
-                        proc.stdin.write(urllist)
-                        proc.stdin.close()
+                    cmd_aria2c = cmd_aria2c[:-4]  # remove the augmented retry-on options
+                    cmd_aria2c[5] = "1M"  # possible value for `--min-split-size`: 1M - 1024M
+                    cmd_aria2c[9] = "16"  # possible value for `--max-connection-per-server`: 1 - 16
 
             if proc and not proc.returncode:
                 return cover_dir, episodes
