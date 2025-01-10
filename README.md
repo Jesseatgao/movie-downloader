@@ -119,6 +119,7 @@ mdl [-h] [-D DIR] [-d {uhd,fhd,shd,hd,sd}]
     [--no-logo [{True,False}]] [--ts-convert [{True,False}]]
     [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-N NODE]
     [-L {debug,info,warning,error,critical}]
+    [--delay-delete [{True,False}]]
     url [url ...] [--playlist-items PLAYLIST_ITEMS]
 ```
 
@@ -135,7 +136,7 @@ mdl [-h] [-D DIR] [-d {uhd,fhd,shd,hd,sd}]
 
 `--no-logo [{True,False}]`: indicate whether we're trying to download no-watermarked videos or not.
 
-`--ts-convert [{True,False}]`: specify whether convert (aggregated) TS file to MP4 format or not.
+`--ts-convert [{True,False}]`: specify whether to convert (aggregated) TS file to MP4 format or not.
 
 `-A ARIA2C`: specify the absolute path to `aria2c` executable, which takes precedence over the configuration in `conf/misc.conf`
     and the hard-coded fallback path `third_parties/aria2/aria2c[.exe]`.
@@ -150,6 +151,8 @@ mdl [-h] [-D DIR] [-d {uhd,fhd,shd,hd,sd}]
     and the hard-coded fallback path `third_parties/node/node[.exe]`.
 
 `-L {debug,info,warning,error,critical}`: specify logging level.
+
+`--delay-delete [{True,False}]`: specify whether to eagerly free up the disk space or not.
 
 `url [url ...]`: one or more web page URLs of video episodes, cover and playlist.
 

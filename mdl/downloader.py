@@ -197,8 +197,11 @@ class MDownloader(object):
 
                         with open(episode_name, 'wb') as tsf:
                             for fn in fnames:
-                                with open(os.path.join(episode_dir, fn), 'rb') as f:
+                                fn_abs = os.path.join(episode_dir, fn)
+                                with open(fn_abs, 'rb') as f:
                                     tsf.write(f.read())
+                                if not self.confs['misc']['delay_delete']:
+                                    os.remove(fn_abs)  # timely free up the disk space
                         return True
 
                     episode_name = episode_name.rpartition('.')[0] + '.mp4'
@@ -208,7 +211,8 @@ class MDownloader(object):
                     with logging_with_pipe(self._logger, level=logging.INFO) as log_pipe:
                         with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
                             for fn in fnames:
-                                with open(os.path.join(episode_dir, fn), 'rb') as f:
+                                fn_abs = os.path.join(episode_dir, fn)
+                                with open(fn_abs, 'rb') as f:
                                     try:
                                         proc.stdin.write(f.read())
                                     except IOError as e:
@@ -216,6 +220,8 @@ class MDownloader(object):
                                             break
                                         else:
                                             raise
+                                if not self.confs['misc']['delay_delete']:
+                                    os.remove(fn_abs)
 
                             proc.stdin.close()
                 except OSError as e:

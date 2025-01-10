@@ -76,6 +76,7 @@ def arg_parser():
     parser.add_argument('-N', '--node', dest='node', default=None, help='path to the node executable')
 
     parser.add_argument('-L', '--log-level', dest='log_level', default=None, choices=['debug', 'info', 'warning', 'error', 'critical'])
+    parser.add_argument('--delay-delete', dest='delay_delete', default=None, const='True', nargs='?', choices=['True', 'False'])
 
     return parser
 
@@ -118,13 +119,18 @@ def parse_3rd_party_progs(args, confs):
             sys.exit(-1)
 
 
-def parse_con_log_level(args, confs):
-    log_level_default = "info"
+def parse_misc_default(args, confs):
+    misc_defaults = {
+        'log_level': 'INFO',
+        'delay_delete': 'True'
+    }
 
-    con_log_level = args['log_level'] or confs['misc']['log_level'] or log_level_default
-    con_log_level = getattr(logging, con_log_level.upper())
+    for conf, default in misc_defaults.items():
+        confs['misc'][conf] = args.get(conf) or json_path_get(confs, ['misc', conf]) or default
 
-    confs['misc']['log_level'] = con_log_level
+        lconf = confs['misc'][conf].lower()
+        if lconf in ('true', 'false'):
+            confs['misc'][conf] = True if lconf == 'true' else False
 
 
 def parse_dlops_default(args, confs):
@@ -188,6 +194,10 @@ def check_deps():
         sys.exit(-1)
 
 
+def init(args, confs):
+    change_logging_level('MDL', console_level=confs['misc']['log_level'].upper())
+
+
 def main():
     check_deps()  # make sure the prerequisites are satisfied
 
@@ -195,13 +205,13 @@ def main():
     parser = arg_parser()
     args = vars(parser.parse_args())
 
-    parse_con_log_level(args, confs)
-    change_logging_level('MDL', console_level=confs['misc']['log_level'])
-
+    parse_misc_default(args, confs)
     parse_3rd_party_progs(args, confs)
     parse_dlops_default(args, confs)
     parse_ca_bundle(args, confs)
     parse_other_ops(args, confs)
+
+    init(args, confs)
 
     dl = MDownloader(args, confs)
     dl.download(args['url'])
