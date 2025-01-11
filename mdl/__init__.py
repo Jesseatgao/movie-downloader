@@ -1,6 +1,5 @@
 import sys
 import os
-import logging
 from shutil import which
 from itertools import zip_longest
 import codecs
@@ -214,6 +213,6 @@ def main():
     init(args, confs)
 
     dl = MDownloader(args, confs)
-    dl.download(args['url'])
+    dl.download()
 
 # __all__ = ["main"]

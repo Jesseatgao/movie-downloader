@@ -21,8 +21,8 @@ class MDownloader(object):
         logger_name = '.'.join(['MDL', 'MDownloader'])  # 'MDL.MDownloader'
         self._logger = logging.getLogger(logger_name)
 
-    def download(self, urls):
-        for url in urls:
+    def download(self):
+        for url in self.args['url']:
             vci = self.get_video_extractor(url)
             if not vci:
                 self._logger.error("Video URL {!r} is invalid".format(url))
