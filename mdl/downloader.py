@@ -46,7 +46,8 @@ class MDownloader(object):
                                                                    save_dir=vci.confs['dir'],
                                                                    defn=vci.confs['definition'])
 
-                self.join_videos(cover_dir, episodes, ts_convert=vci.confs['ts_convert'])
+                if vci.confs['merge_all']:
+                    self.join_videos(cover_dir, episodes, ts_convert=vci.confs['ts_convert'])
 
     def get_video_extractor(self, url):
         for name, vc in self._vcs.items():

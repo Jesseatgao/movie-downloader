@@ -66,6 +66,7 @@ def arg_parser():
                              'e.g. "--playlist-items 1,2,5-10", "--playlist-items 1,2,5-10;3-", and "--playlist-items 1,2,5-10;;-20"')
 
     parser.add_argument('--no-logo', dest='no_logo', default=None, const='True', nargs='?', choices=['True', 'False'])
+    parser.add_argument('--merge-all', dest='merge_all', default=None, const='True', nargs='?', choices=['True', 'False'])
     parser.add_argument('--ts-convert', dest='ts_convert', default=None, const='True', nargs='?', choices=['True', 'False'])
     parser.add_argument('--proxy-dl-video', dest='enable_proxy_dl_video', default=None, const='True', nargs='?', choices=['True', 'False'])
 
@@ -137,6 +138,7 @@ def parse_dlops_default(args, confs):
         'dir': '.',
         'definition': 'uhd',
         'no_logo': 'True',
+        'merge_all': 'True',
         'ts_convert': 'True',
         'enable_proxy_dl_video': 'False',
         'enable_vip_apis': 'False',
