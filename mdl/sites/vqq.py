@@ -835,6 +835,10 @@ class QQVideoVC(VideoConfig):
                                                  # exclude the types of videos that are unlikely to have meaningful episode names
                                                  if cover_info['type'] not in [VideoTypes.TV, ] else ''}
                                                 for ep, item in enumerate(ep_list, start=1)]
+                
+                # last resort for getting the release date
+                if not cover_info['year'] and ep_list:
+                    cover_info['year'] = (ep_list[0].get('publishDate') or '').split('-')[0]
 
     def _get_cover_info(self, cover_url):
         """"{
