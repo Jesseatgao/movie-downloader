@@ -28,7 +28,7 @@ class MDownloader(object):
                 self._logger.error("Video URL {!r} is invalid".format(url))
                 continue
 
-            cover_info = vci.get_video_config_info(url)
+            cover_info = vci.get_cover_config_info(url)
             if not cover_info or not cover_info.get('normal_ids'):
                 self._logger.warning("No files to download for '{}'.".format(url))
                 continue
@@ -41,7 +41,7 @@ class MDownloader(object):
             for batch_start in range(0, len(video_list), batch_size):
                 batch_cover_info['normal_ids'] = video_list[batch_start:batch_start + batch_size]
 
-                vci.update_video_dwnld_info(batch_cover_info)
+                vci.update_cover_dwnld_info(batch_cover_info)
                 cover_dir, episodes = self.dwnld_videos_with_aria2(batch_cover_info,
                                                                    save_dir=vci.confs['dir'],
                                                                    defn=vci.confs['definition'])

@@ -52,10 +52,10 @@ class VideoConfig(object):
 
         return False
 
-    def get_cover_info(self, url):
+    def get_video_cover_info(self, url):
         pass
 
-    def update_video_dwnld_info(self, cover_info):
+    def update_video_dwnld_info(self, vi):
         pass
 
     @staticmethod
@@ -99,17 +99,20 @@ class VideoConfig(object):
 
         return cover_info
 
-    def get_video_config_info(self, url):
-        cover_info = self.get_cover_info(url)
+    def get_cover_config_info(self, url):
+        cover_info = self.get_video_cover_info(url)
         if cover_info:
-            cover_info['url'] = url  # original request URL
-
             cover_info = self.filter_video_episodes(url, cover_info)
 
             cover_info['source_name'] = self.SOURCE_NAME
             cover_info['vc_name'] = self.VC_NAME
 
         return cover_info
+
+    def update_cover_dwnld_info(self, cover_info):
+        vl = cover_info.get('normal_ids', [])
+        for vi in vl:
+            self.update_video_dwnld_info(vi)
 
     def set_requester(self, requester):
         self._requester = requester

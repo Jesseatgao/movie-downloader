@@ -205,7 +205,7 @@ class M1905VC(VideoConfig):
 
         return year, urls
 
-    def get_cover_info(self, url):
+    def get_video_cover_info(self, url):
         for typ, pat in enumerate(self._VIDEO_URL_PATS, 1):
             match = pat['cpat'].match(url)
             if match:
@@ -230,6 +230,7 @@ class M1905VC(VideoConfig):
                             cover_info = self._get_cover_info_sd(urls_dict['sd'])
 
                 if cover_info:
+                    cover_info['url'] = url
                     cover_info['referrer'] = url
                     cover_info['episode_all'] = len(cover_info['normal_ids'])
 
@@ -379,12 +380,10 @@ class M1905VC(VideoConfig):
             request_url = "%s?%s" % (self._VIP_CONFIG_URL, urlencode(params))
             self._logger.error("Failed to fetch '%s': '%r'", request_url, e)
 
-    def update_video_dwnld_info(self, cover_info):
-        vl = cover_info.get('normal_ids', [])
-        for vi in vl:
-            if not vi['vip']:
-                self._update_video_dwnld_info_sd(vi)
-            elif vi['free'] or self.has_vip:
-                self._update_video_dwnld_info_hd(vi)
-            else:
-                self._logger.warning("Couldn't download the VIP video from '%s'. Please configure m1905 VIP cookies first!", vi['page'])
+    def update_video_dwnld_info(self, vi):
+        if not vi['vip']:
+            self._update_video_dwnld_info_sd(vi)
+        elif vi['free'] or self.has_vip:
+            self._update_video_dwnld_info_hd(vi)
+        else:
+            self._logger.warning("Couldn't download the VIP video from '%s'. Please configure m1905 VIP cookies first!", vi['page'])

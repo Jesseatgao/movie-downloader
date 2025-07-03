@@ -797,9 +797,9 @@ class QQVideoVC(VideoConfig):
                 video_id = cover_info.get('vid')
                 if video_id is None:
                     video_ids = cover_info.get('video_ids') or []
-                    normal_ids = [{'V': vid, 'E': ep} for ep, vid in enumerate(video_ids, start=1)]
+                    normal_ids = [{'V': vid, 'E': ep, 'defns': {}} for ep, vid in enumerate(video_ids, start=1)]
                 else:
-                    normal_ids = [{"V": video_id, "E": 1}]
+                    normal_ids = [{'V': video_id, 'E': 1, 'defns': {}}]
                 info['normal_ids'] = normal_ids
 
                 result = (info, cover_match.end())
@@ -831,6 +831,7 @@ class QQVideoVC(VideoConfig):
                 if len(ep_list) >= len(cover_info['normal_ids']):  # ensure the full list of episodes
                     cover_info['normal_ids'] = [{'V': item['vid'],
                                                  'E': ep,
+                                                 'defns': {},
                                                  'title': item.get('playTitle') or item.get('title', '')
                                                  # exclude the types of videos that are unlikely to have meaningful episode names
                                                  if cover_info['type'] not in [VideoTypes.TV, ] else ''}
@@ -884,7 +885,7 @@ class QQVideoVC(VideoConfig):
 
         return info
 
-    def get_cover_info(self, videourl):
+    def get_video_cover_info(self, videourl):
         for typ, pat in enumerate(self._VIDEO_URL_PATS, 1):
             match = pat['cpat'].match(videourl)
             if match:
@@ -906,16 +907,19 @@ class QQVideoVC(VideoConfig):
                     cover_info = self._get_cover_info(videourl)
                     if cover_info:
                         if not cover_info['normal_ids']:
-                            cover_info['normal_ids'] = [{"V": video_id, "E": 1}]
+                            cover_info['normal_ids'] = [{'V': video_id, 'E': 1, 'defns': {}}]
                         elif not self.args['playlist_items'][videourl]:
                             cover_info['normal_ids'] = [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id]
 
                         if not cover_info['cover_id']:
                             cover_info['cover_id'] = video_id
 
+                if cover_info:
+                    cover_info['url'] = videourl  # original request URL
+
                 return cover_info
 
-    def update_video_dwnld_info(self, cover_info):
+    def update_video_dwnld_info(self, vi):
         """"
         {
             "url": "https://v.qq.com/x/cover/nhtfh14i9y1egge.html",  # original request URL
@@ -925,7 +929,7 @@ class QQVideoVC(VideoConfig):
             "type": VideoTypes.TV,
             "cover_id": "nhtfh14i9y1egge",
             "episode_all": 16,
-            "normal_ids": [{
+            "normal_ids": [{  # list of video info `vi`
                 "V": "d00249ld45q",
                 "E": 1,
                 "defns": {
@@ -960,10 +964,8 @@ class QQVideoVC(VideoConfig):
             }]
         }
         """
-        for vi in cover_info['normal_ids']:
-            vi.setdefault('defns', {})
-
-            format_name, ext, urls = self._get_video_urls(vi['V'], self.preferred_defn, cover_info['url'], cover_info['referrer'])
-            if format_name:  # may not be same as preferred definition
-                fmt = dict(ext=ext, urls=urls)
-                vi['defns'].setdefault(format_name, []).append(fmt)
+        url = referrer = "https://v.qq.com/x/page/%s.html" % vi['V']
+        format_name, ext, urls = self._get_video_urls(vi['V'], self.preferred_defn, url, referrer)
+        if format_name:  # may not be same as preferred definition
+            fmt = dict(ext=ext, urls=urls)
+            vi['defns'].setdefault(format_name, []).append(fmt)
