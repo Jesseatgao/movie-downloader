@@ -9,9 +9,9 @@ from math import floor as math_floor
 # from requests.cookies import RequestsCookieJar
 from requests import RequestException
 
-from ..videoconfig import VideoConfig
-from ..commons import VideoTypes
-from ..utils import json_path_get
+from mdl.videoconfig import VideoConfig
+from mdl.commons import VideoTypes
+from mdl.utils import json_path_get
 
 
 class M1905VC(VideoConfig):
@@ -83,7 +83,7 @@ class M1905VC(VideoConfig):
             if pat.get('cpat') is None:
                 pat['cpat'] = re.compile(pat['pat'], re.IGNORECASE)
 
-        self.preferred_defn = self.confs['definition']
+        #self.preferred_defn = self.confs['definition']
 
     @staticmethod
     def _random_string():

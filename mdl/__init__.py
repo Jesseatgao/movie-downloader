@@ -11,7 +11,9 @@ import certifi
 
 from .third_parties import exists_3rd_parties, third_party_progs_default
 from .downloader import MDownloader
-from .utils import build_logger, change_logging_level, json_path_get
+from .utils import build_logger, change_logging_level, json_path_get, CommentConfigParser
+
+from mdl.sites import get_all_sites_vcs
 
 
 MOD_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -90,7 +92,7 @@ def conf_parser():
     conf_all = (conf_dlops, conf_misc)
 
     for conf_path in conf_all:
-        config = ConfigParser(interpolation=None)
+        config = ConfigParser(interpolation=None, allow_no_value=True)
         config.read(conf_path)
         for section in config.sections():
             confs[section] = {}
@@ -135,7 +137,7 @@ def parse_misc_default(args, confs):
 
 def parse_dlops_default(args, confs):
     conf_defaults = {
-        'dir': '.',
+        'dir': str(Path.cwd()),
         'definition': 'uhd',
         'no_logo': 'True',
         'merge_all': 'True',
@@ -180,6 +182,26 @@ def parse_ca_bundle(args, confs):
             confs[site]['ca_cert'] = vc_ca_bundle
 
 
+def parse_callbacks(args, confs):
+    callbacks = {
+        'device_id': 'generate_device_id'
+    }
+
+    conf_dlops = os.path.join(MOD_DIR, 'conf/dlops.conf')
+    config = CommentConfigParser(interpolation=None, allow_no_value=True)
+    config.read(conf_dlops)
+
+    for site in config.sections():
+        for cf, cb in callbacks.items():
+            if not confs[site][cf]:
+                conf = getattr(get_all_sites_vcs()[site]['class'], cb)()
+                if conf:
+                    confs[site][cf] = config[site][cf] = conf
+
+    with codecs.open(conf_dlops, 'w', 'utf-8') as conf_fd:
+        config.write(conf_fd)
+
+
 def parse_other_ops(args, confs):
     # associate the playlist URLs with desired video episodes
     url_plist = zip_longest(args['url'], args['playlist_items']) if len(args['url']) >= len(args['playlist_items']) else zip(args['url'], args['playlist_items'])
@@ -210,6 +232,7 @@ def main():
     parse_3rd_party_progs(args, confs)
     parse_dlops_default(args, confs)
     parse_ca_bundle(args, confs)
+    parse_callbacks(args, confs)
     parse_other_ops(args, confs)
 
     init(args, confs)

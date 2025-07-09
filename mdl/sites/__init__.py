@@ -1,10 +1,10 @@
-
-
+from .iqiyi import IQiyiVC
 from .vqq import QQVideoVC
 from .m1905 import M1905VC
 
-_ALL_SITES_VIDEOCONFIG_CLASSES = {'QQVideo': {'class': QQVideoVC, 'instance': None, 'nodejs': True},
-                                  'm1905': {'class': M1905VC, 'instance': None, 'nodejs': False}
+_ALL_SITES_VIDEOCONFIG_CLASSES = {'QQVideo': {'class': QQVideoVC, 'instance': None},
+                                  'm1905': {'class': M1905VC, 'instance': None},
+                                  'IQiyi': {'class': IQiyiVC, 'instance': None}
                                   }
 
 

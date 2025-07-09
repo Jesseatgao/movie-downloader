@@ -7,9 +7,9 @@ from urllib.parse import urlencode
 
 from requests import RequestException
 
-from ..commons import pick_highest_definition, sort_definitions, VideoTypeCodes, VideoTypes, DEFAULT_YEAR
-from ..videoconfig import VideoConfig
-from ..utils import json_path_get
+from mdl.commons import pick_highest_definition, sort_definitions, VideoTypeCodes, VideoTypes, DEFAULT_YEAR
+from mdl.videoconfig import VideoConfig
+from mdl.utils import json_path_get
 
 mdl_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -135,7 +135,7 @@ class QQVideoVC(VideoConfig):
         cdn_blacklist = self.confs.get('cdn_blacklist')
         self.cdn_blacklist = tuple(cdn_blacklist.split()) if cdn_blacklist else ()
 
-        self.preferred_defn = self.confs['definition']
+        #self.preferred_defn = self.confs['definition']
 
     # @classmethod
     # def is_url_valid(cls, url):
@@ -911,11 +911,19 @@ class QQVideoVC(VideoConfig):
                         elif not self.args['playlist_items'][videourl]:
                             cover_info['normal_ids'] = [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id]
 
-                        if not cover_info['cover_id']:
-                            cover_info['cover_id'] = video_id
+                        # if not cover_info['cover_id']:
+                        #     cover_info['cover_id'] = video_id
 
                 if cover_info:
                     cover_info['url'] = videourl  # original request URL
+
+                    for vi in cover_info['normal_ids']:
+                        if cover_info['cover_id'] and cover_info['cover_id'] != vi['V']:
+                            vi['url'] = "https://v.qq.com/x/cover/%s/%s.html" % (cover_info['cover_id'], vi['V'])
+                            vi['referrer'] = vi['url']
+                        else:
+                            vi['url'] = "https://v.qq.com/x/page/%s.html" % vi['V']
+                            vi['referrer'] = cover_info['referrer']
 
                 return cover_info
 
@@ -923,7 +931,7 @@ class QQVideoVC(VideoConfig):
         """"
         {
             "url": "https://v.qq.com/x/cover/nhtfh14i9y1egge.html",  # original request URL
-            "referrer": "https://v.qq.com/x/cover/nhtfh14i9y1egge.html",
+            "referrer": "https://v.qq.com/x/cover/nhtfh14i9y1egge.html",  # cover URL or original video_page
             "title": "李师师",
             "year": "1989",
             "type": VideoTypes.TV,
@@ -932,6 +940,8 @@ class QQVideoVC(VideoConfig):
             "normal_ids": [{  # list of video info `vi`
                 "V": "d00249ld45q",
                 "E": 1,
+                "url": "https://v.qq.com/x/cover/nhtfh14i9y1egge/d00249ld45q.html",
+                "referrer": "https://v.qq.com/x/cover/nhtfh14i9y1egge/d00249ld45q.html",
                 "defns": {
                     "hd": [{
                         "ext": "mp4",
@@ -948,6 +958,8 @@ class QQVideoVC(VideoConfig):
             }, {
                 "V": "q0024a27g9j",
                 "E": 2,
+                "url": "https://v.qq.com/x/cover/nhtfh14i9y1egge/q0024a27g9j.html",
+                "referrer": "https://v.qq.com/x/cover/nhtfh14i9y1egge/q0024a27g9j.html",
                 "defns": {
                     "hd": [{
                         "ext": "mp4",
@@ -964,8 +976,7 @@ class QQVideoVC(VideoConfig):
             }]
         }
         """
-        url = referrer = "https://v.qq.com/x/page/%s.html" % vi['V']
-        format_name, ext, urls = self._get_video_urls(vi['V'], self.preferred_defn, url, referrer)
+        format_name, ext, urls = self._get_video_urls(vi['V'], self.preferred_defn, vi['url'], vi['referrer'])
         if format_name:  # may not be same as preferred definition
             fmt = dict(ext=ext, urls=urls)
             vi['defns'].setdefault(format_name, []).append(fmt)

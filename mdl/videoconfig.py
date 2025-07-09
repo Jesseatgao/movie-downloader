@@ -41,6 +41,8 @@ class VideoConfig(object):
         if user_agent:
             self._requester.headers.update({'User-Agent': user_agent})
 
+        self.preferred_defn = self.confs['definition']
+
     @classmethod
     def is_url_valid(cls, url):
         for pat in cls._VIDEO_URL_PATS:
@@ -51,6 +53,10 @@ class VideoConfig(object):
                 return True
 
         return False
+
+    @classmethod
+    def generate_device_id(cls):
+        pass
 
     def get_video_cover_info(self, url):
         pass
@@ -86,6 +92,22 @@ class VideoConfig(object):
 
         return slic
 
+    @staticmethod
+    def _filter_by_playlist(normal_ids, playlist):
+        ids = {vi['E']: idx for idx, vi in enumerate(normal_ids)}
+        eps = set()
+
+        max_ep = max(ids.keys())
+        for rng in playlist:
+            if isinstance(rng, tuple):
+                rng_1 = max_ep if rng[1] is None else min(rng[1], max_ep)
+                for ep in range(rng[0], rng_1 + 1):
+                    eps.add(ep)
+            else:
+                eps.add(rng)
+
+        return [normal_ids[ids[ep]] for ep in sorted(eps) if ep in ids]
+
     def filter_video_episodes(self, url, cover_info):
         if cover_info['normal_ids'] and self.args['playlist_items'][url]:
             normal_ids = cover_info['normal_ids']
@@ -95,7 +117,7 @@ class VideoConfig(object):
                 if not self._in_rangeset(normal_ids[0]['E'], playlist_items):
                     cover_info['normal_ids'] = []
             else:
-                cover_info['normal_ids'] = self._slice_by_rangeset(normal_ids, playlist_items)
+                cover_info['normal_ids'] = self._filter_by_playlist(normal_ids, playlist_items)
 
         return cover_info
 
