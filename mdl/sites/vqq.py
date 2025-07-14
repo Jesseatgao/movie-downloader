@@ -7,9 +7,9 @@ from urllib.parse import urlencode
 
 from requests import RequestException
 
-from mdl.commons import pick_highest_definition, sort_definitions, VideoTypeCodes, VideoTypes, DEFAULT_YEAR
+from mdl.commons import pick_highest_definition, sort_definitions, VideoTypeCodes, VideoTypes, VideoURLType, DEFAULT_YEAR
 from mdl.videoconfig import VideoConfig
-from mdl.utils import json_path_get
+from mdl.utils import json_path_get, SpinWithBackoff
 
 mdl_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -107,8 +107,11 @@ class QQVideoVC(VideoConfig):
                                          re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._ALL_LOADED_INFO_RE = re.compile(r"window\.__PINIA__\s*=\s*(.+?);?</script>",
                                               re.MULTILINE | re.DOTALL | re.IGNORECASE)
-        self._EP_LIST_RE = re.compile(r"(?:\[{\"list\":)?Array\.prototype\.slice\.call\({\"\d+\":(?:{\"list\":\[)?\[(.+?})\]\]?,.*?\"length\":\d+}\).*?(?=,\"listMeta\")",
+        self._EP_LIST_RE = re.compile(r"(?:\[{\"list\":)?Array\.prototype\.slice\.call\({\"\d+\":(?:{\"list\":\[)?\[(.+?})\]\]?,.*?\"length\":\d+}\)(?=,\"tabs\")",
                                       re.MULTILINE | re.DOTALL | re.IGNORECASE)
+        self._PAGE_CONTEXT_RE = re.compile(r"cid=(?P<cid>[^&]+).+episode_begin=(?P<begin>\d+)&episode_end=(?P<end>\d+).+&page_size=(?P<size>\d+)",
+                                           re.DOTALL | re.IGNORECASE)
+
         self._VIDEO_COVER_PREFIX = 'https://v.qq.com/x/cover/'
         self._VIDEO_CONFIG_URL = 'https://vd.l.qq.com/proxyhttp'
 
@@ -134,6 +137,8 @@ class QQVideoVC(VideoConfig):
 
         cdn_blacklist = self.confs.get('cdn_blacklist')
         self.cdn_blacklist = tuple(cdn_blacklist.split()) if cdn_blacklist else ()
+
+        self.max_pagetab_reqs = 5
 
         #self.preferred_defn = self.confs['definition']
 
@@ -786,10 +791,12 @@ class QQVideoVC(VideoConfig):
                 cover_info = json.loads(cover_group.replace('undefined', 'null'))
             except json.JSONDecodeError:
                 return result
+
             if cover_info and isinstance(cover_info, dict):
                 info['title'] = cover_info.get('title', '') or cover_info.get('title_new', '')
                 info['year'] = cover_info.get('year') or (cover_info.get('publish_date') or '').split('-')[0]
                 info['cover_id'] = cover_info.get('cover_id', '')
+                info['episode_all'] = int(cover_info.get('episode_all') or 0)
 
                 type_id = int(cover_info.get('type') or VideoTypeCodes.MOVIE)
                 info['type'] = self._VQQ_TYPE_CODES.get(type_id, VideoTypes.MOVIE)
@@ -806,42 +813,116 @@ class QQVideoVC(VideoConfig):
 
         return result
 
-    def _update_video_cover_info(self, cover_info, regex, text):
-        match = regex.search(text)
+    def _get_eplist(self, r_text):
+        conf_info, ep_list, tabs = {}, [], []
+
+        match = self._ALL_LOADED_INFO_RE.search(r_text)
         if match:
             matched = match.group(1)
-            matched_norm = re.sub(self._EP_LIST_RE, r'[{"list":[[\1]]}]', matched).replace('undefined', 'null')
+            matched_norm = re.sub(self._EP_LIST_RE, r'[{"list":[[\1]]', matched).replace('undefined', 'null')
             try:
                 conf_info = json.loads(matched_norm)
             except json.JSONDecodeError:
-                return
+                return conf_info, ep_list, tabs
 
             if conf_info:
-                year = json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'year']) \
-                       or json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'show_year'])
-                if year and (not cover_info['year'] or cover_info['year'] != year):
-                    cover_info['year'] = year
-
-                # set to the probably more specific title
                 ep_list = json_path_get(conf_info, ['episodeMain', 'listData', 0, 'list'], [])
-                if not ep_list:
-                    return
-                ep_list = ep_list[0]
+                if ep_list:
+                    ep_list = ep_list[0]
 
-                if len(ep_list) >= len(cover_info['normal_ids']):  # ensure the full list of episodes
-                    cover_info['normal_ids'] = [{'V': item['vid'],
-                                                 'E': ep,
-                                                 'defns': {},
-                                                 'title': item.get('playTitle') or item.get('title', '')
-                                                 # exclude the types of videos that are unlikely to have meaningful episode names
-                                                 if cover_info['type'] not in [VideoTypes.TV, ] else ''}
-                                                for ep, item in enumerate(ep_list, start=1)]
-                
-                # last resort for getting the release date
-                if not cover_info['year'] and ep_list:
-                    cover_info['year'] = (ep_list[0].get('publishDate') or '').split('-')[0]
+                tabs = json_path_get(conf_info, ['episodeMain', 'listData', 0, 'tabs'], [])
 
-    def _get_cover_info(self, cover_url):
+        return conf_info, ep_list, tabs
+
+    def _update_video_cover_info(self, cover_info, r_text, cover_url, url_type):
+        def update_from_eplist(normal_ids, ep_list, vid2idx):
+            for epv in ep_list:
+                vi = normal_ids[vid2idx[epv['vid']]]
+                vi['E']= int(epv['title'])
+                # vi['title'] = epv['playTitle']
+
+        def align_eps(normal_ids, start, stop, shift):
+            for idx in range(start, stop):
+                normal_ids[idx]['E'] += shift
+
+        playlist_items = self.args['playlist_items'][cover_url]
+
+        conf_info, selected_ep_list, tabs = self._get_eplist(r_text)
+        if not conf_info:
+            return
+
+        # try again to determine the release year if we didn't get it before
+        year = json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'year']) \
+               or json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'show_year'])
+        if year and (not cover_info['year'] or cover_info['year'] != year):
+            cover_info['year'] = year
+
+        if len(selected_ep_list) >= len(cover_info['normal_ids']):  # ensure the full list of episodes
+            cover_info['normal_ids'] = [{'V': item['vid'],
+                                         'E': ep,
+                                         'defns': {},
+                                         'title': item.get('playTitle') or item.get('title', '')
+                                         # exclude the types of videos that are unlikely to have meaningful episode names
+                                         if cover_info['type'] not in [VideoTypes.TV, ] else ''}
+                                        for ep, item in enumerate(selected_ep_list, start=1)]
+
+        # last resort for getting the release date
+        if not cover_info['year'] and selected_ep_list:
+            cover_info['year'] = (selected_ep_list[0].get('publishDate') or '').split('-')[0]
+
+
+        # check for the misnumbering (due to possible missing episodes) and fixing
+        if not cover_info['episode_all'] or cover_info['episode_all'] == len(cover_info['normal_ids']) or not selected_ep_list[0].get('title', '').isdecimal():
+            return
+
+        v2i = {vi['V']: idx for idx, vi in enumerate(cover_info['normal_ids'])}
+        if (url_type == VideoURLType.PAGE and not playlist_items) or not tabs:
+            update_from_eplist(cover_info['normal_ids'], selected_ep_list, v2i)
+            return
+
+        delay_request = SpinWithBackoff()
+        ep, shift = 0, 0
+        for tab in sorted(tabs, key=lambda tab: int(tab['text'].split('-')[0])):
+            page_context = self._PAGE_CONTEXT_RE.search(tab['pageContext'])
+            if not page_context:
+                return
+            cid, begin, end, size = page_context.group('cid'), int(page_context.group('begin')), int(page_context.group('end')), int(page_context.group('size'))
+
+            if tab['isSelected']:
+                update_from_eplist(cover_info['normal_ids'], selected_ep_list, v2i)
+            else:
+                if not ((not playlist_items and url_type == VideoURLType.COVER) or (playlist_items and self.have_overlap((begin, end), playlist_items))):
+                    align_eps(cover_info['normal_ids'], ep, ep + size, shift)
+                else:
+                    if delay_request.nth > (self.max_pagetab_reqs - 1):
+                        self._logger.error("Too large the playlist is! The episode numbering may not be correct")
+                        align_eps(cover_info['normal_ids'], ep, len(cover_info['normal_ids']), shift)
+                        return
+                    delay_request.sleep()
+
+                    req_url = self._VIDEO_COVER_PREFIX + cid + '/' + cover_info['normal_ids'][ep]['V'] + '.html'
+                    try:
+                        r = self._requester.get(req_url)
+                        if r.status_code != 200:
+                            raise RequestException("Unexpected status code %i, request URL: '%s'" % (r.status_code, req_url))
+                        r.encoding = 'utf-8'
+
+                        _, ep_list, _ = self._get_eplist(r.text)
+                        if not ep_list:
+                            align_eps(cover_info['normal_ids'], ep, len(cover_info['normal_ids']), shift)
+                            return
+                        update_from_eplist(cover_info['normal_ids'], ep_list, v2i)
+                    except RequestException as e:
+                        self._logger.error("Error while requesting the webpage '%s': '%r'", req_url, e)
+
+                        # best effort to make it 'right'
+                        align_eps(cover_info['normal_ids'], ep, len(cover_info['normal_ids']), shift)
+                        return
+
+            ep += size
+            shift = cover_info['normal_ids'][ep-1]['E'] - ep
+
+    def _get_cover_info(self, cover_url, url_type):
         """"{
         "referrer": "https://v.qq.com/x/cover/nhtfh14i9y1egge.html",
         "title":"" ,
@@ -876,9 +957,10 @@ class QQVideoVC(VideoConfig):
                 info, _ = self._extract_video_cover_info(self._VIDEO_INFO_RE, r.text)
 
             if info:
-                self._update_video_cover_info(info, self._ALL_LOADED_INFO_RE, r.text)
+                self._update_video_cover_info(info, r.text, cover_url, url_type)
 
-                info['episode_all'] = len(info['normal_ids']) if info['normal_ids'] else 1
+                if not info['episode_all']:
+                    info['episode_all'] = len(info['normal_ids']) if info['normal_ids'] else 1
                 info['referrer'] = cover_url  # set the Referer to the address of the cover web page
         except RequestException as e:
             self._logger.error("Error while requesting the webpage '%s': '%r'", cover_url, e)
@@ -890,21 +972,21 @@ class QQVideoVC(VideoConfig):
             match = pat['cpat'].match(videourl)
             if match:
                 if typ == 1:  # 'video_cover'
-                    cover_info = self._get_cover_info(videourl)
+                    cover_info = self._get_cover_info(videourl, url_type=VideoURLType.COVER)
                 elif typ == 2:  # 'video_detail'
-                    cover_id = match.group(2)
-                    cover_url = self._VIDEO_COVER_PREFIX + cover_id + '.html'
-                    cover_info = self._get_cover_info(cover_url)
+                    # cover_id = match.group(2)
+                    # cover_url = self._VIDEO_COVER_PREFIX + cover_id + '.html'
+                    cover_info = self._get_cover_info(videourl, url_type=VideoURLType.COVER)
                 elif typ == 3:  # 'video_episode'
                     cover_id = match.group(1)
                     video_id = match.group(2)
-                    cover_url = self._VIDEO_COVER_PREFIX + cover_id + '.html'
-                    cover_info = self._get_cover_info(cover_url)
+                    # cover_url = self._VIDEO_COVER_PREFIX + cover_id + '.html'
+                    cover_info = self._get_cover_info(videourl, url_type=VideoURLType.PAGE)
                     if cover_info and not self.args['playlist_items'][videourl]:
                         cover_info['normal_ids'] = [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id]
                 else:  # typ == 4 'video_page'
                     video_id = match.group(1)
-                    cover_info = self._get_cover_info(videourl)
+                    cover_info = self._get_cover_info(videourl, url_type=VideoURLType.PAGE)
                     if cover_info:
                         if not cover_info['normal_ids']:
                             cover_info['normal_ids'] = [{'V': video_id, 'E': 1, 'defns': {}}]
@@ -916,6 +998,7 @@ class QQVideoVC(VideoConfig):
 
                 if cover_info:
                     cover_info['url'] = videourl  # original request URL
+                    cover_info['url_type'] = VideoURLType.COVER if typ in [1, 2] else VideoURLType.PAGE
 
                     for vi in cover_info['normal_ids']:
                         if cover_info['cover_id'] and cover_info['cover_id'] != vi['V']:
@@ -931,6 +1014,7 @@ class QQVideoVC(VideoConfig):
         """"
         {
             "url": "https://v.qq.com/x/cover/nhtfh14i9y1egge.html",  # original request URL
+            "url_type": VideoURLType.COVER,
             "referrer": "https://v.qq.com/x/cover/nhtfh14i9y1egge.html",  # cover URL or original video_page
             "title": "李师师",
             "year": "1989",

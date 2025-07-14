@@ -93,6 +93,26 @@ class VideoConfig(object):
         return slic
 
     @staticmethod
+    def have_overlap(num_rng, rangeset):
+        if isinstance(num_rng, int):
+            num_rng = (num_rng, num_rng)
+
+        num_0, num_1 = num_rng
+        for rng in rangeset:
+            if isinstance(rng, tuple):
+                rng_0, rng_1 = rng
+                if rng_1 is None:
+                    rng_1 = float('inf')
+
+                if rng_1 >= num_0 and num_1 >= rng_0:
+                    return True
+            else:
+                if num_0 <= rng <= num_1:
+                    return True
+
+        return False
+
+    @staticmethod
     def _filter_by_playlist(normal_ids, playlist):
         ids = {vi['E']: idx for idx, vi in enumerate(normal_ids)}
         eps = set()

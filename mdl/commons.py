@@ -8,6 +8,11 @@ DEFAULT_YEAR = '1900'
 # User-Agent strings for various platforms
 
 
+class VideoURLType:
+    COVER = 'Playlist'  # e.g. 'https://v.qq.com/x/cover/nhtfh14i9y1egge.html' ''https://v.qq.com/detail/n/nhtfh14i9y1egge.html''
+    PAGE = 'EPISODE'    # e.g. 'https://v.qq.com/x/cover/nhtfh14i9y1egge/d00249ld45q.html' 'https://v.qq.com/x/page/d00249ld45q.html'
+
+
 class VideoTypes:
     MOVIE = "MOV"
     TV = "TV"

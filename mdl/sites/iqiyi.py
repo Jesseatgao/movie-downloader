@@ -112,7 +112,7 @@ class IQiyiVC(VideoConfig):
             req_url = self._VIDEO_COVER_PREFIX
             r = self._requester.get(req_url, params=params)
             if r.status_code != 200:
-                raise RequestException("Unexpected status code %i" % r.status_code)
+                raise RequestException("Unexpected status code %i, request URL: '%s'" % (r.status_code, req_url))
             r.encoding = 'utf-8'
 
             try:

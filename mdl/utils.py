@@ -5,6 +5,8 @@ from logging.handlers import RotatingFileHandler
 import os
 import threading
 from contextlib import contextmanager
+import time
+import random
 
 import configparser
 import io
@@ -275,3 +277,17 @@ class CommentConfigParser(configparser.ConfigParser):
         # Also clear the _top_comments
         self._top_comments = []
         super().clear()
+
+
+class SpinWithBackoff:
+    def __init__(self, start_secs=1, backoff_factor=1.5, max_secs=60):
+        self.cur_secs = start_secs
+        self.backoff_factor = backoff_factor
+        self.max_secs = max_secs
+        self.nth = 0
+
+    def sleep(self):
+        secs = self.cur_secs + random.random() * 0.5
+        time.sleep(secs)
+        self.cur_secs = min(self.cur_secs * self.backoff_factor, self.max_secs)
+        self.nth += 1
