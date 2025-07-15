@@ -4,6 +4,7 @@ A fast movie downloader using Aria2
 ### Supported sites
 * Tencent Video
 * m1905
+* iQIYI
 
 ### Third-party Dependencies
 * [Aria2](https://github.com/Jesseatgao/aria2-patched-static-build)
@@ -119,7 +120,7 @@ mdl [-h] [-D DIR] [-d {uhd,fhd,shd,hd,sd}]
     [--no-logo [{True,False}]] [--ts-convert [{True,False}]]
     [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-N NODE]
     [-L {debug,info,warning,error,critical}]
-    [--delay-delete [{True,False}]]
+    [--delay-delete [{True,False}]] [--merge-all [{True,False}]]
     url [url ...] [--playlist-items PLAYLIST_ITEMS]
 ```
 
@@ -154,6 +155,8 @@ mdl [-h] [-D DIR] [-d {uhd,fhd,shd,hd,sd}]
 
 `--delay-delete [{True,False}]`: specify whether to eagerly free up the disk space or not.
 
+`--merge-all [{True,False}]`: specify whether to merge all the video clips or not.
+
 `url [url ...]`: one or more web page URLs of video episodes, cover and playlist.
 
 `--playlist-items PLAYLIST_ITEMS`: desired episode indices in a playlist separated by commas, while the playlists are separated by semicolons,
@@ -163,3 +166,4 @@ mdl [-h] [-D DIR] [-d {uhd,fhd,shd,hd,sd}]
 * [**youtube-dl** - an App to download videos from YouTube and other video platforms](https://github.com/ytdl-org/youtube-dl)
 * [**YouKuDownLoader** - a video downloader focused on China mainland video sites](https://github.com/SeaHOH/ykdl)
 * [**iqiyi-parser** - a video downloader for iqiyi, bilibili and TencentVideo sites](https://github.com/ZSAIm/iqiyi-parser)
+* [**Dlink_Parse** - a video media addresses parser](https://github.com/jym66/Dlink_Parse)
