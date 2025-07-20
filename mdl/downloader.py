@@ -3,7 +3,9 @@ import subprocess
 import shutil
 import errno
 import logging
-from math import trunc, log10
+from math import trunc, log10, ceil
+import random
+from pathlib import Path
 
 from certifi import where
 
@@ -63,6 +65,59 @@ class MDownloader(object):
 
             return vci
 
+    @staticmethod
+    def _rand_min_split_size(mss):
+        random.seed()
+        mss = mss.upper()
+        bytes = 1024 * int(mss[:-1]) if mss[-1] == 'K' else 1024 * 1024 * int(mss[:-1]) if mss[-1] == 'M' else int(mss)
+        bytes += 20 * 1024 * random.randint(0, 20)
+        kbytes = ceil(bytes / 1024)
+
+        return f'{kbytes}K'
+
+    def _cmd_aria2c(self, cover_info):
+        aria2c = self.confs['progs']['aria2c']
+        user_agent = self.confs[cover_info['vc_name']]['user_agent']
+        proxy = self.confs[cover_info['vc_name']]['proxy'] \
+            if self.confs[cover_info['vc_name']]['enable_proxy_dl_video'] else ''
+        mcd = self.confs[cover_info['vc_name']]['max_concurrent_downloads']
+        mss = self._rand_min_split_size(self.confs[cover_info['vc_name']]['min_split_size'])
+        split = self.confs[cover_info['vc_name']]['split']
+        mcps = self.confs[cover_info['vc_name']]['max_connection_per_server']
+        mfnf = self.confs[cover_info['vc_name']]['max_file_not_found']
+        max_tries = self.confs[cover_info['vc_name']]['max_tries']
+        retry_wait = self.confs[cover_info['vc_name']]['retry_wait']
+        speed_limit = self.confs[cover_info['vc_name']]['lowest_speed_limit']
+        retry_on_400 = '--retry-on-400=true' if self.confs[cover_info['vc_name']][
+            'retry_on_400'] else '--retry-on-400=false'
+        retry_on_403 = '--retry-on-403=true' if self.confs[cover_info['vc_name']][
+            'retry_on_403'] else '--retry-on-403=false'
+        retry_on_406 = '--retry-on-406=true' if self.confs[cover_info['vc_name']][
+            'retry_on_406'] else '--retry-on-406=false'
+        retry_on_unknown = '--retry-on-unknown=true' if self.confs[cover_info['vc_name']][
+            'retry_on_unknown'] else '--retry-on-unknown=false'
+        retry_on_not_satisfied_206 = '--retry-on-not-satisfied-206=true' \
+            if self.confs[cover_info['vc_name']]['retry_on_not_satisfied_206'] else '--retry-on-not-satisfied-206=false'
+        referer = cover_info['referrer']
+        cert_path = self.confs[cover_info['vc_name']]['ca_cert'] or where()
+
+        cmd_aria2c = [aria2c, '-c', '-j', mcd, '-k', mss, '-s', split, '-x', mcps, '--max-file-not-found', mfnf, '-m', max_tries,
+                      '--retry-wait', retry_wait, '--lowest-speed-limit', speed_limit, '--no-conf', '-i-',
+                      '--console-log-level=warn', '--download-result=hide', '--summary-interval=0',
+                      '--uri-selector=adaptive',
+                      '--referer', referer, '--ca-certificate', cert_path, '-U', user_agent, '--all-proxy', proxy,
+                      retry_on_400, retry_on_403, retry_on_406, retry_on_unknown, retry_on_not_satisfied_206]
+
+        return cmd_aria2c
+
+    def _rm_failed_pieces(self, episode_dir, pattern='*.aria2'):
+        f_progresses = [str(p) for p in Path(episode_dir).glob(pattern)]
+        for f_progress in f_progresses:
+            f_failed = f_progress.rpartition('.')[0]
+            if os.path.isfile(f_failed):
+                os.remove(f_failed)
+            os.remove(f_progress)
+
     def dwnld_videos_with_aria2(self, cover_info, save_dir='.', defn=None):
         """
         :returns:
@@ -117,6 +172,8 @@ class MDownloader(object):
                         episode_default_dir = '.'.join([cover_name, 'WEBRip', cover_info['source_name'] + '_' + defn])
                     episode_dir = os.path.join(cover_dir, episode_default_dir)
 
+                    self._rm_failed_pieces(episode_dir)
+
                     format = pick_format(vi['defns'][defn])
                     ext = format['ext']
 
@@ -135,24 +192,7 @@ class MDownloader(object):
                 self._logger.warning("No files to download for '{}'.".format(cover_info['url']))
                 return "", []
 
-            aria2c = self.confs['progs']['aria2c']
-            user_agent = self.confs[cover_info['vc_name']]['user_agent']
-            proxy = self.confs[cover_info['vc_name']]['proxy'] \
-                if self.confs[cover_info['vc_name']]['enable_proxy_dl_video'] else ''
-            mcd = self.confs[cover_info['vc_name']]['max_concurrent_downloads']
-            mss = self.confs[cover_info['vc_name']]['min_split_size']
-            split = self.confs[cover_info['vc_name']]['split']
-            mcps = self.confs[cover_info['vc_name']]['max_connection_per_server']
-            retry_wait = self.confs[cover_info['vc_name']]['retry_wait']
-            speed_limit = self.confs[cover_info['vc_name']]['lowest_speed_limit']
-            referer = cover_info['referrer']
-            cert_path = self.confs[cover_info['vc_name']]['ca_cert'] or where()
-
-            cmd_aria2c = [aria2c, '-c', '-j', mcd,  '-k', mss, '-s', split, '-x', mcps, '--max-file-not-found=5000', '-m0',
-                          '--retry-wait', retry_wait, '--lowest-speed-limit', speed_limit, '--no-conf', '-i-',
-                          '--console-log-level=warn', '--download-result=hide', '--summary-interval=0', '--uri-selector=adaptive',
-                          '--referer', referer, '--ca-certificate', cert_path, '-U', user_agent, '--all-proxy', proxy,
-                          '--retry-on-400=true', '--retry-on-403=true', '--retry-on-406=true', '--retry-on-unknown=true']
+            cmd_aria2c = self._cmd_aria2c(cover_info)
             for _ in range(2):
                 try:
                     with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
@@ -166,7 +206,7 @@ class MDownloader(object):
                     self._logger.error("Error while running 'aria2c' with augmented options. OS error number {}: '{}'\n"
                                        "Trying to fall back on standard options...\n".format(e.errno, e.strerror))
 
-                    cmd_aria2c = cmd_aria2c[:-4]  # remove the augmented retry-on options
+                    cmd_aria2c = cmd_aria2c[:-5]  # remove the augmented retry-on options
                     cmd_aria2c[5] = "1M"  # possible value for `--min-split-size`: 1M - 1024M
                     cmd_aria2c[9] = "16"  # possible value for `--max-connection-per-server`: 1 - 16
 

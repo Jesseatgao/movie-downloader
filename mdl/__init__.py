@@ -142,9 +142,25 @@ def parse_dlops_default(args, confs):
         'no_logo': 'True',
         'merge_all': 'True',
         'ts_convert': 'True',
+        'episode_batch_size': '2',
+        'proxy': '',
         'enable_proxy_dl_video': 'False',
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36',
         'enable_vip_apis': 'False',
-        'proxy': ''
+        # Aria2:
+        'max_concurrent_downloads': '5',
+        'min_split_size': '200K',
+        'split': '10',
+        'max_connection_per_server': '16',
+        'retry_wait': '5',
+        'lowest_speed_limit': '100K',
+        'max_file_not_found': '10',
+        'max_tries': '5000',
+        'retry_on_400': 'false',
+        'retry_on_403': 'false',
+        'retry_on_406': 'false',
+        'retry_on_unknown': 'false',
+        'retry_on_not_satisfied_206': 'false'
     }
 
     for site in confs:
