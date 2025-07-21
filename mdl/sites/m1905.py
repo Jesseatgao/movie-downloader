@@ -130,7 +130,7 @@ class M1905VC(VideoConfig):
                     cover_id = cover_id_match.group(1) if cover_id_match else ""
 
                     info = {'title': conf_match.group('title'), 'year': year, 'cover_id': cover_id, 'type': VideoTypes.MOVIE,
-                            'normal_ids': [dict(V=conf_match.group('vid'), E=1, defns={}, free=True, vip=False, page=epurl)]}
+                            'normal_ids': [dict(V=conf_match.group('vid'), E=1, defns={}, free=True, vip=False, url=epurl)]}
             else:
                 raise RequestException("Unexpected status code %i" % r.status_code)
         except RequestException as e:
@@ -149,7 +149,7 @@ class M1905VC(VideoConfig):
                 if conf_match:
                     info = {'title': conf_match.group('title'), 'year': conf_match.group('year'),
                             'cover_id': conf_match.group('cover_id'), 'type': VideoTypes.MOVIE,
-                            'normal_ids': [dict(V=epurl.split('/')[-1].split('.')[0], E=1, defns={}, free=False, vip=True, page=epurl)]
+                            'normal_ids': [dict(V=epurl.split('/')[-1].split('.')[0], E=1, defns={}, free=False, vip=True, url=epurl)]
                             }
                 else:
                     cover_match = self._HD_TV_COVER_RE.search(r.text)
@@ -161,7 +161,7 @@ class M1905VC(VideoConfig):
                                     'cover_id': conf_match.group('cover_id'), 'type': VideoTypes.TV,
                                     'normal_ids': [dict(V=mo.group('vid'), E=int(mo.group('ep')), defns={},
                                                         free=bool(int(mo.group('free'))), vip=True,
-                                                        page="https://vip.1905.com/play/%s.shtml" % mo.group('vid')) for
+                                                        url="https://vip.1905.com/play/%s.shtml" % mo.group('vid')) for
                                                    mo in episodes_match]
                                     }
             else:
@@ -298,7 +298,7 @@ class M1905VC(VideoConfig):
             'cid': vi['V'],
             'expiretime': nonce + 600,
             'nonce': nonce,
-            'page': vi['page'],
+            'page': vi['url'],
             'playerid': self._playerid,
             'type': "hls",
             'uuid': self._random_string()
@@ -323,19 +323,30 @@ class M1905VC(VideoConfig):
                 if not data:
                     return
 
-                defn = self._M1905_DEFN_MAP_S2I['free'][self.preferred_defn]
-                defns = [defn] if json_path_get(data, ['sign', defn]) else self._M1905_DEFINITION['free']
+                preferred_defn = self._M1905_DEFN_MAP_S2I['free'][self.preferred_defn]
+                defns = self._M1905_DEFINITION['free'].copy()
+                defns.remove(preferred_defn)
+                defns = [preferred_defn] + defns
                 for defn in defns:
                     host = json_path_get(data, ['quality', defn, 'host'])
                     sign = json_path_get(data, ['sign', defn, 'sign'])
                     path = json_path_get(data, ['path', defn, 'path'])
 
-                    if host and sign and path:
-                        playlist_m3u8 = (host + sign + path).replace('\\', '')
+                    if host and path:
+                        if sign:
+                            playlist_m3u8 = (host + sign + path).replace('\\', '')
+                        elif '&sign=' in path:
+                            playlist_m3u8 = (host + path).replace('\\', '')
+                        else:
+                            continue
+
                         mpeg_urls = self._get_ts_playlist(playlist_m3u8)
                         if mpeg_urls:
                             std_defn = self._M1905_DEFN_MAP_I2S['free'][defn]
                             vi["defns"].setdefault(std_defn, []).append(dict(ext="ts", urls=mpeg_urls))
+
+                            if defn != preferred_defn:
+                                self._logger.warning("The preferred quality '%s' not found, chose the best available '%s' instead", self.preferred_defn, std_defn)
 
                             break
             else:
@@ -386,4 +397,4 @@ class M1905VC(VideoConfig):
         elif vi['free'] or self.has_vip:
             self._update_video_dwnld_info_hd(vi)
         else:
-            self._logger.warning("Couldn't download the VIP video from '%s'. Please configure m1905 VIP cookies first!", vi['page'])
+            self._logger.warning("Couldn't download the VIP video from '%s'. Please configure m1905 VIP cookies first!", vi['url'])

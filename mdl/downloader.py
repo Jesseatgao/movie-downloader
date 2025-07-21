@@ -88,14 +88,10 @@ class MDownloader(object):
         max_tries = self.confs[cover_info['vc_name']]['max_tries']
         retry_wait = self.confs[cover_info['vc_name']]['retry_wait']
         speed_limit = self.confs[cover_info['vc_name']]['lowest_speed_limit']
-        retry_on_400 = '--retry-on-400=true' if self.confs[cover_info['vc_name']][
-            'retry_on_400'] else '--retry-on-400=false'
-        retry_on_403 = '--retry-on-403=true' if self.confs[cover_info['vc_name']][
-            'retry_on_403'] else '--retry-on-403=false'
-        retry_on_406 = '--retry-on-406=true' if self.confs[cover_info['vc_name']][
-            'retry_on_406'] else '--retry-on-406=false'
-        retry_on_unknown = '--retry-on-unknown=true' if self.confs[cover_info['vc_name']][
-            'retry_on_unknown'] else '--retry-on-unknown=false'
+        retry_on_400 = '--retry-on-400=true' if self.confs[cover_info['vc_name']]['retry_on_400'] else '--retry-on-400=false'
+        retry_on_403 = '--retry-on-403=true' if self.confs[cover_info['vc_name']]['retry_on_403'] else '--retry-on-403=false'
+        retry_on_406 = '--retry-on-406=true' if self.confs[cover_info['vc_name']]['retry_on_406'] else '--retry-on-406=false'
+        retry_on_unknown = '--retry-on-unknown=true' if self.confs[cover_info['vc_name']]['retry_on_unknown'] else '--retry-on-unknown=false'
         retry_on_not_satisfied_206 = '--retry-on-not-satisfied-206=true' \
             if self.confs[cover_info['vc_name']]['retry_on_not_satisfied_206'] else '--retry-on-not-satisfied-206=false'
         referer = cover_info['referrer']
@@ -110,7 +106,8 @@ class MDownloader(object):
 
         return cmd_aria2c
 
-    def _rm_failed_pieces(self, episode_dir, pattern='*.aria2'):
+    @staticmethod
+    def _rm_failed_pieces(episode_dir, pattern='*.aria2'):
         f_progresses = [str(p) for p in Path(episode_dir).glob(pattern)]
         for f_progress in f_progresses:
             f_failed = f_progress.rpartition('.')[0]
@@ -123,7 +120,6 @@ class MDownloader(object):
         :returns:
         (abs_cover_dir, [(abs_episode1_dir, [fname1.1.mp4, fname1.2.mp4]),(abs_episode2_dir, [fname2.1.mp4, fname2.2.mp4])])
         """
-
         def pick_format(formats):
             for fmt in formats:
                 if fmt['ext'] != 'ts':
@@ -144,6 +140,7 @@ class MDownloader(object):
 
             return numbering, width
 
+        has_downloaded = False
         video_list = cover_info.get('normal_ids')
         if video_list:
             cover_name = '.'.join([cover_info.get('title') or cover_info['source_name'] + '_' + (cover_info.get('cover_id') or video_list[0]['V']),
@@ -172,6 +169,12 @@ class MDownloader(object):
                         episode_default_dir = '.'.join([cover_name, 'WEBRip', cover_info['source_name'] + '_' + defn])
                     episode_dir = os.path.join(cover_dir, episode_default_dir)
 
+                    episode_pattern = episode_default_dir + '.*'
+                    downloaded = list(Path(cover_dir).glob(episode_pattern))
+                    if len(downloaded) and not os.path.exists(episode_dir):
+                        has_downloaded = True
+                        self._logger.warning(f"Already downloaded: {downloaded[0]}")
+                        continue
                     self._rm_failed_pieces(episode_dir)
 
                     format = pick_format(vi['defns'][defn])
@@ -188,33 +191,30 @@ class MDownloader(object):
 
             urllist = '\n'.join(urls)
 
-            if not urllist:
-                self._logger.warning("No files to download for '{}'.".format(cover_info['url']))
-                return "", []
+            if urllist:
+                cmd_aria2c = self._cmd_aria2c(cover_info)
+                for _ in range(2):
+                    try:
+                        with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
+                            with subprocess.Popen(cmd_aria2c, bufsize=1, universal_newlines=True, encoding='utf-8',
+                                                  stdin=subprocess.PIPE, stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
+                                proc.stdin.write(urllist)
+                                proc.stdin.close()
 
-            cmd_aria2c = self._cmd_aria2c(cover_info)
-            for _ in range(2):
-                try:
-                    with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
-                        with subprocess.Popen(cmd_aria2c, bufsize=1, universal_newlines=True, encoding='utf-8',
-                                              stdin=subprocess.PIPE, stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
-                            proc.stdin.write(urllist)
-                            proc.stdin.close()
+                        break
+                    except OSError as e:
+                        self._logger.error("Error while running 'aria2c' with augmented options. OS error number {}: '{}'\n"
+                                           "Trying to fall back on standard options...\n".format(e.errno, e.strerror))
 
-                    break
-                except OSError as e:
-                    self._logger.error("Error while running 'aria2c' with augmented options. OS error number {}: '{}'\n"
-                                       "Trying to fall back on standard options...\n".format(e.errno, e.strerror))
+                        cmd_aria2c = cmd_aria2c[:-5]  # remove the augmented retry-on options
+                        cmd_aria2c[5] = "1M"  # possible value for `--min-split-size`: 1M - 1024M
+                        cmd_aria2c[9] = "16"  # possible value for `--max-connection-per-server`: 1 - 16
 
-                    cmd_aria2c = cmd_aria2c[:-5]  # remove the augmented retry-on options
-                    cmd_aria2c[5] = "1M"  # possible value for `--min-split-size`: 1M - 1024M
-                    cmd_aria2c[9] = "16"  # possible value for `--max-connection-per-server`: 1 - 16
+                if proc and not proc.returncode:
+                    return cover_dir, episodes
 
-            if proc and not proc.returncode:
-                return cover_dir, episodes
-        else:
+        if not has_downloaded:
             self._logger.warning("No files to download for '{}'.".format(cover_info['url']))
-
         return "", []
 
     def _join_videos_with_ffmpeg_mkvmerge(self, cover_dir, episode_dir, fnames, ts_convert=True):
