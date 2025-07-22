@@ -12,20 +12,20 @@ A fast movie downloader using Aria2
     
         i686 32-bit version:
     
-        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux--builder-win32-v1.2/aria2-i686-win.zip
+        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux-v2--builder-win32-v1.5/aria2-i686-win.zip
         
         x86_64 64-bit version:
         
-        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux--builder-win32-v1.2/aria2-x86_64-win.zip
+        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux-v2--builder-win32-v1.5/aria2-x86_64-win.zip
     * For Linux:
     
         i686 32-bit version:
         
-        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux--builder-win32-v1.2/aria2-i686-linux.tar.xz
+        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux-v2--builder-win32-v1.5/aria2-i686-linux.tar.xz
 
         x86_64 64-bit version:
         
-        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux--builder-win32-v1.2/aria2-x86_64-linux.tar.xz
+        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux-v2--builder-win32-v1.5/aria2-x86_64-linux.tar.xz
         
 * [FFmpeg](https://ffmpeg.org/download.html)
     * For Windows:

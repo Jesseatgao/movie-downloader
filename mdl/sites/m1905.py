@@ -324,9 +324,7 @@ class M1905VC(VideoConfig):
                     return
 
                 preferred_defn = self._M1905_DEFN_MAP_S2I['free'][self.preferred_defn]
-                defns = self._M1905_DEFINITION['free'].copy()
-                defns.remove(preferred_defn)
-                defns = [preferred_defn] + defns
+                defns = [preferred_defn] + [defn for defn in self._M1905_DEFINITION['free'] if defn != preferred_defn]
                 for defn in defns:
                     host = json_path_get(data, ['quality', defn, 'host'])
                     sign = json_path_get(data, ['sign', defn, 'sign'])
@@ -335,7 +333,7 @@ class M1905VC(VideoConfig):
                     if host and path:
                         if sign:
                             playlist_m3u8 = (host + sign + path).replace('\\', '')
-                        elif '&sign=' in path:
+                        elif 'sign=' in path:
                             playlist_m3u8 = (host + path).replace('\\', '')
                         else:
                             continue
