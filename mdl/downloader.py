@@ -66,14 +66,20 @@ class MDownloader(object):
             return vci
 
     @staticmethod
-    def _rand_min_split_size(mss):
-        random.seed()
+    def _rand_min_split_size(mss, fallback=False):
         mss = mss.upper()
         bytes = 1024 * int(mss[:-1]) if mss[-1] == 'K' else 1024 * 1024 * int(mss[:-1]) if mss[-1] == 'M' else int(mss)
-        bytes += 20 * 1024 * random.randint(0, 20)
-        kbytes = ceil(bytes / 1024)
+        if bytes >= 1 << 30:
+            return mss
 
-        return f'{kbytes}K'
+        if fallback and bytes < 1 << 20:
+            bytes = 1 << 20
+
+        random.seed()
+        bytes += 20 * 1024 * random.randint(0, 20)
+        bytes = ceil(bytes / 1024) * 1024
+
+        return str(min(1 << 30, bytes))
 
     def _cmd_aria2c(self, cover_info):
         aria2c = self.confs['progs']['aria2c']
@@ -104,7 +110,14 @@ class MDownloader(object):
                       '--referer', referer, '--ca-certificate', cert_path, '-U', user_agent, '--all-proxy', proxy,
                       retry_on_400, retry_on_403, retry_on_406, retry_on_unknown, retry_on_not_satisfied_206]
 
-        return cmd_aria2c
+        # fallback cmd with standard options/values only
+        fallback_aria2c = cmd_aria2c.copy()
+        fallback_aria2c = fallback_aria2c[:-5]  # remove the augmented retry-on options
+        fallback_aria2c[5] = self._rand_min_split_size(self.confs[cover_info['vc_name']]['min_split_size'],
+                                                       fallback=True)  # possible value for `--min-split-size`: 1M - 1024M
+        fallback_aria2c[9] = "16" if int(mcps) > 16 else mcps  # possible value for `--max-connection-per-server`: 1 - 16
+
+        return cmd_aria2c, fallback_aria2c
 
     @staticmethod
     def _rm_failed_pieces(episode_dir, pattern='*.aria2'):
@@ -140,7 +153,6 @@ class MDownloader(object):
 
             return numbering, width
 
-        has_downloaded = False
         video_list = cover_info.get('normal_ids')
         if video_list:
             cover_name = '.'.join([cover_info.get('title') or cover_info['source_name'] + '_' + (cover_info.get('cover_id') or video_list[0]['V']),
@@ -172,7 +184,6 @@ class MDownloader(object):
                     episode_pattern = episode_default_dir + '.*'
                     downloaded = list(Path(cover_dir).glob(episode_pattern))
                     if len(downloaded) and not os.path.exists(episode_dir):
-                        has_downloaded = True
                         self._logger.warning(f"Already downloaded: {downloaded[0]}")
                         continue
                     self._rm_failed_pieces(episode_dir)
@@ -192,7 +203,7 @@ class MDownloader(object):
             urllist = '\n'.join(urls)
 
             if urllist:
-                cmd_aria2c = self._cmd_aria2c(cover_info)
+                cmd_aria2c, fallback_aria2c = self._cmd_aria2c(cover_info)
                 for _ in range(2):
                     try:
                         with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
@@ -203,18 +214,19 @@ class MDownloader(object):
 
                         break
                     except OSError as e:
-                        self._logger.error("Error while running 'aria2c' with augmented options. OS error number {}: '{}'\n"
-                                           "Trying to fall back on standard options...\n".format(e.errno, e.strerror))
+                        if cmd_aria2c is not fallback_aria2c:
+                            self._logger.error("Error while running 'aria2c' with augmented options. OS error number {}: '{}'\n"
+                                               "Trying to fall back on standard options...\n".format(e.errno, e.strerror))
 
-                        cmd_aria2c = cmd_aria2c[:-5]  # remove the augmented retry-on options
-                        cmd_aria2c[5] = "1M"  # possible value for `--min-split-size`: 1M - 1024M
-                        cmd_aria2c[9] = "16"  # possible value for `--max-connection-per-server`: 1 - 16
+                            cmd_aria2c = fallback_aria2c
 
                 if proc and not proc.returncode:
                     return cover_dir, episodes
+                else:
+                    self._logger.error(f"Download failed: '{cover_info['url']}'.")
+                    return "", []
 
-        if not has_downloaded:
-            self._logger.warning("No files to download for '{}'.".format(cover_info['url']))
+        self._logger.warning("No files to download for '{}'.".format(cover_info['url']))
         return "", []
 
     def _join_videos_with_ffmpeg_mkvmerge(self, cover_dir, episode_dir, fnames, ts_convert=True):
