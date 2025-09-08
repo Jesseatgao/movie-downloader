@@ -207,15 +207,18 @@ def parse_callbacks(args, confs):
     config = CommentConfigParser(interpolation=None, allow_no_value=True)
     config.read(conf_dlops)
 
+    changed = False
     for site in config.sections():
         for cf, cb in callbacks.items():
             if not confs[site][cf]:
                 conf = getattr(get_all_sites_vcs()[site]['class'], cb)()
                 if conf:
                     confs[site][cf] = config[site][cf] = conf
+                    changed = True
 
-    with codecs.open(conf_dlops, 'w', 'utf-8') as conf_fd:
-        config.write(conf_fd)
+    if changed:
+        with codecs.open(conf_dlops, 'w', 'utf-8') as conf_fd:
+            config.write(conf_fd)
 
 
 def parse_other_ops(args, confs):
