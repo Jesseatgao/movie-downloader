@@ -160,7 +160,8 @@ def parse_dlops_default(args, confs):
         'retry_on_403': 'false',
         'retry_on_406': 'false',
         'retry_on_unknown': 'false',
-        'retry_on_not_satisfied_206': 'false'
+        'retry_on_not_satisfied_206': 'false',
+        'retry_on_lowest_speed': 'false'
     }
 
     for site in confs:

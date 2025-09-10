@@ -100,6 +100,8 @@ class MDownloader(object):
         retry_on_unknown = '--retry-on-unknown=true' if self.confs[cover_info['vc_name']]['retry_on_unknown'] else '--retry-on-unknown=false'
         retry_on_not_satisfied_206 = '--retry-on-not-satisfied-206=true' \
             if self.confs[cover_info['vc_name']]['retry_on_not_satisfied_206'] else '--retry-on-not-satisfied-206=false'
+        retry_on_lowest_speed = '--retry-on-lowest-speed=true' \
+            if self.confs[cover_info['vc_name']]['retry_on_lowest_speed'] else '--retry-on-lowest-speed=false'
         referer = cover_info['referrer']
         cert_path = self.confs[cover_info['vc_name']]['ca_cert'] or where()
 
@@ -108,11 +110,11 @@ class MDownloader(object):
                       '--console-log-level=warn', '--download-result=hide', '--summary-interval=0',
                       '--uri-selector=adaptive',
                       '--referer', referer, '--ca-certificate', cert_path, '-U', user_agent, '--all-proxy', proxy,
-                      retry_on_400, retry_on_403, retry_on_406, retry_on_unknown, retry_on_not_satisfied_206]
+                      retry_on_400, retry_on_403, retry_on_406, retry_on_unknown, retry_on_not_satisfied_206, retry_on_lowest_speed]
 
         # fallback cmd with standard options/values only
         fallback_aria2c = cmd_aria2c.copy()
-        fallback_aria2c = fallback_aria2c[:-5]  # remove the augmented retry-on options
+        fallback_aria2c = fallback_aria2c[:-6]  # remove the augmented retry-on options
         fallback_aria2c[5] = self._rand_min_split_size(self.confs[cover_info['vc_name']]['min_split_size'],
                                                        fallback=True)  # possible value for `--min-split-size`: 1M - 1024M
         fallback_aria2c[9] = "16" if int(mcps) > 16 else mcps  # possible value for `--max-connection-per-server`: 1 - 16

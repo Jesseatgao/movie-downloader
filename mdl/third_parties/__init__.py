@@ -20,38 +20,38 @@ progs_conf = {
     'aria2': {
         'Windows': {
             '32-bit': {
-                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux-v2--builder-win32-v1.5/aria2-i686-win.zip',
+                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux-v3--builder-win32-v1.5/aria2-i686-win.zip',
                 'ext': '.zip',
                 'content-path': ['i686/'],
                 'content-base': 'aria2c',
                 'content-ext': '.exe',
-                'sha512': '5892ee991fe786443732b5adefa695402e3751b9e746ebdc140d9f4fbc73491a11ca96e265d2e918a9a45873973cde4812c5e6799e660fb477f18dda61b64f69'
+                'sha512': '58211ec833eca79f6e1a3c221d9ee07391c811362d3c3c616cc488e305f98646f01f3bfcc18d2f053e0dc191173b4ccc95b57359d68d8b2f139d0756e83e6e83'
             },
             '64-bit': {
-                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux-v2--builder-win32-v1.5/aria2-x86_64-win.zip',
+                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux-v3--builder-win32-v1.5/aria2-x86_64-win.zip',
                 'ext': '.zip',
                 'content-path': ['x86_64/'],
                 'content-base': 'aria2c',
                 'content-ext': '.exe',
-                'sha512': '4619f8b78c05923e9d0f92c1c795601b2db25ce9169bdc9eb306cf0ab26c1f57e7e9648dc9c4baf2f17d53def1ac2e12b79cab032c9602b369cf8c3d0a53070a'
+                'sha512': '8fbd367303e37868d98ce089cab93f2d4024ad21ffc2f757e569695af51d2265940d7854cea13ba8efcb1b552c4b9eecedfed6025107b09623399d20db6f3c84'
             }
         },
         'Linux': {
             '32-bit': {
-                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux-v2--builder-win32-v1.5/aria2-i686-linux.tar.xz',
+                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux-v3--builder-win32-v1.5/aria2-i686-linux.tar.xz',
                 'ext': '.tar.xz',
                 'content-path': ['i686/'],
                 'content-base': 'aria2c',
                 'content-ext': '',
-                'sha512': 'aa63bf00503d5154cdd564711693df942e71ce27ca5a2ae161fcdd69bcab9d6f9640f1be00a27579f09e4a5747e8ddbdbb6928697c43579f05b9c844cf3a8a49'
+                'sha512': 'd865cdbef0c0daff78f4d8911cb92e9c1cd2d56366efcd96bc52588cf574140b3d0be0dd7f0d6df27db96005cef0084034364cfb39a42dd609cafdca1d240cd8'
             },
             '64-bit': {
-                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux-v2--builder-win32-v1.5/aria2-x86_64-linux.tar.xz',
+                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.35.0-win-linux-v3--builder-win32-v1.5/aria2-x86_64-linux.tar.xz',
                 'ext': '.tar.xz',
                 'content-path': ['x86_64/'],
                 'content-base': 'aria2c',
                 'content-ext': '',
-                'sha512': '24e4dbee05117d6133c67c61865d6b1fe46d1ed53d5353effa60dfd25289c548142806fad5c607e232afc5d6d63cc979448c5c37402789270aa13a074a50c402'
+                'sha512': 'a734ef0921d7980e50e14aae6f0a1aebd62f37946cb8d37937da99f18c9de3d9a46f7581a77e32d9bd11826d0dbc989fa7590f66a168788e09940dd693fdf92d'
             }
         },
         'Darwin': {
