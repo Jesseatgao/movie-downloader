@@ -232,6 +232,23 @@ class MDownloader(object):
         self._logger.warning("No files to download for '{}'.".format(cover_info['url']))
         return "", []
 
+    def _join_ts(self, cover_dir, episode_dir, fnames):
+        episode_name = episode_dir + '.ts'
+
+        if len(fnames) == 1:
+            # just rename and move it into parent directory, no need to merge
+            fn_whole = os.path.join(episode_dir, fnames[0])
+            shutil.move(fn_whole, episode_name)
+            return
+
+        with open(episode_name, 'wb') as tsf:
+            for fn in fnames:
+                fn_abs = os.path.join(episode_dir, fn)
+                with open(fn_abs, 'rb') as f:
+                    tsf.write(f.read())
+                if not self.confs['misc']['delay_delete']:
+                    os.remove(fn_abs)  # timely free up the disk space
+
     def _join_with_ffmpeg(self, cover_dir, episode_dir, fnames, ts_convert=True):
         """abs_cover_dir > abs_episode_dir > video files """
 
@@ -240,29 +257,16 @@ class MDownloader(object):
         episode_name = os.path.basename(episode_dir) + suffix
         episode_name = os.path.join(cover_dir, episode_name)
 
-        if suffix in ('.ts', '.265ts'):
-            if not ts_convert:
-                if len(fnames) == 1:
-                    # just rename and move it into parent directory, no need to merge
-                    fn_whole = os.path.join(episode_dir, fnames[0])
-                    shutil.move(fn_whole, episode_name)
+        try:
+            if suffix in ('.ts', '.265ts'):
+                if not ts_convert:
+                    self._join_ts(cover_dir, episode_dir, fnames)
                     return True
 
-                with open(episode_name, 'wb') as tsf:
-                    for fn in fnames:
-                        fn_abs = os.path.join(episode_dir, fn)
-                        with open(fn_abs, 'rb') as f:
-                            tsf.write(f.read())
-                        if not self.confs['misc']['delay_delete']:
-                            os.remove(fn_abs)  # timely free up the disk space
-                return True
+                episode_name = episode_name.rpartition('.')[0] + '.mp4'
 
-            episode_name = episode_name.rpartition('.')[0] + '.mp4'
-
-        proc = None
-        ffmpeg = self.confs['progs']['ffmpeg']
-        cmd_ffmpeg = [ffmpeg, '-y', '-i', 'pipe:0', '-safe', '0', '-c', 'copy', '-hide_banner', episode_name]
-        try:
+            ffmpeg = self.confs['progs']['ffmpeg']
+            cmd_ffmpeg = [ffmpeg, '-y', '-i', 'pipe:0', '-safe', '0', '-c', 'copy', '-hide_banner', episode_name]
             with logging_with_pipe(self._logger, level=logging.INFO) as log_pipe:
                 with subprocess.Popen(cmd_ffmpeg, stdin=subprocess.PIPE, stdout=log_pipe,
                                       stderr=subprocess.STDOUT) as proc:
@@ -280,11 +284,19 @@ class MDownloader(object):
                             os.remove(fn_abs)
 
                     proc.stdin.close()
+
+            if proc and proc.returncode == 0:
+                return True
+
+            # fall back on merging when converting failed
+            if suffix in ('.ts', '.265ts') and self.confs['misc']['delay_delete']:
+                self._logger.warning("Conversion to '%s' failed, switching to TS merging...", episode_name)
+                self._join_ts(cover_dir, episode_dir, fnames)
+                if os.path.isfile(episode_name):
+                    os.remove(episode_name)
+                return True
         except OSError as e:
             self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
-
-        if proc and proc.returncode == 0:
-            return True
 
     def _join_with_mkvmerge(self, cover_dir, episode_dir, fnames):
         """abs_cover_dir > abs_episode_dir > video files """
@@ -320,11 +332,11 @@ class MDownloader(object):
                 with subprocess.Popen(cmd_mkvmerge, bufsize=1, universal_newlines=True, encoding='utf-8',
                                       stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
                     pass
+
+            if proc and proc.returncode == 0:
+                return True
         except OSError as e:
             self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
-
-        if proc and proc.returncode == 0:
-            return True
 
     def join_videos(self, cover_dir, episodes, ts_convert=True):
         for episode_dir, fnames in episodes:
