@@ -61,24 +61,31 @@ def arg_parser():
 
     parser.add_argument('url', nargs='+', help='Episode or cover/playlist web page URL(s)')
     parser.add_argument('-D', '--dir', default=None, dest='dir', type=_validate_dir, help='path to downloaded videos')
-    parser.add_argument('-d', '--definition', default=None, dest='definition', choices=['dolby', 'sfr_hdr', 'hdr10', 'uhd', 'fhd', 'shd', 'hd', 'sd'])
+    parser.add_argument('-d', '--definition', default=None, dest='definition', type=lambda x: x.lower(),
+                        choices=['dolby', 'sfr_hdr', 'hdr10', 'uhd', 'fhd', 'shd', 'hd', 'sd'])
     parser.add_argument('-p', '--proxy', dest='proxy', help='proxy in the form of "http://[user:password@]host:port"')
     parser.add_argument('--playlist-items', default='', dest='playlist_items', type=_segment_playlist_items,
                         help='desired episode indices in a playlist separated by commas, while the playlists are separated by semicolons,'
                              'e.g. "--playlist-items 1,2,5-10", "--playlist-items 1,2,5-10;3-", and "--playlist-items 1,2,5-10;;-20"')
 
-    parser.add_argument('--no-logo', dest='no_logo', default=None, const='True', nargs='?', choices=['True', 'False'])
-    parser.add_argument('--merge-all', dest='merge_all', default=None, const='True', nargs='?', choices=['True', 'False'])
-    parser.add_argument('--ts-convert', dest='ts_convert', default=None, const='True', nargs='?', choices=['True', 'False'])
-    parser.add_argument('--proxy-dl-video', dest='enable_proxy_dl_video', default=None, const='True', nargs='?', choices=['True', 'False'])
+    parser.add_argument('--no-logo', dest='no_logo', default=None, const='true', nargs='?', type=lambda x: x.lower(),
+                        choices=['true', 'false'])
+    parser.add_argument('--merge-all', dest='merge_all', default=None, const='true', nargs='?', type=lambda x: x.lower(),
+                        choices=['true', 'false'])
+    parser.add_argument('--ts-convert', dest='ts_convert', default=None, const='true', nargs='?', type=lambda x: x.lower(),
+                        choices=['true', 'false'])
+    parser.add_argument('--proxy-dl-video', dest='enable_proxy_dl_video', default=None, const='true', nargs='?',
+                        type=lambda x: x.lower(), choices=['true', 'false'])
 
     parser.add_argument('-A', '--aria2c', dest='aria2c', default=None, help='path to the aria2 executable')
     parser.add_argument('-F', '--ffmpeg', dest='ffmpeg', default=None, help='path to the ffmpeg executable')
     parser.add_argument('-M', '--mkvmerge', dest='mkvmerge', default=None, help='path to the mkvmerge executable')
     parser.add_argument('-N', '--node', dest='node', default=None, help='path to the node executable')
 
-    parser.add_argument('-L', '--log-level', dest='log_level', default=None, choices=['debug', 'info', 'warning', 'error', 'critical'])
-    parser.add_argument('--delay-delete', dest='delay_delete', default=None, const='True', nargs='?', choices=['True', 'False'])
+    parser.add_argument('-L', '--log-level', dest='log_level', default=None, type=lambda x: x.lower(),
+                        choices=['debug', 'info', 'warning', 'error', 'critical'])
+    parser.add_argument('--delay-delete', dest='delay_delete', default=None, const='true', nargs='?', type=lambda x: x.lower(),
+                        choices=['true', 'false'])
 
     return parser
 

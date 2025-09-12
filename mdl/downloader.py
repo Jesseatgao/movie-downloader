@@ -207,6 +207,7 @@ class MDownloader(object):
             if urllist:
                 cmd_aria2c, fallback_aria2c = self._cmd_aria2c(cover_info)
                 for _ in range(2):
+                    proc = None
                     try:
                         with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
                             with subprocess.Popen(cmd_aria2c, bufsize=1, universal_newlines=True, encoding='utf-8',
@@ -231,93 +232,110 @@ class MDownloader(object):
         self._logger.warning("No files to download for '{}'.".format(cover_info['url']))
         return "", []
 
-    def _join_videos_with_ffmpeg_mkvmerge(self, cover_dir, episode_dir, fnames, ts_convert=True):
+    def _join_with_ffmpeg(self, cover_dir, episode_dir, fnames, ts_convert=True):
         """abs_cover_dir > abs_episode_dir > video files """
 
-        if cover_dir and episode_dir and fnames:
-            # determine the extension (i.e. video format)
-            suffix = '.' + fnames[0].split('.')[-1]
-            episode_name = os.path.basename(episode_dir) + suffix
-            episode_name = os.path.join(cover_dir, episode_name)
+        # determine the extension (i.e. video format): ['.ts', '.265ts', '.mpg', '.mpeg']
+        suffix = '.' + fnames[0].split('.')[-1]
+        episode_name = os.path.basename(episode_dir) + suffix
+        episode_name = os.path.join(cover_dir, episode_name)
 
-            proc = None
-            if suffix in ['.ts', '.265ts', '.mpg', '.mpeg']:
-                if suffix in ('.ts', '.265ts'):
-                    if not ts_convert:
-                        if len(fnames) == 1:
-                            # just rename and move it into parent directory, no need to merge
-                            fn_whole = os.path.join(episode_dir, fnames[0])
-                            shutil.move(fn_whole, episode_name)
-                            return True
-
-                        with open(episode_name, 'wb') as tsf:
-                            for fn in fnames:
-                                fn_abs = os.path.join(episode_dir, fn)
-                                with open(fn_abs, 'rb') as f:
-                                    tsf.write(f.read())
-                                if not self.confs['misc']['delay_delete']:
-                                    os.remove(fn_abs)  # timely free up the disk space
-                        return True
-
-                    episode_name = episode_name.rpartition('.')[0] + '.mp4'
-                ffmpeg = self.confs['progs']['ffmpeg']
-                cmd = [ffmpeg, '-y', '-i', 'pipe:0', '-safe', '0', '-c', 'copy', '-hide_banner', episode_name]
-                try:
-                    with logging_with_pipe(self._logger, level=logging.INFO) as log_pipe:
-                        with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
-                            for fn in fnames:
-                                fn_abs = os.path.join(episode_dir, fn)
-                                with open(fn_abs, 'rb') as f:
-                                    try:
-                                        proc.stdin.write(f.read())
-                                    except IOError as e:
-                                        if e.errno == errno.EPIPE or e.errno == errno.EINVAL:
-                                            break
-                                        else:
-                                            raise
-                                if not self.confs['misc']['delay_delete']:
-                                    os.remove(fn_abs)
-
-                            proc.stdin.close()
-                except OSError as e:
-                    self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
-            else:
-                if len(fnames) > 1:
-                    '''
-                    flist = ["file '{}'".format(os.path.join(episodedir, fn)) for fn in fnames]
-                    flist = '\n'.join(flist)
-    
-                    cmd = ['ffmpeg', '-y', '-safe', '0', '-protocol_whitelist', 'file,pipe', '-f', 'concat',
-                           '-i', 'pipe:0', '-c', 'copy', '-hide_banner', episode_name]
-                    cp = subprocess.run(cmd, input=flist.encode('utf-8'))
-                    '''
-                    flist = ["{}".format(os.path.join(episode_dir, fn)) for fn in fnames]
-                    episode_name = episode_name.rpartition('.')[0] + '.mkv'
-
-                    mkvmerge = self.confs['progs']['mkvmerge']
-                    cmd = [mkvmerge, '-o', episode_name, '['] + flist + [']']
-                    try:
-                        with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
-                            with subprocess.Popen(cmd, bufsize=1, universal_newlines=True, encoding='utf-8',
-                                                  stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
-                                pass
-                    except OSError as e:
-                        self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
-                else:
-                    # just rename and move it into parent directory, no need to merge or transcode
+        if suffix in ('.ts', '.265ts'):
+            if not ts_convert:
+                if len(fnames) == 1:
+                    # just rename and move it into parent directory, no need to merge
                     fn_whole = os.path.join(episode_dir, fnames[0])
                     shutil.move(fn_whole, episode_name)
-
                     return True
 
-            if proc and proc.returncode == 0:
+                with open(episode_name, 'wb') as tsf:
+                    for fn in fnames:
+                        fn_abs = os.path.join(episode_dir, fn)
+                        with open(fn_abs, 'rb') as f:
+                            tsf.write(f.read())
+                        if not self.confs['misc']['delay_delete']:
+                            os.remove(fn_abs)  # timely free up the disk space
                 return True
+
+            episode_name = episode_name.rpartition('.')[0] + '.mp4'
+
+        proc = None
+        ffmpeg = self.confs['progs']['ffmpeg']
+        cmd_ffmpeg = [ffmpeg, '-y', '-i', 'pipe:0', '-safe', '0', '-c', 'copy', '-hide_banner', episode_name]
+        try:
+            with logging_with_pipe(self._logger, level=logging.INFO) as log_pipe:
+                with subprocess.Popen(cmd_ffmpeg, stdin=subprocess.PIPE, stdout=log_pipe,
+                                      stderr=subprocess.STDOUT) as proc:
+                    for fn in fnames:
+                        fn_abs = os.path.join(episode_dir, fn)
+                        with open(fn_abs, 'rb') as f:
+                            try:
+                                proc.stdin.write(f.read())
+                            except IOError as e:
+                                if e.errno == errno.EPIPE or e.errno == errno.EINVAL:
+                                    break
+                                else:
+                                    raise
+                        if not self.confs['misc']['delay_delete']:
+                            os.remove(fn_abs)
+
+                    proc.stdin.close()
+        except OSError as e:
+            self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
+
+        if proc and proc.returncode == 0:
+            return True
+
+    def _join_with_mkvmerge(self, cover_dir, episode_dir, fnames):
+        """abs_cover_dir > abs_episode_dir > video files """
+
+        # determine the extension (i.e. video format)
+        suffix = '.' + fnames[0].split('.')[-1]
+        episode_name = os.path.basename(episode_dir) + suffix
+        episode_name = os.path.join(cover_dir, episode_name)
+
+        if len(fnames) == 1:
+            # just rename and move it into parent directory, no need to merge or transcode
+            fn_whole = os.path.join(episode_dir, fnames[0])
+            shutil.move(fn_whole, episode_name)
+
+            return True
+
+        '''
+        flist = ["file '{}'".format(os.path.join(episodedir, fn)) for fn in fnames]
+        flist = '\n'.join(flist)
+
+        cmd_ffmpeg = ['ffmpeg', '-y', '-safe', '0', '-protocol_whitelist', 'file,pipe', '-f', 'concat',
+               '-i', 'pipe:0', '-c', 'copy', '-hide_banner', episode_name]
+        cp = subprocess.run(cmd_ffmpeg, input=flist.encode('utf-8'))
+        '''
+        flist = ["{}".format(os.path.join(episode_dir, fn)) for fn in fnames]
+        episode_name = episode_name.rpartition('.')[0] + '.mkv'
+
+        proc = None
+        mkvmerge = self.confs['progs']['mkvmerge']
+        cmd_mkvmerge = [mkvmerge, '-o', episode_name, '['] + flist + [']']
+        try:
+            with logging_with_pipe(self._logger, level=logging.INFO, text=True) as log_pipe:
+                with subprocess.Popen(cmd_mkvmerge, bufsize=1, universal_newlines=True, encoding='utf-8',
+                                      stdout=log_pipe, stderr=subprocess.STDOUT) as proc:
+                    pass
+        except OSError as e:
+            self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
+
+        if proc and proc.returncode == 0:
+            return True
 
     def join_videos(self, cover_dir, episodes, ts_convert=True):
         for episode_dir, fnames in episodes:
-            if len(fnames) > 0:
-                res = self._join_videos_with_ffmpeg_mkvmerge(cover_dir, episode_dir, fnames, ts_convert=ts_convert)
-                if res:
-                    shutil.rmtree(episode_dir, ignore_errors=True)
-                else:
-                    self._logger.error('Join videos failed! <{}>'.format(episode_dir))
+            suffix = '.' + fnames[0].split('.')[-1]
+
+            if suffix in ['.ts', '.265ts', '.mpg', '.mpeg']:
+                res = self._join_with_ffmpeg(cover_dir, episode_dir, fnames, ts_convert=ts_convert)
+            else:
+                res = self._join_with_mkvmerge(cover_dir, episode_dir, fnames)
+
+            if res:
+                shutil.rmtree(episode_dir, ignore_errors=True)
+            else:
+                self._logger.error('Join videos failed! <{}>'.format(episode_dir))
