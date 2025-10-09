@@ -6,12 +6,13 @@ import logging
 from math import trunc, log10, ceil
 import random
 from pathlib import Path
+import glob
 
 from certifi import where
 
 from .commons import pick_highest_definition, VideoTypes, DEFAULT_YEAR
 from .sites import get_all_sites_vcs
-from .utils import logging_with_pipe, normalize_filename
+from .utils import logging_with_pipe, normalize_filename, json_path_get
 
 
 class MDownloader(object):
@@ -44,9 +45,7 @@ class MDownloader(object):
                 batch_cover_info['normal_ids'] = video_list[batch_start:batch_start + batch_size]
 
                 vci.update_cover_dwnld_info(batch_cover_info)
-                cover_dir, episodes = self.dwnld_videos_with_aria2(batch_cover_info,
-                                                                   save_dir=vci.confs['dir'],
-                                                                   defn=vci.confs['definition'])
+                cover_dir, episodes = self.dwnld_videos_with_aria2(batch_cover_info, vci.confs)
 
                 if vci.confs['merge_all']:
                     self.join_videos(cover_dir, episodes, ts_convert=vci.confs['ts_convert'])
@@ -130,7 +129,45 @@ class MDownloader(object):
                 os.remove(f_failed)
             os.remove(f_progress)
 
-    def dwnld_videos_with_aria2(self, cover_info, save_dir='.', defn=None):
+    def _determine_ep_naming_fmt(self, cover_info):
+        width = 2  # default episode numbering format width
+        total_ep = cover_info.get('episode_all')
+        if total_ep:
+            ndigits = trunc(log10(total_ep)) + 1
+            width = ndigits
+
+        normal_ids = cover_info.get('normal_ids', [])
+        ep_cnt = sum([1 for vi in normal_ids if vi.get('defns') and any(vi['defns'].values())])  # number of valid episodes
+        numbering = False if (total_ep and total_ep == 1) or (not total_ep and ep_cnt == 1) else True
+
+        return numbering, width
+
+    def _cover_naming(self, cover_info, save_dir):
+        cover_name = '.'.join([cover_info.get('title') or (cover_info['source_name'] + '_' + (
+                    cover_info.get('cover_id') or json_path_get(cover_info, ['normal_ids', 0, 'V'], ''))),
+                               (cover_info.get('year') or DEFAULT_YEAR)])
+        cover_name = normalize_filename(cover_name, repl='_')
+        cover_default_dir = '.'.join(
+            [cover_name, cover_info['source_name'] + '_' + cover_info.get('type', VideoTypes.MOVIE)])
+        cover_dir = os.path.abspath(os.path.join(save_dir, cover_default_dir))
+
+        return cover_name, cover_dir
+
+    def _episode_naming(self, vi, cover_name, cover_dir, source_name, ep_fmt_numbering, ep_fmt_width, defn=''):
+        if ep_fmt_numbering:
+            ep_name = vi.get('title')
+            ep_name = '-({})'.format(ep_name) if ep_name else ''
+
+            episode_default_dir = '.'.join(
+                [cover_name, 'EP' + '{:0{width}}'.format(vi['E'], width=ep_fmt_width) + ep_name,
+                 'WEBRip', source_name + '_' + defn])
+        else:
+            episode_default_dir = '.'.join([cover_name, 'WEBRip', source_name + '_' + defn])
+        episode_dir = os.path.join(cover_dir, episode_default_dir)
+
+        return episode_default_dir, episode_dir
+
+    def dwnld_videos_with_aria2(self, cover_info, vc_confs):
         """
         :returns:
         (abs_cover_dir, [(abs_episode1_dir, [fname1.1.mp4, fname1.2.mp4]),(abs_episode2_dir, [fname2.1.mp4, fname2.2.mp4])])
@@ -142,56 +179,40 @@ class MDownloader(object):
 
             return formats[0]
 
-        def determine_ep_naming_fmt():
-            width = 2  # default episode numbering format width
-            total_ep = cover_info.get('episode_all')
-            if total_ep:
-                ndigits = trunc(log10(total_ep)) + 1
-                width = ndigits
-
-            normal_ids = cover_info.get('normal_ids', [])
-            ep_cnt = sum([1 for vi in normal_ids if vi.get('defns') and any(vi['defns'].values())])  # number of valid episodes
-            numbering = False if (total_ep and total_ep == 1) or (not total_ep and ep_cnt == 1) else True
-
-            return numbering, width
-
         video_list = cover_info.get('normal_ids')
         if video_list:
-            cover_name = '.'.join([cover_info.get('title') or cover_info['source_name'] + '_' + (cover_info.get('cover_id') or video_list[0]['V']),
-                                   (cover_info.get('year') or DEFAULT_YEAR)])
-            cover_name = normalize_filename(cover_name, repl='_')
-            cover_default_dir = '.'.join([cover_name, cover_info['source_name'] + '_' + cover_info.get('type', VideoTypes.MOVIE)])
-            cover_dir = os.path.abspath(os.path.join(save_dir, cover_default_dir))
+            save_dir = vc_confs['dir']
+            orig_defn = vc_confs['definition']
+            ts_convert = vc_confs['ts_convert']
 
             urls = []  # URLs file info for aria2c
             episodes = []  # [(abs_episode1_dir, [fname1.1.mp4, fname1.2.mp4]), ]
 
-            ep_fmt_numbering, ep_fmt_width = determine_ep_naming_fmt()
+            cover_name, cover_dir = self._cover_naming(cover_info, save_dir)
+            ep_fmt_numbering, ep_fmt_width = self._determine_ep_naming_fmt(cover_info)
 
             for vi in video_list:
                 if vi.get('defns') and any(vi['defns'].values()):
+                    defn = orig_defn
                     if not (defn and vi['defns'].get(defn)):
                         defn = pick_highest_definition(vi['defns'])
-                    if ep_fmt_numbering:
-                        ep_name = vi.get('title')
-                        ep_name = '-({})'.format(ep_name) if ep_name else ''
-
-                        episode_default_dir = '.'.join(
-                            [cover_name, 'EP' + '{:0{width}}'.format(vi['E'], width=ep_fmt_width) + ep_name,
-                             'WEBRip', cover_info['source_name'] + '_' + defn])
-                    else:
-                        episode_default_dir = '.'.join([cover_name, 'WEBRip', cover_info['source_name'] + '_' + defn])
-                    episode_dir = os.path.join(cover_dir, episode_default_dir)
-
-                    episode_pattern = episode_default_dir + '.*'
-                    downloaded = list(Path(cover_dir).glob(episode_pattern))
-                    if len(downloaded) and not os.path.exists(episode_dir):
-                        self._logger.warning(f"Already downloaded: {downloaded[0]}")
-                        continue
-                    self._rm_failed_pieces(episode_dir)
 
                     format = pick_format(vi['defns'][defn])
                     ext = format['ext']
+
+                    episode_default_dir, episode_dir = self._episode_naming(vi, cover_name, cover_dir,
+                                                                            cover_info['source_name'], ep_fmt_numbering,
+                                                                            ep_fmt_width, defn=defn)
+
+                    episode_pattern = glob.escape(episode_default_dir) + '.*'
+                    downloaded = [str(ep) for ep in Path(cover_dir).glob(episode_pattern)]
+                    exts = {ep.rpartition('.')[-1] for ep in downloaded}
+                    if len(downloaded) and not os.path.exists(episode_dir) and (
+                            (ext != 'ts' and 'mkv' in exts) or (ext == 'ts' and ts_convert and 'mp4' in exts) or (
+                            ext == 'ts' and not ts_convert and 'ts' in exts)):
+                        self._logger.warning(f"Already downloaded: {downloaded}")
+                        continue
+                    self._rm_failed_pieces(episode_dir)
 
                     fnames = []
                     for idx, url in enumerate(format['urls']):
@@ -250,15 +271,13 @@ class MDownloader(object):
                     os.remove(fn_abs)  # timely free up the disk space
 
     def _join_with_ffmpeg(self, cover_dir, episode_dir, fnames, ts_convert=True):
-        """abs_cover_dir > abs_episode_dir > video files """
-
-        # determine the extension (i.e. video format): ['.ts', '.265ts', '.mpg', '.mpeg']
+        # determine the extension (i.e. video format): ['.ts',]
         suffix = '.' + fnames[0].split('.')[-1]
         episode_name = os.path.basename(episode_dir) + suffix
         episode_name = os.path.join(cover_dir, episode_name)
 
         try:
-            if suffix in ('.ts', '.265ts'):
+            if suffix == '.ts':
                 if not ts_convert:
                     self._join_ts(cover_dir, episode_dir, fnames)
                     return True
@@ -289,7 +308,7 @@ class MDownloader(object):
                 return True
 
             # fall back on merging when converting failed
-            if suffix in ('.ts', '.265ts') and self.confs['misc']['delay_delete']:
+            if suffix == '.ts' and self.confs['misc']['delay_delete']:
                 self._logger.warning("Conversion to '%s' failed, switching to TS merging...", episode_name)
                 self._join_ts(cover_dir, episode_dir, fnames)
                 if os.path.isfile(episode_name):
@@ -299,8 +318,6 @@ class MDownloader(object):
             self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
 
     def _join_with_mkvmerge(self, cover_dir, episode_dir, fnames):
-        """abs_cover_dir > abs_episode_dir > video files """
-
         # determine the extension (i.e. video format)
         suffix = '.' + fnames[0].split('.')[-1]
         episode_name = os.path.basename(episode_dir) + suffix
@@ -342,7 +359,7 @@ class MDownloader(object):
         for episode_dir, fnames in episodes:
             suffix = '.' + fnames[0].split('.')[-1]
 
-            if suffix in ['.ts', '.265ts', '.mpg', '.mpeg']:
+            if suffix == '.ts':
                 res = self._join_with_ffmpeg(cover_dir, episode_dir, fnames, ts_convert=ts_convert)
             else:
                 res = self._join_with_mkvmerge(cover_dir, episode_dir, fnames)
