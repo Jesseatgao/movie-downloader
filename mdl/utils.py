@@ -7,6 +7,7 @@ import threading
 from contextlib import contextmanager
 import time
 import random
+import sys
 
 import configparser
 import io
@@ -197,14 +198,19 @@ class CommentConfigParser(configparser.ConfigParser):
         super().__init__(*args, **kwargs)
 
         # Backup _comment_prefixes
-        try:
-            self._comment_prefixes_backup = self._comment_prefixes
-        except AttributeError:
-            # Python 3.13+
-            self._comment_prefixes_backup = self._prefixes.full
-            self._prefixes.full = ()
+        comment_prefixes = kwargs.get('comment_prefixes', ('#', ';')) or ()
+        self._comment_prefixes_backup = comment_prefixes
+
         # Unset _comment_prefixes so comments won't be skipped
-        self._comment_prefixes = ()
+        assert sys.version_info.major == 3
+        if sys.version_info.minor < 13:
+            self._comment_prefixes = ()
+        elif sys.version_info.minor == 13:
+            self._prefixes.full = ()
+        else:
+            # Python 3.14+
+            inline_comment_prefixes = kwargs.get('inline_comment_prefixes', None) or ()
+            self._comments = configparser._CommentSpec((), inline_comment_prefixes)
 
         # Starting point for the comment IDs
         self._comment_id = 0

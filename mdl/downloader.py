@@ -47,8 +47,7 @@ class MDownloader(object):
                 vci.update_cover_dwnld_info(batch_cover_info)
                 cover_dir, episodes = self.dwnld_videos_with_aria2(batch_cover_info, vci.confs)
 
-                if vci.confs['merge_all']:
-                    self.join_videos(cover_dir, episodes, ts_convert=vci.confs['ts_convert'])
+                self.join_videos(cover_dir, episodes, vci.confs)
 
     def get_video_extractor(self, url):
         for name, vc in self._vcs.items():
@@ -355,12 +354,15 @@ class MDownloader(object):
         except OSError as e:
             self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
 
-    def join_videos(self, cover_dir, episodes, ts_convert=True):
+    def join_videos(self, cover_dir, episodes, vc_confs):
+        if not vc_confs['merge_all']:
+            return
+
         for episode_dir, fnames in episodes:
             suffix = '.' + fnames[0].split('.')[-1]
 
             if suffix == '.ts':
-                res = self._join_with_ffmpeg(cover_dir, episode_dir, fnames, ts_convert=ts_convert)
+                res = self._join_with_ffmpeg(cover_dir, episode_dir, fnames, ts_convert=vc_confs['ts_convert'])
             else:
                 res = self._join_with_mkvmerge(cover_dir, episode_dir, fnames)
 
