@@ -1,13 +1,12 @@
 from setuptools import setup, find_packages
-import codecs
 import os
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-with codecs.open(os.path.join(here, 'VERSION'), 'r', 'utf-8') as fd:
+with open(os.path.join(here, 'VERSION'), mode='r', encoding='utf-8') as fd:
     version = fd.read().strip()
 
-with codecs.open(os.path.join(here, 'README.md'), 'r', 'utf-8') as fd:
+with open(os.path.join(here, 'README.md'), mode='r', encoding='utf-8') as fd:
     long_description = fd.read()
 
 # empty the log file first before packaging
