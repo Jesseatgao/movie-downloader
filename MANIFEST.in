@@ -1,5 +1,4 @@
 graft mdl
-include VERSION
 include requirements.txt
 
 global-exclude *.py[cod] __pycache__ *.exe *.wasm *.log.*

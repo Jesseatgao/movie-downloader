@@ -3,7 +3,7 @@ import os
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-with open(os.path.join(here, 'VERSION'), mode='r', encoding='utf-8') as fd:
+with open(os.path.join(here, 'mdl', 'VERSION'), mode='r', encoding='utf-8') as fd:
     version = fd.read().strip()
 
 with open(os.path.join(here, 'README.md'), mode='r', encoding='utf-8') as fd:
@@ -40,6 +40,7 @@ setup(
             'log/mdl.log',
             'conf/*.conf',
             'js/*',
+            'VERSION',
             'third_parties/aria2/README',
             'third_parties/ffmpeg/README',
             'third_parties/mkvtoolnix/README',

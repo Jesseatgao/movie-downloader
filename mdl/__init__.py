@@ -2,7 +2,6 @@ import sys
 import os
 from shutil import which
 from itertools import zip_longest
-import codecs
 from pathlib import Path
 from argparse import ArgumentParser, ArgumentTypeError
 from configparser import ConfigParser
@@ -18,6 +17,9 @@ from mdl.sites import get_all_sites_vcs
 
 MOD_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGGER = build_logger('MDL', os.path.normpath(os.path.join(MOD_DIR, 'log/mdl.log')))
+
+with open(os.path.join(MOD_DIR, 'VERSION'), mode='r', encoding='utf-8') as fd:
+    VERSION = fd.read().strip()
 
 
 def _validate_dir(directory):
@@ -57,7 +59,7 @@ def _segment_playlist_items(items):
 
 
 def arg_parser():
-    parser = ArgumentParser()
+    parser = ArgumentParser(prog='mdl')
 
     parser.add_argument('url', nargs='+', help='Episode or cover/playlist web page URL(s)')
     parser.add_argument('-D', '--dir', default=None, dest='dir', type=_validate_dir, help='path to downloaded videos')
@@ -86,6 +88,8 @@ def arg_parser():
                         choices=['debug', 'info', 'warning', 'error', 'critical'])
     parser.add_argument('--delay-delete', dest='delay_delete', default=None, const='true', nargs='?', type=lambda x: x.lower(),
                         choices=['true', 'false'])
+
+    parser.add_argument('-V', '--version', action='version', version=f'%(prog)s (movie downloader) {VERSION}')
 
     return parser
 
@@ -196,11 +200,11 @@ def parse_ca_bundle(args, confs):
                 continue
 
             vc_ca_path.mkdir(parents=True, exist_ok=True)
-            with codecs.open(vc_ca_bundle, 'w', 'utf-8') as vc_fd:
+            with open(vc_ca_bundle, mode='w', encoding='utf-8') as vc_fd:
                 vc_fd.write('\n')
                 vc_fd.write(confs[site]['ca_cert'])
                 vc_fd.write('\n')
-                with codecs.open(certifi.where(), 'r', 'utf-8') as certifi_fd:
+                with open(certifi.where(), mode='r', encoding='utf-8') as certifi_fd:
                     vc_fd.write(certifi_fd.read())
 
             confs[site]['ca_cert'] = vc_ca_bundle
@@ -225,7 +229,7 @@ def parse_callbacks(args, confs):
                     changed = True
 
     if changed:
-        with codecs.open(conf_dlops, 'w', 'utf-8') as conf_fd:
+        with open(conf_dlops, mode='w', encoding='utf-8') as conf_fd:
             config.write(conf_fd)
 
 
@@ -235,32 +239,47 @@ def parse_other_ops(args, confs):
     args['playlist_items'] = {url: items for url, items in url_plist}
 
 
+def init(args, confs):
+    change_logging_level('MDL', console_level=confs['misc']['log_level'].upper())
+
+
 def check_deps():
     if not exists_3rd_parties():
         LOGGER.error('The third-parties such as Aria2, FFmpeg, MKVToolnix and Nodejs are required. Before moving on, '
                      'simply run "mdl_3rd_parties" from within the Shell to automatically download and install them. '
                      'Note that "--proxy" option may be needed. '
-                     'For how to get and install them manually, please refer to README.md.')
-        sys.exit(-1)
+                     'For how to get and install them manually, please refer to README.md.\n')
+        return False
+
+    return True
 
 
-def init(args, confs):
-    change_logging_level('MDL', console_level=confs['misc']['log_level'].upper())
+def parse_options():
+    resolved = check_deps()  # make sure the prerequisites are satisfied
 
-
-def main():
-    check_deps()  # make sure the prerequisites are satisfied
+    args = vars(arg_parser().parse_args())
 
     confs = conf_parser()  # parse the config file
-    parser = arg_parser()
-    args = vars(parser.parse_args())
 
+    if not resolved:
+        sys.exit(-1)
+
+    return args, confs
+
+
+def merge_options(args, confs):
     parse_misc_default(args, confs)
     parse_3rd_party_progs(args, confs)
     parse_dlops_default(args, confs)
     parse_ca_bundle(args, confs)
     parse_callbacks(args, confs)
     parse_other_ops(args, confs)
+
+
+def main():
+    args, confs = parse_options()
+
+    merge_options(args, confs)
 
     init(args, confs)
 
