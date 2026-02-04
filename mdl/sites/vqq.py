@@ -100,17 +100,27 @@ class QQVideoVC(VideoConfig):
         super().__init__(args, confs)
 
         self._COVER_PAT_RE = re.compile(r"var\s+COVER_INFO\s*=\s*(.+?);?var\s+COLUMN_INFO"
-                                        r"|\"coverInfo\"\s*:\s*(.+?),\s*\"videoInfo\"",
+                                        r"|\"coverInfo\"\s*:\s*(.+?),\s*\"videoInfo\""
+                                        r"|coverInfoMap\s*:\s*{\s*\w+\s*:\s*(.+?)\s*}\s*,\s*videoInfoMap",
                                         re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._VIDEO_INFO_RE = re.compile(r"var\s+VIDEO_INFO\s*=\s*(.+?);?</script>"
-                                         r"|\"episodeSinglePlay\".+?\"item_params\"\s*:\s*({.+?})\s*,\s*\"\s*sub_items",
+                                         r"|\"episodeSinglePlay\".+?\"item_params\"\s*:\s*({.+?})\s*,\s*\"\s*sub_items"
+                                         r"|videoInfoMap\s*:\s*{\s*\w+\s*:\s*(.+?)\s*}\s*,\s*initialCid",
                                          re.MULTILINE | re.DOTALL | re.IGNORECASE)
-        self._ALL_LOADED_INFO_RE = re.compile(r"window\.__PINIA__\s*=\s*(.+?);?</script>",
+        self._ALL_LOADED_INFO_RE = re.compile(r"window\.__PINIA__\s*=\s*(.+?);?</script>"
+                                              r"|_piniaState\s*:\s*(.+?)\s*,\s*isHarmonyClient",
                                               re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._EP_LIST_RE = re.compile(r"(?:\[{\"list\":)?Array\.prototype\.slice\.call\({\"\d+\":(?:{\"list\":\[)?\[(.+?})\]\]?,.*?\"length\":\d+}\)(?=,\"tabs\")",
                                       re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._PAGE_CONTEXT_RE = re.compile(r"cid=(?P<cid>[^&]+).+episode_begin=(?P<begin>\d+)&episode_end=(?P<end>\d+).+&page_size=(?P<size>\d+)",
                                            re.DOTALL | re.IGNORECASE)
+
+        self._NULLIFY_RE = re.compile(r'new\s+Map\(.*?\]\)|void\s+0|(?<=:)\s*undefined\b|(?<=:)\s*false\b|(?<=:)\s*null\b|(?<=(:|\[))\s*(?<!\\)"([^"]|\\")*?:([^"]|\\")*?(?<!\\)"',
+                                              re.MULTILINE | re.DOTALL | re.IGNORECASE)
+        self._DOUBLE_QUOTE_VAL_RE = re.compile(r":\s*([^,\[\]{}\"\\\s/]+)",
+                                              re.DOTALL | re.IGNORECASE)
+        self._DOUBLE_QUOTE_KEY_RE = re.compile(r"(\w+)\s*:",
+                                          re.DOTALL | re.IGNORECASE)
 
         self._VIDEO_COVER_PREFIX = 'https://v.qq.com/x/cover/'
         self._VIDEO_CONFIG_URL = 'https://vd.l.qq.com/proxyhttp'
@@ -780,22 +790,33 @@ class QQVideoVC(VideoConfig):
             # return self._get_video_urls_p10901(vid, definition)
             return self._get_video_urls_p10201(vid, definition, vurl, referrer)
 
+    def _normalize_conf_info(self, text):
+        nullified = self._NULLIFY_RE.sub(r'""', text)
+        # convert the `value` to a dobule-quoted string, except for boolean, integer and null type
+        dquoted_vals = self._DOUBLE_QUOTE_VAL_RE.sub(r': "\1"', nullified)
+        # convert the `key` to a dobule-quoted string
+        dquoted_keys = self._DOUBLE_QUOTE_KEY_RE.sub(r'"\1": ', dquoted_vals)
+        normalized = dquoted_keys
+
+        return normalized
+
     def _extract_video_cover_info(self, regex, text):
         result = (None, None)
 
         cover_match = regex.search(text)
         if cover_match:
             info = {}
-            cover_group = cover_match.group(1) or cover_match.group(2)
+            cover_group = cover_match.group(1) or cover_match.group(2) or cover_match.group(3)
+            cover_group = self._normalize_conf_info(cover_group)
             try:
-                cover_info = json.loads(cover_group.replace('undefined', 'null'))
+                cover_info = json.loads(cover_group)
             except json.JSONDecodeError:
                 return result
 
             if cover_info and isinstance(cover_info, dict):
                 info['title'] = cover_info.get('title', '') or cover_info.get('title_new', '')
                 info['year'] = cover_info.get('year') or (cover_info.get('publish_date') or '').split('-')[0]
-                info['cover_id'] = cover_info.get('cover_id', '')
+                info['cover_id'] = cover_info.get('cover_id', '') or cover_info.get('cid', '')
                 info['episode_all'] = int(cover_info.get('episode_all') or 0)
 
                 type_id = int(cover_info.get('type') or VideoTypeCodes.MOVIE)
@@ -818,8 +839,9 @@ class QQVideoVC(VideoConfig):
 
         match = self._ALL_LOADED_INFO_RE.search(r_text)
         if match:
-            matched = match.group(1)
-            matched_norm = re.sub(self._EP_LIST_RE, r'[{"list":[[\1]]', matched).replace('undefined', 'null')
+            matched = match.group(1) or match.group(2)
+            matched_norm = re.sub(self._EP_LIST_RE, r'[{"list":[[\1]]', matched)
+            matched_norm = self._normalize_conf_info(matched_norm)
             try:
                 conf_info = json.loads(matched_norm)
             except json.JSONDecodeError:
@@ -853,7 +875,8 @@ class QQVideoVC(VideoConfig):
 
         # try again to determine the release year if we didn't get it before
         year = json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'year']) \
-               or json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'show_year'])
+               or json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'show_year']) \
+               or json_path_get(conf_info, ['introductionData', 'introductionData', 'year'])
         if year and (not cover_info['year'] or cover_info['year'] != year):
             cover_info['year'] = year
 
@@ -872,7 +895,7 @@ class QQVideoVC(VideoConfig):
 
 
         # check for the misnumbering (due to possible missing episodes) and fixing
-        if not cover_info['episode_all'] or cover_info['episode_all'] == len(cover_info['normal_ids']) or not selected_ep_list[0].get('title', '').isdecimal():
+        if not cover_info['episode_all'] or cover_info['episode_all'] == len(cover_info['normal_ids']) or not selected_ep_list or not selected_ep_list[0].get('title', '').isdecimal():
             return
 
         v2i = {vi['V']: idx for idx, vi in enumerate(cover_info['normal_ids'])}

@@ -12,20 +12,20 @@ A fast movie downloader using Aria2
     
         i686 32-bit version:
     
-        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.7/aria2-i686-win.zip
+        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.8-el9/aria2-i686-win.zip
         
         x86_64 64-bit version:
         
-        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.7/aria2-x86_64-win.zip
+        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.8-el9/aria2-x86_64-win.zip
     * For Linux:
     
         i686 32-bit version:
         
-        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.7/aria2-i686-linux.tar.xz
+        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.8-el9/aria2-i686-linux.tar.xz
 
         x86_64 64-bit version:
         
-        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.7/aria2-x86_64-linux.tar.xz
+        https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.8-el9/aria2-x86_64-linux.tar.xz
         
 * [FFmpeg](https://ffmpeg.org/download.html)
     * For Windows:
@@ -52,20 +52,20 @@ A fast movie downloader using Aria2
     
         i686 32-bit version:
     
-        https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.4/mkvtoolnix-i686-win.zip
+        https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.8el9/mkvtoolnix-i686-win.zip
         
         x86_64 64-bit version:
         
-        https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.4/mkvtoolnix-x86_64-win.zip
+        https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.8el9/mkvtoolnix-x86_64-win.zip
     * For Linux:
     
         i686 32-bit version:
         
-        https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.4/mkvtoolnix-i686-linux.tar.xz
+        https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.8el9/mkvtoolnix-i686-linux.tar.xz
 
         x86_64 64-bit version:
         
-        https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.4/mkvtoolnix-x86_64-linux.tar.xz
+        https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.8el9/mkvtoolnix-x86_64-linux.tar.xz
         
 * [node](https://nodejs.org)
     * For Windows:

@@ -20,38 +20,38 @@ progs_conf = {
     'aria2': {
         'Windows': {
             '32-bit': {
-                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.7/aria2-i686-win.zip',
+                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.8-el9/aria2-i686-win.zip',
                 'ext': '.zip',
                 'content-path': ['i686/'],
                 'content-base': 'aria2c',
                 'content-ext': '.exe',
-                'sha512': '80de1f722414d5cab69b32b208583b3ead37507cad3e9b7e2270c481184505131b1ef79fbed1e590f5dae21aea0672f5791f10e903149a549908e2564f6d98b5'
+                'sha512': 'c65b7128172352375d7bf4d1a6acf11165002b38b82c5cae69a77f83f7d986e397346cbcbd35def01825ce9789947b2877470271410753e1900007d39257b20a'
             },
             '64-bit': {
-                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.7/aria2-x86_64-win.zip',
+                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.8-el9/aria2-x86_64-win.zip',
                 'ext': '.zip',
                 'content-path': ['x86_64/'],
                 'content-base': 'aria2c',
                 'content-ext': '.exe',
-                'sha512': '5b5d6ad941cecf17e2edd40e28d2b8829befd414a56c93ed35d763a22cefc067609e5e4f16b829308c3333185283a84d060b74ac3ea4fdf1b08fdc29f5478f67'
+                'sha512': 'a5d8feed8f973948cb70323d6388c5ae6da27f153f66529ab552932e4b3a575b0f2250e437b4f5fa1a0ec800a1a7b13b1b964ba77438c4bdeef1ba7fd649207b'
             }
         },
         'Linux': {
             '32-bit': {
-                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.7/aria2-i686-linux.tar.xz',
+                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.8-el9/aria2-i686-linux.tar.xz',
                 'ext': '.tar.xz',
                 'content-path': ['i686/'],
                 'content-base': 'aria2c',
                 'content-ext': '',
-                'sha512': '84c3ff2ea6d47f785f4fb6853eb269e7558b22f3bbca7e21005389ce4cf1735b47f270954bfb3be3fa0991ea63cdb4b7069862b84944c180a15eb2e492984f68'
+                'sha512': 'a9a8c1fc1483f6911706ad4f3388990730b2165c7476373a0094a3e43af2d76d37f281fddff9017d5f6ed1fac9f6fd157ec3e12300844c3f363bd995c3e4db57'
             },
             '64-bit': {
-                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.7/aria2-x86_64-linux.tar.xz',
+                'url': 'https://github.com/Jesseatgao/aria2-patched-static-build/releases/download/1.37.0-win-linux--builder-win32-v1.8-el9/aria2-x86_64-linux.tar.xz',
                 'ext': '.tar.xz',
                 'content-path': ['x86_64/'],
                 'content-base': 'aria2c',
                 'content-ext': '',
-                'sha512': 'a729fe34769578f97abf7d706147f6819edc94dbb309b0b3470f330c9c1b3f2632691a46e9d01a16e1dd9038e051c23d57be21fad4c4a266fd2813bbd86a10a1'
+                'sha512': 'a18668d7dde41bfc334782fb1805764a5ac95f7dc12a6096638c0d7eb36acf65a3c42e262eb6bdee26f386769a133b7b140920ad1f30ecc70c9eec7384717476'
             }
         },
         'Darwin': {
@@ -134,38 +134,38 @@ progs_conf = {
     'mkvtoolnix': {
         'Windows': {
             '32-bit': {
-                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.4/mkvtoolnix-i686-win.zip',
+                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.8el9/mkvtoolnix-i686-win.zip',
                 'ext': '.zip',
                 'content-path': ['i686/'],
                 'content-base': 'mkvmerge',
                 'content-ext': '.exe',
-                'sha512': '9d9398d095c60c80035229100d16f26acca71e419ddae7fd20b301c273c708a389872fd51fa995e8162b57b6068434d44482025b2fcc904fd8c76eb6e0c148b0'
+                'sha512': 'd6aec39e0c52d976ea1a56d77ee2c01b10e66cfcc9a722ce94cf988902a487302a55a0afe15ddd75579e0f4b67e1e1c1f3285f9c2bbfadb9a8759e2512bcba51'
             },
             '64-bit': {
-                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.4/mkvtoolnix-x86_64-win.zip',
+                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.8el9/mkvtoolnix-x86_64-win.zip',
                 'ext': '.zip',
                 'content-path': ['x86_64/'],
                 'content-base': 'mkvmerge',
                 'content-ext': '.exe',
-                'sha512': 'bfe3bc0dd7be2e2e8f9034ad692bf8d922f8db6f4c04a7cba84ba305fd969beaa2afec8a3158836e1c14121a82a5d678969585dc3026298714f1dbaa365e5756'
+                'sha512': '04e93d9bcb07949188fac3c49611f6d184160681a6f1a3dead9ef8deed4cfa05b0de099dc4e51e21147d048e6c767c6cc16e624dfa23ccfe6440b3d0fc600d10'
             }
         },
         'Linux': {
             '32-bit': {
-                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.4/mkvtoolnix-i686-linux.tar.xz',
+                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.8el9/mkvtoolnix-i686-linux.tar.xz',
                 'ext': '.tar.xz',
                 'content-path': ['i686/'],
                 'content-base': 'mkvmerge',
                 'content-ext': '',
-                'sha512': '19b8442ced7bd44796d2f4bbc8ebdfa0ddf37662f29cdd600f4a06ac29c71d0b33c75f18cfd3243a851b292ac5ea5c30039d83c61571194450caf6e9a9596ce5'
+                'sha512': '54dafa64a1277a59f5c30e1057b2fe6dc9ad4dc5f64b5189e34bc15ab6fdff4571ccb831f54e3756e8fe65b45250e11fa0fd211997a783251e8bbce2f5a96a68'
             },
             '64-bit': {
-                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.4/mkvtoolnix-x86_64-linux.tar.xz',
+                'url': 'https://github.com/Jesseatgao/MKVToolNix-static-builds/releases/download/v58.0.0-mingw-w64-win32v1.8el9/mkvtoolnix-x86_64-linux.tar.xz',
                 'ext': '.tar.xz',
                 'content-path': ['x86_64/'],
                 'content-base': 'mkvmerge',
                 'content-ext': '',
-                'sha512': '6a31cd267a024bae9309e2bd6533b60c47010c3758549cf7a70db7ebafc30e5d6a3e681a01a7b1bb6b4a4c63413fc5ac210837d4bfdfd2e305cf62d26836fcaa'
+                'sha512': '2d6877b2a70fed42e0230d535f01e417179462d32eb03afbbfe500118a89adb56ddbe3d0c82752e86671d3f2c2ce5ec206573f86e70c1a47dd2f028934768cf5'
             }
         },
         'Darwin': {
