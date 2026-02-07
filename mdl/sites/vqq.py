@@ -2,6 +2,8 @@ import json
 import re
 import os
 import subprocess
+import math
+import random
 
 from urllib.parse import urlencode
 
@@ -124,6 +126,7 @@ class QQVideoVC(VideoConfig):
 
         self._VIDEO_COVER_PREFIX = 'https://v.qq.com/x/cover/'
         self._VIDEO_CONFIG_URL = 'https://vd.l.qq.com/proxyhttp'
+        self._VIDEO_GETPAGE_URL = "https://pbaccess.video.qq.com/trpc.vector_layout.page_view.PageService/getPage"
 
         # make sure _VIDEO_URL_PATS has a compiled version, which should have been done in @classmethod is_url_valid
         for pat in self._VIDEO_URL_PATS:
@@ -167,6 +170,12 @@ class QQVideoVC(VideoConfig):
         login_token['main_login'] = 'qq'
 
         return login_token
+
+    @classmethod
+    def generate_device_id(cls):
+        length = 16
+
+        return "".join([f"{h:x}" for h in [math.floor(random.random() * 16) for _ in range(length)]])
 
     def _get_video_urls_p10801(self, vid, definition, vurl, referrer):
         urls = []
@@ -834,7 +843,7 @@ class QQVideoVC(VideoConfig):
 
         return result
 
-    def _get_eplist(self, r_text):
+    def _get_all_loaded_info(self, r_text):
         conf_info, ep_list, tabs = {}, [], []
 
         match = self._ALL_LOADED_INFO_RE.search(r_text)
@@ -856,12 +865,79 @@ class QQVideoVC(VideoConfig):
 
         return conf_info, ep_list, tabs
 
+    def _get_page_eplist(self, cid, vid):
+        conf_info, ep_list, tabs = {}, [], []
+
+        query_params = {
+            'vdevice_guid': self.confs['device_id'],
+            'video_appid': "3000010",
+            'vversion_name': "8.5.96",
+            'vversion_platform': "2"
+        }
+
+        json_payload = {
+          'page_params': {
+            'ad_wechat_authorization_status': "0",
+            'req_from': "web_vsite",
+            'ad_exp_ids': "",
+            'pc_sdk_version': "",
+            'pc_oaid': "",
+            'new_mark_label_enabled': "1",
+            'pc_device_info': "",
+            'support_pc_yyb_mobile_app_engine': "0",
+            'pc_wegame_version': "",
+            'cid': cid,
+            'history_vid': None,
+            'vid': vid,
+            'is_pc_new_detail_page': "0",
+            'is_from_web_flyflow': "1"
+          },
+          'page_bypass_params': {
+            'params': {
+              'caller_id': "3000010",
+              'platform_id': "2"
+            },
+            'scene': "desk_detail",
+            'app_version': "",
+            'abtest_bypass_id': self.confs['device_id']
+          },
+          'page_context': {}
+        }
+
+        try:
+            r = self._requester.post(self._VIDEO_GETPAGE_URL, json=json_payload, params=query_params)
+            r.raise_for_status()
+            if r.status_code != 200:
+                raise RequestException("Unexpected status code %i" % r.status_code)
+
+            try:
+                data = json.loads(r.text)
+            except json.JSONDecodeError as e:
+                self._logger.error("Received ill-formed video config info for '%i': '%r'", vid, e)
+                return conf_info, ep_list, tabs
+
+            card_list = json_path_get(data, ['data', 'CardList'], [])
+            for card in card_list:
+                if card['type'] == "pc_introduction":
+                    conf_info = json_path_get(card, ['children_list', '0', 'cards', 0, 'params'], {})
+                elif card['type'] == "pc_web_episode_list":
+                    tabs = card['params']['tabs']
+                    tabs = json.loads(tabs) if tabs else []
+
+                    ep_list = [json_path_get(card, ['cards', 0, 'params']) for ep, card in sorted(card['children_list'].items(), key=lambda x: int(x[0]))]
+                else:
+                    continue
+        except RequestException as e:
+            self._logger.error("Error while requesting the config info of video '%i': '%r'", vid, e)
+
+        return conf_info, ep_list, tabs
+
     def _update_video_cover_info(self, cover_info, r_text, cover_url, url_type):
         def update_from_eplist(normal_ids, ep_list, vid2idx):
             for epv in ep_list:
                 vi = normal_ids[vid2idx[epv['vid']]]
                 vi['E']= int(epv['title'])
-                # vi['title'] = epv['playTitle']
+                # vi['title'] = epv['play_title']
 
         def align_eps(normal_ids, start, stop, shift):
             for idx in range(start, stop):
@@ -869,7 +945,7 @@ class QQVideoVC(VideoConfig):
 
         playlist_items = self.args['playlist_items'][cover_url]
 
-        conf_info, selected_ep_list, tabs = self._get_eplist(r_text)
+        conf_info, _, _ = self._get_all_loaded_info(r_text)
         if not conf_info:
             return
 
@@ -880,18 +956,21 @@ class QQVideoVC(VideoConfig):
         if year and (not cover_info['year'] or cover_info['year'] != year):
             cover_info['year'] = year
 
+        currentCid, currentVid = conf_info['globalStore']['currentCid'], conf_info['globalStore']['currentVid']
+        conf_info_page, selected_ep_list, tabs = self._get_page_eplist(currentCid, currentVid)
+
         if len(selected_ep_list) >= len(cover_info['normal_ids']):  # ensure the full list of episodes
             cover_info['normal_ids'] = [{'V': item['vid'],
                                          'E': ep,
                                          'defns': {},
-                                         'title': item.get('playTitle') or item.get('title', '')
+                                         'title': item.get('play_title') or item.get('union_title', '')
                                          # exclude the types of videos that are unlikely to have meaningful episode names
                                          if cover_info['type'] not in [VideoTypes.TV, ] else ''}
                                         for ep, item in enumerate(selected_ep_list, start=1)]
 
         # last resort for getting the release date
-        if not cover_info['year'] and selected_ep_list:
-            cover_info['year'] = (selected_ep_list[0].get('publishDate') or '').split('-')[0]
+        if not cover_info['year'] and conf_info_page:
+            cover_info['year'] = conf_info_page.get('year') or ""
 
 
         # check for the misnumbering (due to possible missing episodes) and fixing
@@ -905,13 +984,13 @@ class QQVideoVC(VideoConfig):
 
         delay_request = SpinWithBackoff()
         ep, shift = 0, 0
-        for tab in sorted(tabs, key=lambda tab: int(tab['text'].split('-')[0])):
-            page_context = self._PAGE_CONTEXT_RE.search(tab['pageContext'])
+        for tab in sorted(tabs, key=lambda tab: int(tab['begin'])):
+            page_context = self._PAGE_CONTEXT_RE.search(tab['page_context'])
             if not page_context:
                 return
             cid, begin, end, size = page_context.group('cid'), int(page_context.group('begin')), int(page_context.group('end')), int(page_context.group('size'))
 
-            if tab['isSelected']:
+            if tab['selected']:
                 update_from_eplist(cover_info['normal_ids'], selected_ep_list, v2i)
             else:
                 if not ((not playlist_items and url_type == VideoURLType.COVER) or (playlist_items and self.have_overlap((begin, end), playlist_items))):
@@ -923,24 +1002,11 @@ class QQVideoVC(VideoConfig):
                         return
                     delay_request.sleep()
 
-                    req_url = self._VIDEO_COVER_PREFIX + cid + '/' + cover_info['normal_ids'][ep]['V'] + '.html'
-                    try:
-                        r = self._requester.get(req_url)
-                        if r.status_code != 200:
-                            raise RequestException("Unexpected status code %i, request URL: '%s'" % (r.status_code, req_url))
-                        r.encoding = 'utf-8'
-
-                        _, ep_list, _ = self._get_eplist(r.text)
-                        if not ep_list:
-                            align_eps(cover_info['normal_ids'], ep, len(cover_info['normal_ids']), shift)
-                            return
-                        update_from_eplist(cover_info['normal_ids'], ep_list, v2i)
-                    except RequestException as e:
-                        self._logger.error("Error while requesting the webpage '%s': '%r'", req_url, e)
-
-                        # best effort to make it 'right'
+                    _, ep_list, _  = self._get_page_eplist(cid, cover_info['normal_ids'][ep]['V'])
+                    if not ep_list:
                         align_eps(cover_info['normal_ids'], ep, len(cover_info['normal_ids']), shift)
                         return
+                    update_from_eplist(cover_info['normal_ids'], ep_list, v2i)
 
             ep += size
             shift = cover_info['normal_ids'][ep-1]['E'] - ep
