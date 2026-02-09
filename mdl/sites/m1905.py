@@ -95,6 +95,10 @@ class M1905VC(VideoConfig):
         random.seed()
         return ''.join(map(translate, "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"))
 
+    @classmethod
+    def generate_device_id(cls):
+        return cls._random_string()
+
     @staticmethod
     def _signature(params, appid):
         query = ""
@@ -301,7 +305,7 @@ class M1905VC(VideoConfig):
             'page': vi['url'],
             'playerid': self._playerid,
             'type': "hls",
-            'uuid': self._random_string()
+            'uuid': self.confs['device_id']
         }
         params['signature'] = self._signature(params, self._appid)
 
@@ -357,7 +361,7 @@ class M1905VC(VideoConfig):
         params = {
             'vipid': vi['V'],
             'playerid': self._playerid,
-            'uuid': self._random_string(),
+            'uuid': self.confs['device_id'],
             'callback': 'fnCallback0'
         }
 

@@ -968,10 +968,12 @@ class QQVideoVC(VideoConfig):
                                          if cover_info['type'] not in [VideoTypes.TV, ] else ''}
                                         for ep, item in enumerate(selected_ep_list, start=1)]
 
-        # last resort for getting the release date
-        if not cover_info['year'] and conf_info_page:
-            cover_info['year'] = conf_info_page.get('year') or ""
-
+        # last resort for getting the cover info (release date, title, etc)
+        if conf_info_page:
+            if not cover_info['year']:
+                cover_info['year'] = conf_info_page.get('year') or ""
+            if not cover_info['title']:
+                cover_info['title'] = conf_info_page.get('title') or ""
 
         # check for the misnumbering (due to possible missing episodes) and fixing
         if not cover_info['episode_all'] or cover_info['episode_all'] == len(cover_info['normal_ids']) or not selected_ep_list or not selected_ep_list[0].get('title', '').isdecimal():
