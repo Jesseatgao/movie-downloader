@@ -956,8 +956,8 @@ class QQVideoVC(VideoConfig):
         if year and (not cover_info['year'] or cover_info['year'] != year):
             cover_info['year'] = year
 
-        currentCid, currentVid = conf_info['globalStore']['currentCid'], conf_info['globalStore']['currentVid']
-        conf_info_page, selected_ep_list, tabs = self._get_page_eplist(currentCid, currentVid)
+        current_cid, current_vid = conf_info['globalStore']['currentCid'], conf_info['globalStore']['currentVid']
+        conf_info_page, selected_ep_list, tabs = self._get_page_eplist(current_cid, current_vid)
 
         if len(selected_ep_list) >= len(cover_info['normal_ids']):  # ensure the full list of episodes
             cover_info['normal_ids'] = [{'V': item['vid'],

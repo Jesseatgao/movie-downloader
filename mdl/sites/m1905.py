@@ -31,9 +31,9 @@ class M1905VC(VideoConfig):
     _M1905_DEFN_MAP_I2S = {'free': {'uhd': 'shd', 'hd': 'hd', 'sd': 'sd'},
                            'vip': {'v1080pm3u8': 'fhd', 'ipad800kbm3u8': 'shd', 'm3u8ipad': 'hd', 'm3u8iphone': 'sd'}}  # internal format name -> standard format name
     _M1905_DEFN_MAP_S2I = {
-        'free': {'dolby': 'uhd', 'sfr_hdr': 'uhd', 'hdr10': 'uhd', 'uhd': 'uhd', 'fhd': 'uhd', 'shd': 'uhd', 'hd': 'hd',
+        'free': {'dolby': 'uhd', 'suhd': 'uhd', 'hdr10': 'uhd', 'uhd': 'uhd', 'fhd': 'uhd', 'shd': 'uhd', 'hd': 'hd',
                  'sd': 'sd'},
-        'vip': {'dolby': 'v1080pm3u8', 'sfr_hdr': 'v1080pm3u8', 'hdr10': 'v1080pm3u8', 'uhd': 'v1080pm3u8',
+        'vip': {'dolby': 'v1080pm3u8', 'suhd': 'v1080pm3u8', 'hdr10': 'v1080pm3u8', 'uhd': 'v1080pm3u8',
                 'fhd': 'v1080pm3u8', 'shd': 'ipad800kbm3u8', 'hd': 'm3u8ipad', 'sd': 'm3u8iphone'}}  # standard -> internal
 
     def __init__(self, args, confs):

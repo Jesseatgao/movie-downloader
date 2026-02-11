@@ -22,7 +22,7 @@ class IQiyiVC(VideoConfig):
     VC_NAME = "IQiyi"
 
     _IQIYI_DEFN_MAP_I2S = {800: 'uhd', 600: 'fhd', 500: 'shd', 300: 'hd', 200: 'sd'}
-    _IQIYI_DEFN_MAP_S2I = {'dolby': 800, 'sfr_hdr': 800, 'hdr10': 800, 'uhd': 800, 'fhd': 600, 'shd': 500, 'hd': 300, 'sd': 200}
+    _IQIYI_DEFN_MAP_S2I = {'dolby': 800, 'suhd': 800, 'hdr10': 800, 'uhd': 800, 'fhd': 600, 'shd': 500, 'hd': 300, 'sd': 200}
 
     def __init__(self, args, confs):
         super().__init__(args, confs)

@@ -64,7 +64,7 @@ def arg_parser():
     parser.add_argument('url', nargs='+', help='Episode or cover/playlist web page URL(s)')
     parser.add_argument('-D', '--dir', default=None, dest='dir', type=_validate_dir, help='path to downloaded videos')
     parser.add_argument('-d', '--definition', default=None, dest='definition', type=lambda x: x.lower(),
-                        choices=['dolby', 'sfr_hdr', 'hdr10', 'uhd', 'fhd', 'shd', 'hd', 'sd'])
+                        choices=['suhd', 'uhd', 'dolby', 'hdr10', 'fhd', 'shd', 'hd', 'sd'])
     parser.add_argument('-p', '--proxy', dest='proxy', help='proxy in the form of "http://[user:password@]host:port"')
     parser.add_argument('--playlist-items', default='', dest='playlist_items', type=_segment_playlist_items,
                         help='desired episode indices in a playlist separated by commas, while the playlists are separated by semicolons,'

@@ -1,5 +1,5 @@
 
-VIDEO_DEFINITIONS = ('dolby', 'sfr_hdr', 'hdr10', 'uhd', 'fhd', 'shd', 'hd', 'sd')  # from highest to lowest
+VIDEO_DEFINITIONS = ('suhd', 'uhd', 'dolby', 'hdr10', 'fhd', 'shd', 'hd', 'sd')  # from highest to lowest
 
 DEFAULT_YEAR = '1900'
 
