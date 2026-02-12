@@ -115,7 +115,7 @@ Step 2: get and install third-party dependency programs
 
 ### Usage
 ```
-mdl [-h] [-V] [-D DIR] [-d {uhd,fhd,shd,hd,sd}]
+mdl [-h] [-V] [-D DIR] [-d {suhd,uhd,dolby,hdr10,fhd,shd,hd,sd}]
     [-p PROXY] [--proxy-dl-video [{True,False}]]
     [--no-logo [{True,False}]] [--ts-convert [{True,False}]]
     [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-N NODE]
@@ -128,7 +128,8 @@ mdl [-h] [-V] [-D DIR] [-d {uhd,fhd,shd,hd,sd}]
 
 `-D DIR`: specify _DIR_ to save downloaded videos.
 
-`-d {uhd,fhd,shd,hd,sd}`: specify the definition of the video to download. `uhd,fhd,shd,hd,sd` correspond to `4K, 1080P, 720P, 480P, 270P` respectively.
+`-d {suhd,uhd,dolby,hdr10,fhd,shd,hd,sd}`: specify the definition of the video to download. `suhd,uhd,dolby,hdr10,fhd,shd,hd,sd`
+    correspond to `Enhanced 4K, 4K, Dolby Vision, HDR10, 1080P, 720P, 480P, 270P` respectively.
 
 `-p PROXY`: specify the proxy server _PROXY_ (in the form of `http://[user:password@]host:port`)
     used to get web pages, and download videos (if configured in `conf/dlops.conf` or enabled by the option `--proxy-dl-video`).
