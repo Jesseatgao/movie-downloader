@@ -14,6 +14,7 @@ import io
 import re
 
 import requests
+from requests.cookies import cookielib
 
 
 ILLEGAL_FILENAME_CHARS = (' ', '#', '%', '&', '{', '}', '\\', '<', '>', '*', '?', '/', '$', '!', '\'', '"', ':', '@', '+', '`', '|', '=')
@@ -58,12 +59,11 @@ def json_path_get(nested_data, key_path, default=None):
 
 
 def build_cookiejar_from_kvp(key_values):
-    """build a CookieJar from key-value pairs.
+    """build a RequestsCookieJar from key-value pairs.
 
      Args:
          key_values (str): The cookies must take the form of ``'cookie_key=cookie_value'``, with multiple pairs separated
                 by whitespace and/or semicolon if applicable, e.g. ``'key1=val1 key2=val2; key3=val3'``.
-
     """
     if key_values:
         cookiejar = requests.cookies.RequestsCookieJar()
@@ -73,6 +73,26 @@ def build_cookiejar_from_kvp(key_values):
             cookiejar.set(key, value)
 
         return cookiejar
+
+
+def build_cookiejar_from_file(filename):
+    """build a RequestsCookieJar from a cookies file of the Netscape cookie file format.
+
+    Args:
+        filename (str): The file path of the cookies file.
+
+    Raises:
+        LoadError: Raised when the cookies file is not well-formed.
+        OSError: Raised when file-related operation fails, e.g. "file not found".
+    """
+    if filename:
+        cookiejar = cookielib.MozillaCookieJar(filename)
+        cookiejar.load(ignore_expires=True, ignore_discard=True)
+
+        requests_cookiejar = requests.cookies.RequestsCookieJar()
+        requests_cookiejar.update(cookiejar)
+
+        return requests_cookiejar
 
 
 def build_logger(logger_name, log_file_name, logger_level=logging.DEBUG, console_level=logging.INFO, file_level=logging.DEBUG):

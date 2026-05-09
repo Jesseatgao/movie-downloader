@@ -1,8 +1,9 @@
 import re
 import logging
+from http.cookiejar import LoadError
 
 from bdownload.download import requests_retry_session
-from .utils import build_cookiejar_from_kvp
+from .utils import build_cookiejar_from_kvp, build_cookiejar_from_file
 
 
 class VideoConfig(object):
@@ -28,10 +29,7 @@ class VideoConfig(object):
             self._requester.proxies = proxies
 
         # get user tokens/cookies from configuration file
-        self._regular_token = build_cookiejar_from_kvp(self.confs['regular_user_token'])
-        self._vip_token = build_cookiejar_from_kvp(self.confs['vip_user_token'])
-        self.has_vip = True if self._vip_token else False
-        self.user_token = self._vip_token if self._vip_token else self._regular_token
+        self.has_vip, self.user_token = self._load_cookies()
         if self.user_token:
             # set regular/VIP user cookie for the requesting session
             self._requester.cookies = self.user_token
@@ -42,6 +40,24 @@ class VideoConfig(object):
             self._requester.headers.update({'User-Agent': user_agent})
 
         self.preferred_defn = self.confs['definition']
+
+    def _load_cookies(self):
+        regular_token = build_cookiejar_from_kvp(self.confs['regular_user_token'])
+        vip_token = build_cookiejar_from_kvp(self.confs['vip_user_token'])
+
+        regular_cookies_file = vip_cookies_file = None
+        try:
+            vip_cookies_file = build_cookiejar_from_file(self.confs['vip_cookies_file'])
+            regular_cookies_file = build_cookiejar_from_file(self.confs['regular_cookies_file'])
+        except LoadError as e:
+            self._logger.error("Error while loading cookies file: '%r'", e)
+        except OSError as e:
+            self._logger.error("Error while reading the cookies file(s) %s %s: '%r'", self.confs['vip_cookies_file'], self.confs['regular_cookies_file'], e)
+
+        has_vip = True if vip_token or vip_cookies_file else False
+        user_token = vip_cookies_file or vip_token or regular_cookies_file or regular_token
+
+        return has_vip, user_token
 
     @classmethod
     def is_url_valid(cls, url):
