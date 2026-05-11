@@ -23,8 +23,8 @@ class M1905VC(VideoConfig):
         {'pat': r'^https?://vip\.1905\.com/play/(\d+)\.shtml',
          'eg': 'https://vip.1905.com/play/535547.shtml'}  # 'VIP: video_episode_hd'
     ]
-    SOURCE_NAME = "m1905"
-    VC_NAME = "m1905"
+    SOURCE_NAME = "M1905"
+    VC_NAME = "M1905"
     #_VIP_TOKEN = {}
 
     _M1905_DEFINITION = {'free': ['uhd', 'hd', 'sd'], 'vip': ['v1080pm3u8', 'ipad800kbm3u8', 'm3u8ipad', 'm3u8iphone']}  # decremental!

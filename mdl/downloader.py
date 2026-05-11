@@ -153,15 +153,15 @@ class MDownloader(object):
         return cover_name, cover_dir
 
     def _episode_naming(self, vi, cover_name, cover_dir, source_name, ep_fmt_numbering, ep_fmt_width, defn=''):
-        if ep_fmt_numbering:
-            ep_name = vi.get('title')
-            ep_name = '-({})'.format(ep_name) if ep_name else ''
+        ep_name = vi.get('title')
+        ep_name = '-({})'.format(ep_name) if ep_name and ep_name != cover_name else ''
 
+        if ep_fmt_numbering:
             episode_default_dir = '.'.join(
                 [cover_name, 'EP' + '{:0{width}}'.format(vi['E'], width=ep_fmt_width) + ep_name,
                  'WEBRip', source_name + '_' + defn])
         else:
-            episode_default_dir = '.'.join([cover_name, 'WEBRip', source_name + '_' + defn])
+            episode_default_dir = '.'.join([cover_name + ep_name, 'WEBRip', source_name + '_' + defn])
         episode_dir = os.path.join(cover_dir, episode_default_dir)
 
         return episode_default_dir, episode_dir

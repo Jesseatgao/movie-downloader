@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 
 from requests import RequestException
 
-from mdl.commons import pick_highest_definition, sort_definitions, VideoTypeCodes, VideoTypes, VideoURLType, DEFAULT_YEAR
+from mdl.commons import pick_highest_definition, sort_definitions, VideoTypeCodes, VideoTypes, VideoURLType
 from mdl.videoconfig import VideoConfig
 from mdl.utils import json_path_get, SpinWithBackoff
 

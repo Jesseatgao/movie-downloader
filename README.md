@@ -5,6 +5,7 @@ A fast movie downloader using Aria2
 * Tencent Video
 * m1905
 * iQIYI
+* M3u8
 
 ### Third-party Dependencies
 * [Aria2](https://github.com/Jesseatgao/aria2-patched-static-build)
