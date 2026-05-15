@@ -9,6 +9,7 @@ from pathlib import Path
 import glob
 
 from certifi import where
+from Crypto.Cipher import AES
 
 from .commons import pick_highest_definition, VideoTypes, DEFAULT_YEAR
 from .sites import get_all_sites_vcs
@@ -220,7 +221,9 @@ class MDownloader(object):
                         fnames.append(fname)
                         urls.append('{}\n  dir={}\n  out={}'.format(url, episode_dir, fname))
 
-                    episodes.append((episode_dir, fnames))
+                    seckeys = format.get('seckeys', [])
+
+                    episodes.append((episode_dir, fnames, seckeys))
 
             urllist = '\n'.join(urls)
 
@@ -251,6 +254,22 @@ class MDownloader(object):
 
         self._logger.warning("No files to download for '{}'.".format(cover_info['url']))
         return "", []
+
+    def _decrypt_ts(self, cover_dir, episode_dir, fnames, seckeys):
+        if not seckeys:
+            return
+
+        for fn, seckey in zip(fnames, seckeys):
+            if seckey['algo'] == "NONE":
+                continue
+
+            fn_abs = os.path.join(episode_dir, fn)
+            with open(fn_abs, 'rb') as f:
+                c_txt = f.read()
+            cipher = AES.new(seckey['key'], AES.MODE_CBC, iv=seckey['iv'])
+            p_txt = cipher.decrypt(c_txt)
+            with open(fn_abs, 'w+b') as f:
+                f.write(p_txt)
 
     def _join_ts(self, cover_dir, episode_dir, fnames):
         episode_name = episode_dir + '.ts'
@@ -358,10 +377,12 @@ class MDownloader(object):
         if not vc_confs['merge_all']:
             return
 
-        for episode_dir, fnames in episodes:
+        for episode_dir, fnames, seckeys in episodes:
             suffix = '.' + fnames[0].split('.')[-1]
 
             if suffix == '.ts':
+                self._decrypt_ts(cover_dir, episode_dir, fnames, seckeys)
+
                 res = self._join_with_ffmpeg(cover_dir, episode_dir, fnames, ts_convert=vc_confs['ts_convert'])
             else:
                 res = self._join_with_mkvmerge(cover_dir, episode_dir, fnames)

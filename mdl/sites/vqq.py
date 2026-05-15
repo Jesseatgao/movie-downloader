@@ -1120,14 +1120,14 @@ class QQVideoVC(VideoConfig):
                 "defns": {
                     "hd": [{
                         "ext": "mp4",
-                        "urls": ["https: //t.com/hdv1.1.mp4", "https://t.com/hdv1.2.mp4"]
+                        "urls": ["https://t.com/hdv1.1.mp4", "https://t.com/hdv1.2.mp4"]
                     }],
                     "sd": [{
                         "ext": "mp4",
-                        "urls": ["https: //t.com/sdv1.1.mp4", "https://t.com/sdv1.2.mp4"]
+                        "urls": ["https://t.com/sdv1.1.mp4", "https://t.com/sdv1.2.mp4"]
                     }, {
                         "ext": "ts",
-                        "urls": ["https: //t.com/sdv1.1.ts", "https://t.com/sdv1.2.ts"]
+                        "urls": ["https://t.com/sdv1.1.ts", "https://t.com/sdv1.2.ts"]
                     }]
                 }
             }, {
@@ -1138,14 +1138,14 @@ class QQVideoVC(VideoConfig):
                 "defns": {
                     "hd": [{
                         "ext": "mp4",
-                        "urls": ["https: //t.com/hdv2.1.mp4", "https://t.com/hdv2.2.mp4"]
+                        "urls": ["https://t.com/hdv2.1.mp4", "https://t.com/hdv2.2.mp4"]
                     }],
                     "sd": [{
                         "ext": "mp4",
-                        "urls": ["https: //t.com/sdv2.1.mp4", "https://t.com/sdv2.2.mp4"]
+                        "urls": ["https://t.com/sdv2.1.mp4", "https://t.com/sdv2.2.mp4"]
                     }, {
                         "ext": "ts",
-                        "urls": ["https: //t.com/sdv2.1.ts", "https://t.com/sdv2.2.ts"]
+                        "urls": ["https://t.com/sdv2.1.ts", "https://t.com/sdv2.2.ts"]
                     }]
                 }
             }]
