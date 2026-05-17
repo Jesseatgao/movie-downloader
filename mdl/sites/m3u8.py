@@ -16,7 +16,8 @@ class M3u8VC(VideoConfig):
     SOURCE_NAME = "M3u8"
     VC_NAME = "M3u8"
 
-    _ENCRYPTION_METHODS = set(["NONE", "AES-128"])
+    _ENCRYPTION_METHODS = {"NONE", "AES-128"}
+    _SECKEY_NONE = {'algo': "NONE", 'key': None, 'iv': None}
 
     def __init__(self, args, confs):
         super().__init__(args, confs)
@@ -79,7 +80,7 @@ class M3u8VC(VideoConfig):
             fmt = dict(ext="ts", urls=ts_urls)
             if seckeys:
                 fmt['seckeys'] = seckeys
-                if not all([seckey['algo'] in self._ENCRYPTION_METHODS for seckey in seckeys]):
+                if not all([seckey['algo'] in self._ENCRYPTION_METHODS and seckey['key'] is not False for seckey in seckeys]):
                     self._logger.error("Unsupported encryption method found for '%s'", vi['url'])
                     return
             vi['defns'].setdefault(defn, []).append(fmt)
@@ -87,9 +88,9 @@ class M3u8VC(VideoConfig):
     def _get_seckey(self, ext_x_key, playlist_url):
         _, _, cipher = ext_x_key.partition(":")
         attribs = cipher.split(",")
-        kdict = {k: v for k, _, v in [attrib.partition("=") for attrib in attribs]}
+        kdict = {k.strip(): v.strip() for k, _, v in [attrib.partition("=") for attrib in attribs]}
 
-        seckey = {'algo': "NONE", 'key': None, 'iv': None}
+        seckey = self._SECKEY_NONE.copy()
 
         algo = kdict.get('METHOD', 'NONE')
         if algo == "NONE":
@@ -111,7 +112,10 @@ class M3u8VC(VideoConfig):
                 else:
                     raise RequestException("Unexpected status code %i" % r.status_code)
             except RequestException as e:
-                self._logger.error("Failed to fetch '%s': '%r'", uri, e)
+                seckey['key'] = False
+                self._logger.error("Failed to fetch the decryption key from '%s': '%r'", uri, e)
+        else:
+            seckey['key'] = False
 
         return seckey
 
@@ -147,7 +151,7 @@ class M3u8VC(VideoConfig):
             if segs[j].startswith("#"):
                 if segs[j].startswith("#EXT-X-KEY"):
                     if seckey is None:
-                        seckey = {'algo': "NONE", 'key': None, 'iv': None}
+                        seckey = self._SECKEY_NONE.copy()
                         seckeys = [seckey] * len(purged)
                     seckey = self._get_seckey(segs[j], playlist_url)
 

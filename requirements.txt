@@ -2,6 +2,8 @@
 
 bdownload>=0.2.3
 
+pycryptodome
+
 setuptools>=40.8.0
 
 build; python_version!="3.6"

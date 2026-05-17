@@ -17,7 +17,7 @@ import requests
 from requests.cookies import cookielib
 
 
-ILLEGAL_FILENAME_CHARS = (' ', '#', '%', '&', '{', '}', '\\', '<', '>', '*', '?', '/', '$', '!', '\'', '"', ':', '@', '+', '`', '|', '=')
+ILLEGAL_FILENAME_CHARS = {' ', '#', '%', '&', '{', '}', '\\', '<', '>', '*', '?', '/', '$', '!', '\'', '"', ':', '@', '+', '`', '|', '='}
 
 
 def normalize_filename(fn, repl='_'):

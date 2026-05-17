@@ -256,9 +256,6 @@ class MDownloader(object):
         return "", []
 
     def _decrypt_ts(self, cover_dir, episode_dir, fnames, seckeys):
-        if not seckeys:
-            return
-
         for fn, seckey in zip(fnames, seckeys):
             if seckey['algo'] == "NONE":
                 continue
@@ -373,16 +370,21 @@ class MDownloader(object):
         except OSError as e:
             self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
 
+    def _decrypt_videos(self, cover_dir, episodes):
+        for episode_dir, fnames, seckeys in episodes:
+            if not seckeys:
+                continue
+
+            self._decrypt_ts(cover_dir, episode_dir, fnames, seckeys)
+
     def join_videos(self, cover_dir, episodes, vc_confs):
+        self._decrypt_videos(cover_dir, episodes)
+
         if not vc_confs['merge_all']:
             return
 
-        for episode_dir, fnames, seckeys in episodes:
-            suffix = '.' + fnames[0].split('.')[-1]
-
-            if suffix == '.ts':
-                self._decrypt_ts(cover_dir, episode_dir, fnames, seckeys)
-
+        for episode_dir, fnames, _ in episodes:
+            if fnames[0].endswith('.ts'):
                 res = self._join_with_ffmpeg(cover_dir, episode_dir, fnames, ts_convert=vc_confs['ts_convert'])
             else:
                 res = self._join_with_mkvmerge(cover_dir, episode_dir, fnames)
