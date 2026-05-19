@@ -22,6 +22,9 @@ class M3u8VC(VideoConfig):
     def __init__(self, args, confs):
         super().__init__(args, confs)
 
+        skip_discontinuity = self.confs.get('skip_discontinuity')
+        self.skip_discontinuity = True if skip_discontinuity and skip_discontinuity.lower() == 'true' else False
+
     def get_video_cover_info(self, url):
         vtitle = normalize_filename(url)
         ctitle = "mdl-downloads"  # shared by all m3u8 downloads
@@ -143,12 +146,10 @@ class M3u8VC(VideoConfig):
         for j in range(i, nsegs):
             if not segs[j]:
                 continue
-            if segs[j].startswith("#EXT-X-DISCONTINUITY"):
+            if segs[j].startswith("#EXT-X-DISCONTINUITY") and self.skip_discontinuity:
                 inbetween = not inbetween
                 continue
-            if inbetween:
-                continue
-            if segs[j].startswith("#"):
+            if inbetween or segs[j].startswith("#"):
                 if segs[j].startswith("#EXT-X-KEY"):
                     if seckey is None:
                         seckey = self._SECKEY_NONE.copy()
