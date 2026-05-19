@@ -10,6 +10,7 @@ import glob
 
 from certifi import where
 from Crypto.Cipher import AES
+from Crypto.Util.Padding import unpad
 
 from .commons import pick_highest_definition, VideoTypes, DEFAULT_YEAR
 from .sites import get_all_sites_vcs
@@ -264,7 +265,7 @@ class MDownloader(object):
             with open(fn_abs, 'rb') as f:
                 c_txt = f.read()
             cipher = AES.new(seckey['key'], AES.MODE_CBC, iv=seckey['iv'])
-            p_txt = cipher.decrypt(c_txt)
+            p_txt = unpad(cipher.decrypt(c_txt), AES.block_size)
             with open(fn_abs, 'w+b') as f:
                 f.write(p_txt)
 
