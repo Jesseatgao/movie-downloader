@@ -25,6 +25,9 @@ class M3u8VC(VideoConfig):
         skip_discontinuity = self.confs.get('skip_discontinuity')
         self.skip_discontinuity = True if skip_discontinuity and skip_discontinuity.lower() == 'true' else False
 
+        opening_discontinuity = self.confs.get('opening_discontinuity')
+        self.opening_discontinuity = True if opening_discontinuity and opening_discontinuity.lower() == 'true' else False
+
     def get_video_cover_info(self, url):
         vtitle = normalize_filename(url)
         ctitle = "mdl-downloads"  # shared by all m3u8 downloads
@@ -127,15 +130,15 @@ class M3u8VC(VideoConfig):
         nsegs = len(segs)
         purged = []
         i = 0
-        inbetween = False
+        inbetween = self.opening_discontinuity
 
-        media_sequence = 0
+        seqnums, seqnum = [], 0
         seckeys, seckey = [], None
 
         # skip the header
         while i < nsegs and (not segs[i] or segs[i].startswith("#")):
             if segs[i] and segs[i].startswith("#EXT-X-MEDIA-SEQUENCE"):
-                media_sequence = int(segs[i].split(":")[1])
+                seqnum = int(segs[i].split(":")[1])
             if segs[i] and segs[i].startswith("#EXT-X-KEY"):
                 seckey = self._get_seckey(segs[i], playlist_url)
                 seckeys = []
@@ -156,13 +159,20 @@ class M3u8VC(VideoConfig):
                         seckeys = [seckey] * len(purged)
                     seckey = self._get_seckey(segs[j], playlist_url)
 
+                if inbetween and not segs[j].startswith("#"):
+                    seqnum += 1
+
                 continue
 
             if seckey:
                 seckeys.append(seckey.copy())
+
+            seqnums.append(seqnum)
+            seqnum += 1
+
             purged.append(urljoin(playlist_url, segs[j]))
 
-        return purged, seckeys, media_sequence
+        return purged, seckeys, seqnums
 
     def _pick_highest_bandwidth_m3u8(self, playlist_variants, playlist_url):
         bandwidth, m3u, sessionkey = 0, "", None
@@ -206,13 +216,13 @@ class M3u8VC(VideoConfig):
                             playlist = urljoin(playlist, m3u)
                             break
                         elif line.startswith("#EXTINF:"):  # in media playlist
-                            mpeg_urls, seckeys, media_sequence = self._purge_media_playlist(r.text, playlist)
+                            mpeg_urls, seckeys, seqnums = self._purge_media_playlist(r.text, playlist)
                             if not seckeys and sessionkey:
                                 seckeys = [sessionkey.copy() for _ in range(len(mpeg_urls))]
                             if seckeys:
                                 for i, seckey in enumerate(seckeys):
                                     if seckey['algo'] != "NONE" and seckey['iv'] is None:
-                                        seckey['iv'] = (media_sequence + i).to_bytes(16, 'big')
+                                        seckey['iv'] = (seqnums[i]).to_bytes(16, 'big')
 
                             return mpeg_urls, seckeys
                 else:
