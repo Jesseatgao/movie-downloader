@@ -130,7 +130,7 @@ class M3u8VC(VideoConfig):
         nsegs = len(segs)
         purged = []
         i = 0
-        inbetween = self.opening_discontinuity
+        inbetween = self.opening_discontinuity if self.skip_discontinuity else False
 
         seqnums, seqnum = [], 0
         seckeys, seckey = [], None
