@@ -17,7 +17,7 @@ class M3u8VC(VideoConfig):
     VC_NAME = "M3u8"
 
     _ENCRYPTION_METHODS = {"NONE", "AES-128"}
-    _SECKEY_NONE = {'algo': "NONE", 'key': None, 'iv': None}
+    _SECKEY_NONE = {'algo': "NONE", 'key': None, 'iv': None, 'valid': None}
 
     def __init__(self, args, confs):
         super().__init__(args, confs)

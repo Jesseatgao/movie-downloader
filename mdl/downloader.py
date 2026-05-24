@@ -49,6 +49,8 @@ class MDownloader(object):
                 vci.update_cover_dwnld_info(batch_cover_info)
                 cover_dir, episodes = self.dwnld_videos_with_aria2(batch_cover_info, vci.confs)
 
+                self.decrypt_videos(cover_dir, episodes)
+
                 self.join_videos(cover_dir, episodes, vci.confs)
 
     def get_video_extractor(self, url):
@@ -261,13 +263,22 @@ class MDownloader(object):
             if seckey['algo'] == "NONE":
                 continue
 
-            fn_abs = os.path.join(episode_dir, fn)
-            with open(fn_abs, 'rb') as f:
-                c_txt = f.read()
-            cipher = AES.new(seckey['key'], AES.MODE_CBC, iv=seckey['iv'])
-            p_txt = unpad(cipher.decrypt(c_txt), AES.block_size)
-            with open(fn_abs, 'w+b') as f:
-                f.write(p_txt)
+            try:
+                fn_abs = os.path.join(episode_dir, fn)
+                with open(fn_abs, 'rb') as f:
+                    c_txt = f.read()
+
+                cipher = AES.new(seckey['key'], AES.MODE_CBC, iv=seckey['iv'])
+                p_txt = unpad(cipher.decrypt(c_txt), AES.block_size)
+
+                with open(fn_abs, 'w+b') as f:
+                    f.write(p_txt)
+
+                seckey['valid'] = True
+            except (IOError, ValueError, KeyError) as e:
+                self._logger.error(f"Decrypting '{fn_abs}' failed: '{e!r}'")
+
+                seckey['valid'] = False
 
     def _join_ts(self, cover_dir, episode_dir, fnames):
         episode_name = episode_dir + '.ts'
@@ -371,7 +382,7 @@ class MDownloader(object):
         except OSError as e:
             self._logger.error("OS error number {}: '{}'".format(e.errno, e.strerror))
 
-    def _decrypt_videos(self, cover_dir, episodes):
+    def decrypt_videos(self, cover_dir, episodes):
         for episode_dir, fnames, seckeys in episodes:
             if not seckeys:
                 continue
@@ -379,12 +390,14 @@ class MDownloader(object):
             self._decrypt_ts(cover_dir, episode_dir, fnames, seckeys)
 
     def join_videos(self, cover_dir, episodes, vc_confs):
-        self._decrypt_videos(cover_dir, episodes)
-
         if not vc_confs['merge_all']:
             return
 
-        for episode_dir, fnames, _ in episodes:
+        for episode_dir, fnames, seckeys in episodes:
+            if seckeys and not all([seckey['valid'] is not False for seckey in seckeys]):
+                self._logger.error("Decryption failed, skipping the joining: '{}'".format(episode_dir))
+                continue
+
             if fnames[0].endswith('.ts'):
                 res = self._join_with_ffmpeg(cover_dir, episode_dir, fnames, ts_convert=vc_confs['ts_convert'])
             else:
