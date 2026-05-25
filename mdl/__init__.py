@@ -88,6 +88,8 @@ def arg_parser():
 
     parser.add_argument('-L', '--log-level', dest='log_level', default=None, type=lambda x: x.lower(),
                         choices=['debug', 'info', 'warning', 'error', 'critical'], help='specify logging level')
+    parser.add_argument('--delete-after-merge', dest='delete_after_merge', default=None, const='true', nargs='?',
+                        type=lambda x: x.lower(), choices=['true', 'false'], help='specify whether or not to delete the originals after merging')
     parser.add_argument('--delay-delete', dest='delay_delete', default=None, const='true', nargs='?', type=lambda x: x.lower(),
                         choices=['true', 'false'], help='specify whether to eagerly free up the disk space or not')
 
@@ -137,7 +139,8 @@ def parse_3rd_party_progs(args, confs):
 def parse_misc_default(args, confs):
     misc_defaults = {
         'log_level': 'INFO',
-        'delay_delete': 'True'
+        'delay_delete': 'True',
+        'delete_after_merge': 'True'
     }
 
     for conf, default in misc_defaults.items():

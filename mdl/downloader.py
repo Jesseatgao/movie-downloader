@@ -294,7 +294,7 @@ class MDownloader(object):
                 fn_abs = os.path.join(episode_dir, fn)
                 with open(fn_abs, 'rb') as f:
                     tsf.write(f.read())
-                if not self.confs['misc']['delay_delete']:
+                if self.confs['misc']['delete_after_merge'] and not self.confs['misc']['delay_delete']:
                     os.remove(fn_abs)  # timely free up the disk space
 
     def _join_with_ffmpeg(self, cover_dir, episode_dir, fnames, ts_convert=True):
@@ -326,7 +326,7 @@ class MDownloader(object):
                                     break
                                 else:
                                     raise
-                        if not self.confs['misc']['delay_delete']:
+                        if self.confs['misc']['delete_after_merge'] and not self.confs['misc']['delay_delete']:
                             os.remove(fn_abs)
 
                     proc.stdin.close()
@@ -404,6 +404,7 @@ class MDownloader(object):
                 res = self._join_with_mkvmerge(cover_dir, episode_dir, fnames)
 
             if res:
-                shutil.rmtree(episode_dir, ignore_errors=True)
+                if self.confs['misc']['delete_after_merge']:
+                    shutil.rmtree(episode_dir, ignore_errors=True)
             else:
                 self._logger.error('Join videos failed! <{}>'.format(episode_dir))

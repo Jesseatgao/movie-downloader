@@ -120,8 +120,8 @@ mdl [-h] [-V] [-D DIR] [-d {suhd,uhd,dolby,hdr10,fhd,shd,hd,sd}]
     [-p PROXY] [--proxy-dl-video [{True,False}]]
     [--no-logo [{True,False}]] [--ts-convert [{True,False}]]
     [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-N NODE]
-    [-L {debug,info,warning,error,critical}]
-    [--delay-delete [{True,False}]] [--merge-all [{True,False}]]
+    [-L {debug,info,warning,error,critical}] [--merge-all [{True,False}]]
+    [--delete-after-merge [{True,False}]] [--delay-delete [{True,False}]]
     url [url ...] [--playlist-items PLAYLIST_ITEMS]
 ```
 
@@ -135,11 +135,11 @@ mdl [-h] [-V] [-D DIR] [-d {suhd,uhd,dolby,hdr10,fhd,shd,hd,sd}]
 `-p PROXY`: specify the proxy server _PROXY_ (in the form of `http://[user:password@]host:port`)
     used to get web pages, and download videos (if configured in `conf/dlops.conf` or enabled by the option `--proxy-dl-video`).
 
-`--proxy-dl-video [{True,False}]`: specify whether the proxy should be used to download video contents.
+`--proxy-dl-video [{True,False}]`: specify whether the proxy should be used to download video contents. Default to `False`.
 
-`--no-logo [{True,False}]`: indicate whether we're trying to download no-watermarked videos or not.
+`--no-logo [{True,False}]`: indicate whether we're trying to download no-watermarked videos or not. If not set, default to `True`.
 
-`--ts-convert [{True,False}]`: specify whether to convert (aggregated) TS file to MP4 format or not.
+`--ts-convert [{True,False}]`: specify whether to convert (aggregated) TS file to MP4 format or not. If not set, default to `True`.
 
 `-A ARIA2C`: specify the absolute path to `aria2c` executable, which takes precedence over the configuration in `conf/misc.conf`
     and the hard-coded fallback path `third_parties/aria2/aria2c[.exe]`.
@@ -155,9 +155,11 @@ mdl [-h] [-V] [-D DIR] [-d {suhd,uhd,dolby,hdr10,fhd,shd,hd,sd}]
 
 `-L {debug,info,warning,error,critical}`: specify logging level.
 
-`--delay-delete [{True,False}]`: specify whether to eagerly free up the disk space or not.
+`--merge-all [{True,False}]`: specify whether to merge all the video clips or not. If not set, default to `True`.
 
-`--merge-all [{True,False}]`: specify whether to merge all the video clips or not.
+`--delete-after-merge [{True,False}]`: specify whether to delete the original clips after merging.  If not set, default to `True`.
+
+`--delay-delete [{True,False}]`: specify whether to eagerly free up the disk space or not.  If not set, default to `True`.
 
 `url [url ...]`: one or more web page URLs of video episodes, cover and playlist.
 
