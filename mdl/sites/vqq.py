@@ -711,10 +711,13 @@ class QQVideoVC(VideoConfig):
                             key_format_id = int(key_format_id)
                             ret_defn = formats_id2nm.get(key_format_id) or ret_defn
                         except ValueError:
-                            pass
+                            try:
+                                ret_defn = formats_id2nm.get(int(key_format_id[1:])) or ret_defn
+                            except ValueError:
+                                pass
 
-                        sorted_defns = sort_definitions(formats_nm2id)
                         if not ret_defn:
+                            sorted_defns = sort_definitions(formats_nm2id)
                             for format_defn in sorted_defns:
                                 format_id = formats_nm2id.get(format_defn)
                                 ckey_req = ' '.join([QQVideoPlatforms.P10201, self.app_ver, vid, vurl, referrer, r'\n'])
@@ -771,10 +774,6 @@ class QQVideoVC(VideoConfig):
                                     self._logger.error("Error while requesting the key for the file '%s' of video '%i': '%r'", vfilename, vid, e)
                                     break
 
-                            try:
-                                ret_defn = ret_defn or formats_id2nm.get(int(key_format_id[1:]))
-                            except (ValueError, TypeError):
-                                pass
                             ret_defn = ret_defn or (sorted_defns[0] if sorted_defns else VideoDefnCodes.HD)
 
                         fc = json_path_get(data, ['vl', 'vi', 0, 'fc'])  # always >= 1?
