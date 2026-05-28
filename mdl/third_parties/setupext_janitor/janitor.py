@@ -63,7 +63,8 @@ class CleanCommand(_CleanCommand):
 
         if self.all:
             for flag in self.boolean_options:
-                setattr(self, flag, True)
+                if flag != 'environment':  # FIXME
+                    setattr(self, flag, True)
 
         if self.environment and self.virtualenv_dir is None:
             self.virtualenv_dir = os.environ.get('VIRTUAL_ENV', None)
@@ -103,7 +104,7 @@ class CleanCommand(_CleanCommand):
 
         for dir_name in dir_names:
             if os.path.exists(dir_name):
-                dir_util.remove_tree(dir_name, dry_run=self.dry_run)
+                dir_util.remove_tree(dir_name)  # FIXME
             else:
                 self.announce(
                     'skipping {0} since it does not exist'.format(dir_name))

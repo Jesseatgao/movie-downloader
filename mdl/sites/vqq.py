@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 
 from requests import RequestException
 
-from mdl.commons import pick_highest_definition, sort_definitions, VideoTypeCodes, VideoTypes, VideoURLType
+from mdl.commons import pick_highest_definition, sort_definitions, VideoTypeCodes, VideoTypes, VideoURLType, VideoDefnCodes
 from mdl.videoconfig import VideoConfig
 from mdl.utils import json_path_get, SpinWithBackoff
 
@@ -713,8 +713,9 @@ class QQVideoVC(VideoConfig):
                         except ValueError:
                             pass
 
+                        sorted_defns = sort_definitions(formats_nm2id)
                         if not ret_defn:
-                            for format_defn in sort_definitions(formats_nm2id):
+                            for format_defn in sorted_defns:
                                 format_id = formats_nm2id.get(format_defn)
                                 ckey_req = ' '.join([QQVideoPlatforms.P10201, self.app_ver, vid, vurl, referrer, r'\n'])
                                 node_proc.stdin.write(ckey_req)
@@ -755,12 +756,12 @@ class QQVideoVC(VideoConfig):
                                             key_data = json.loads(key_data.get('vkey'))
                                     except json.JSONDecodeError as e:
                                         self._logger.error("Received ill-formed video key data for the file '%s' of video '%i': '%r'", vfilename, vid, e)
-                                        return format_name, ext, urls
+                                        break
 
                                     if key_data and isinstance(key_data, dict):
                                         vkey = key_data.get('key')
                                         if not vkey:
-                                            return format_name, ext, urls
+                                            break
 
                                         cfilename = key_data.get('filename', '')
                                         if cfilename and cfilename == vfilename:
@@ -768,7 +769,13 @@ class QQVideoVC(VideoConfig):
                                             break
                                 except RequestException as e:
                                     self._logger.error("Error while requesting the key for the file '%s' of video '%i': '%r'", vfilename, vid, e)
-                                    return format_name, ext, urls
+                                    break
+
+                            try:
+                                ret_defn = ret_defn or formats_id2nm.get(int(key_format_id[1:]))
+                            except (ValueError, TypeError):
+                                pass
+                            ret_defn = ret_defn or (sorted_defns[0] if sorted_defns else VideoDefnCodes.HD)
 
                         fc = json_path_get(data, ['vl', 'vi', 0, 'fc'])  # always >= 1?
                         # start = 0 if fc == 0 else 1  # start counting number of the video clip file indexes

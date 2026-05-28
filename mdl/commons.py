@@ -1,6 +1,17 @@
 
 VIDEO_DEFINITIONS = ('suhd', 'uhd', 'dolby', 'hdr10', 'fhd', 'shd', 'hd', 'sd')  # from highest to lowest
 
+class VideoDefnCodes:
+    SUHD = 'suhd'
+    UHD = 'uhd'
+    DOLBY = 'dolby'
+    HDR10 = 'hdr10'
+    FHD = 'fhd'
+    SHD = 'shd'
+    HD = 'hd'
+    SD = 'sd'
+
+
 DEFAULT_YEAR = '1900'
 
 #VIDEO_EXTENSIONS = ('mp4', 'flv', 'mpg', 'ts')  # stream segment MIME extensions

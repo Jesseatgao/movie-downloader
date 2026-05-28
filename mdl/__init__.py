@@ -161,7 +161,7 @@ def parse_dlops_default(args, confs):
         'episode_batch_size': '2',
         'proxy': '',
         'enable_proxy_dl_video': 'False',
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36',
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
         'enable_vip_apis': 'False',
         # Aria2:
         'max_concurrent_downloads': '5',
