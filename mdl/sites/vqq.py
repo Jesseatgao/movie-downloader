@@ -458,7 +458,7 @@ class QQVideoVC(VideoConfig):
                     if data:
                         data = json.loads(data.get('vinfo'))
                 except json.JSONDecodeError as e:
-                    self._logger.error("Received ill-formed video config info for '%i': '%r'", vid, e)
+                    self._logger.error("Received ill-formed video config info for '%s': '%r'", vid, e)
                     return format_name, ext, urls
 
                 if data and data.get('dltype'):
@@ -556,12 +556,15 @@ class QQVideoVC(VideoConfig):
                                 if key_data:
                                     key_data = json.loads(key_data.get('vkey'))
                             except json.JSONDecodeError as e:
-                                self._logger.error("Received ill-formed video key data for the clip '%s' from video '%i': '%r'", cfilename, vid, e)
+                                self._logger.error("Received ill-formed video key data for the clip '%s' from video '%s': '%r'", cfilename, vid, e)
                                 return format_name, ext, urls
 
                             if key_data and isinstance(key_data, dict):
                                 vkey = key_data.get('key')
                                 if not vkey:
+                                    if not self.probe_mode:
+                                        msg = key_data.get('msg') or ""
+                                        self._logger.error("Failed to retrieve the key for the file '%s' of video '%s': '%s'", cfilename, vid, msg)
                                     break
 
                                 keyid = key_data.get('keyid')
@@ -583,18 +586,18 @@ class QQVideoVC(VideoConfig):
                                 if ((orig_format_id == new_format_id or not self.probe_mode) and fc == idx) or (not fc and keyid_nseg != 3):
                                     break
                         except RequestException as e:
-                            self._logger.error("Error while requesting the key for the clip '%s' from video '%i': '%r'", cfilename, vid, e)
+                            self._logger.error("Error while requesting the key for the clip '%s' from video '%s': '%r'", cfilename, vid, e)
                             return format_name, ext, urls
 
                     # hopefully the URLs for the file parts have all been successfully obtained
                     if len(urls) > 0:
                         format_name = ret_defn
             except RequestException as e:
-                self._logger.error("Error while requesting the config info of video '%i': '%r'", vid, e)
+                self._logger.error("Error while requesting the config info of video '%s': '%r'", vid, e)
 
         return format_name, ext, urls
 
-    def _get_ret_defn_ts(self, data):
+    def _get_ret_defn_by_fs(self, data):
         ret_defn = ""
 
         vfilefs = json_path_get(data, ['vl', 'vi', 0, 'fs'])
@@ -603,6 +606,92 @@ class QQVideoVC(VideoConfig):
                 if vfilefs == fmt.get('fs'):
                     ret_defn = fmt.get('name') or ret_defn
                     break
+
+        return ret_defn
+
+    def _get_ret_defn_ts(self, data, node_proc, vid, vurl, referrer):
+        ret_defn = ""
+
+        formats_id2nm = {fmt.get('id'): fmt.get('name') for fmt in json_path_get(data, ['fl', 'fi'], [])}
+        formats_nm2id = {fmt_nm: fmt_id for fmt_id, fmt_nm in formats_id2nm.items()}
+        keyid = json_path_get(data, ['vl', 'vi', 0, 'keyid'], '')
+        vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
+
+        key_format_id = keyid.split('.')[-1]
+        try:
+            key_format_id = int(key_format_id)
+            ret_defn = formats_id2nm.get(key_format_id) or ret_defn
+        except ValueError:
+            try:
+                ret_defn = formats_id2nm.get(int(key_format_id[1:])) or ret_defn
+            except ValueError:
+                pass
+
+        ret_defn = ret_defn or self._get_ret_defn_by_fs(data)
+        if not ret_defn:
+            sorted_defns = sort_definitions(formats_nm2id)
+            for format_defn in sorted_defns:
+                format_id = formats_nm2id.get(format_defn)
+                ckey_req = ' '.join([QQVideoPlatforms.P10201, self.app_ver, vid, vurl, referrer, r'\n'])
+                node_proc.stdin.write(ckey_req)
+                node_proc.stdin.flush()
+                ckey_resp = node_proc.stdout.readline().rstrip(r'\r\n')
+                ckey, tm, guid, flowid = ckey_resp.split()
+
+                vkeyparam = {
+                    'otype': 'ojson',
+                    'vid': vid,
+                    'format': format_id,
+                    'filename': vfilename,
+                    'platform': QQVideoPlatforms.P10201,
+                    'appVer': self.app_ver,
+                    'sdtfrom': 'v1010',
+                    'guid': guid,
+                    'flowid': flowid,
+                    'tm': tm,
+                    'refer': referrer,
+                    'ehost': vurl,
+                    'logintoken': json.dumps(self.login_token, separators=(',', ':')),
+                    'encryptVer': self.encrypt_ver,
+                    'cKey': ckey
+                }
+                params = {
+                    'buid': 'onlyvkey',
+                    'vkeyparam': urlencode(vkeyparam)
+                }
+
+                try:
+                    r = self._requester.post(self._VIDEO_CONFIG_URL, json=params)
+                    if r.status_code != 200:
+                        raise RequestException("Unexpected status code %i" % r.status_code)
+
+                    try:
+                        key_data = json.loads(r.text)
+                        if key_data:
+                            key_data = json.loads(key_data.get('vkey'))
+                    except json.JSONDecodeError as e:
+                        self._logger.error("Received ill-formed video key data for the file '%s' of video '%s': '%r'",
+                                           vfilename, vid, e)
+                        break
+
+                    if key_data and isinstance(key_data, dict):
+                        vkey = key_data.get('key')
+                        if not vkey:
+                            msg = key_data.get('msg') or ""
+                            self._logger.error("Failed to retrieve the key for the file '%s' of video '%s': '%s'",
+                                               vfilename, vid, msg)
+                            break
+
+                        cfilename = key_data.get('filename', '')
+                        if cfilename and cfilename == vfilename:
+                            ret_defn = format_defn
+                            break
+                except RequestException as e:
+                    self._logger.error("Error while requesting the key for the file '%s' of video '%s': '%r'",
+                                       vfilename, vid, e)
+                    break
+
+            ret_defn = ret_defn or (sorted_defns[0] if sorted_defns else VideoDefnCodes.HD)
 
         return ret_defn
 
@@ -677,7 +766,7 @@ class QQVideoVC(VideoConfig):
                     if data:
                         data = json.loads(data.get('vinfo'))
                 except json.JSONDecodeError as e:
-                    self._logger.error("Received ill-formed video config info for '%i': '%r'", vid, e)
+                    self._logger.error("Received ill-formed video config info for '%s': '%r'", vid, e)
                     return format_name, ext, urls
 
                 if data and data.get('dltype'):
@@ -703,10 +792,6 @@ class QQVideoVC(VideoConfig):
                     drm = json_path_get(data, ['vl', 'vi', 0, 'drm'])
                     preview = data.get('preview')
 
-                    formats_id2nm = {fmt.get('id'): fmt.get('name') for fmt in json_path_get(data, ['fl', 'fi'], [])}
-                    formats_nm2id = {fmt_nm: fmt_id for fmt_id, fmt_nm in formats_id2nm.items()}
-                    keyid = json_path_get(data, ['vl', 'vi', 0, 'keyid'], '')
-
                     vfilename = json_path_get(data, ['vl', 'vi', 0, 'fn'], '')
                     vfn = vfilename.rpartition('.')  # e.g. ['egmovie.f323013001', '.', 'ts']
                     ext = vfn[-1]  # video extension, e.g. 'ts' 'mp4'
@@ -718,76 +803,7 @@ class QQVideoVC(VideoConfig):
                             return format_name, ext, urls
 
                         # determine the true definition `ret_defn` from the returned formats
-                        key_format_id = keyid.split('.')[-1]
-                        try:
-                            key_format_id = int(key_format_id)
-                            ret_defn = formats_id2nm.get(key_format_id) or ret_defn
-                        except ValueError:
-                            try:
-                                ret_defn = formats_id2nm.get(int(key_format_id[1:])) or ret_defn
-                            except ValueError:
-                                pass
-
-                        ret_defn = ret_defn or self._get_ret_defn_ts(data)
-                        if not ret_defn:
-                            sorted_defns = sort_definitions(formats_nm2id)
-                            for format_defn in sorted_defns:
-                                format_id = formats_nm2id.get(format_defn)
-                                ckey_req = ' '.join([QQVideoPlatforms.P10201, self.app_ver, vid, vurl, referrer, r'\n'])
-                                node_proc.stdin.write(ckey_req)
-                                node_proc.stdin.flush()
-                                ckey_resp = node_proc.stdout.readline().rstrip(r'\r\n')
-                                ckey, tm, guid, flowid = ckey_resp.split()
-
-                                vkeyparam = {
-                                    'otype': 'ojson',
-                                    'vid': vid,
-                                    'format': format_id,
-                                    'filename': vfilename,
-                                    'platform': QQVideoPlatforms.P10201,
-                                    'appVer': self.app_ver,
-                                    'sdtfrom': 'v1010',
-                                    'guid': guid,
-                                    'flowid': flowid,
-                                    'tm': tm,
-                                    'refer': referrer,
-                                    'ehost': vurl,
-                                    'logintoken': json.dumps(self.login_token, separators=(',', ':')),
-                                    'encryptVer': self.encrypt_ver,
-                                    'cKey': ckey
-                                }
-                                params = {
-                                    'buid': 'onlyvkey',
-                                    'vkeyparam': urlencode(vkeyparam)
-                                }
-
-                                try:
-                                    r = self._requester.post(self._VIDEO_CONFIG_URL, json=params)
-                                    if r.status_code != 200:
-                                        raise RequestException("Unexpected status code %i" % r.status_code)
-
-                                    try:
-                                        key_data = json.loads(r.text)
-                                        if key_data:
-                                            key_data = json.loads(key_data.get('vkey'))
-                                    except json.JSONDecodeError as e:
-                                        self._logger.error("Received ill-formed video key data for the file '%s' of video '%i': '%r'", vfilename, vid, e)
-                                        break
-
-                                    if key_data and isinstance(key_data, dict):
-                                        vkey = key_data.get('key')
-                                        if not vkey:
-                                            break
-
-                                        cfilename = key_data.get('filename', '')
-                                        if cfilename and cfilename == vfilename:
-                                            ret_defn = format_defn
-                                            break
-                                except RequestException as e:
-                                    self._logger.error("Error while requesting the key for the file '%s' of video '%i': '%r'", vfilename, vid, e)
-                                    break
-
-                            ret_defn = ret_defn or (sorted_defns[0] if sorted_defns else VideoDefnCodes.HD)
+                        ret_defn = self._get_ret_defn_ts(data, node_proc, vid, vurl, referrer)
 
                         fc = json_path_get(data, ['vl', 'vi', 0, 'fc'])  # always >= 1?
                         # start = 0 if fc == 0 else 1  # start counting number of the video clip file indexes
@@ -806,7 +822,7 @@ class QQVideoVC(VideoConfig):
 
                     format_name = ret_defn
             except RequestException as e:
-                self._logger.error("Error while requesting the config info of video '%i': '%r'", vid, e)
+                self._logger.error("Error while requesting the config info of video '%s': '%r'", vid, e)
 
         return format_name, ext, urls
 
@@ -932,7 +948,7 @@ class QQVideoVC(VideoConfig):
             try:
                 data = json.loads(r.text)
             except json.JSONDecodeError as e:
-                self._logger.error("Received ill-formed video config info for '%i': '%r'", vid, e)
+                self._logger.error("Received ill-formed video config info for '%s': '%r'", vid, e)
                 return conf_info, ep_list, tabs
 
             card_list = json_path_get(data, ['data', 'CardList'], [])
@@ -947,7 +963,7 @@ class QQVideoVC(VideoConfig):
                 else:
                     continue
         except RequestException as e:
-            self._logger.error("Error while requesting the config info of video '%i': '%r'", vid, e)
+            self._logger.error("Error while requesting the config info of video '%s': '%r'", vid, e)
 
         return conf_info, ep_list, tabs
 
