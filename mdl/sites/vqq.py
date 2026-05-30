@@ -594,6 +594,18 @@ class QQVideoVC(VideoConfig):
 
         return format_name, ext, urls
 
+    def _get_ret_defn_ts(self, data):
+        ret_defn = ""
+
+        vfilefs = json_path_get(data, ['vl', 'vi', 0, 'fs'])
+        if vfilefs:
+            for fmt in json_path_get(data, ['fl', 'fi'], []):
+                if vfilefs == fmt.get('fs'):
+                    ret_defn = fmt.get('name') or ret_defn
+                    break
+
+        return ret_defn
+
     def _get_video_urls_p10201_ts(self, vid, definition, vurl, referrer):
         urls = []
         ext = None
@@ -716,6 +728,7 @@ class QQVideoVC(VideoConfig):
                             except ValueError:
                                 pass
 
+                        ret_defn = ret_defn or self._get_ret_defn_ts(data)
                         if not ret_defn:
                             sorted_defns = sort_definitions(formats_nm2id)
                             for format_defn in sorted_defns:
