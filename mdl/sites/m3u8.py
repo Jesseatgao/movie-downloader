@@ -1,5 +1,6 @@
 import re
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
+import hashlib
 
 from requests import RequestException
 
@@ -29,7 +30,10 @@ class M3u8VC(VideoConfig):
         self.opening_discontinuity = True if opening_discontinuity and opening_discontinuity.lower() == 'true' else False
 
     def get_video_cover_info(self, url):
-        vtitle = normalize_filename(url)
+        MAX_LEN = 120
+        digest = hashlib.md5(url.encode("utf-8")).hexdigest()
+        parsed = urlparse(url)
+        vtitle = normalize_filename('-'.join([parsed.netloc, parsed.path[1:].split('/')[0], digest]))[:MAX_LEN]
         ctitle = "mdl-downloads"  # shared by all m3u8 downloads
         vid = "mdlvid1900"
         cid = "mdlcid1900"
