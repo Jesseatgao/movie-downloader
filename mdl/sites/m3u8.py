@@ -6,7 +6,7 @@ from requests import RequestException
 
 from mdl.utils import normalize_filename
 from mdl.videoconfig import VideoConfig
-from mdl.commons import VideoTypes, DEFAULT_YEAR
+from mdl.commons import VideoTypes, VideoDefnCodes, DEFAULT_YEAR
 
 
 class M3u8VC(VideoConfig):
@@ -83,7 +83,7 @@ class M3u8VC(VideoConfig):
             }]
         }
         """
-        defn = "hd"
+        defn = VideoDefnCodes.HD
 
         ts_urls, seckeys = self._get_ts_playlist(vi['url'])
         if ts_urls:
