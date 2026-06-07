@@ -92,6 +92,8 @@ def arg_parser():
                         type=lambda x: x.lower(), choices=['true', 'false'], help='specify whether or not to delete the originals after merging')
     parser.add_argument('--delay-delete', dest='delay_delete', default=None, const='true', nargs='?', type=lambda x: x.lower(),
                         choices=['true', 'false'], help='specify whether to eagerly free up the disk space or not')
+    parser.add_argument('--dl-video-with-cookie', dest='dl_video_with_cookie', default=None, const='true', nargs='?',
+                        type=lambda x: x.lower(), choices=['true', 'false'], help='specify whether or not to send cookies along with the video downloading request')
 
     parser.add_argument('-V', '--version', action='version', version=f'%(prog)s (movie downloader) {VERSION}')
 
@@ -177,7 +179,9 @@ def parse_dlops_default(args, confs):
         'retry_on_406': 'false',
         'retry_on_unknown': 'false',
         'retry_on_not_satisfied_206': 'false',
-        'retry_on_lowest_speed': 'false'
+        'retry_on_lowest_speed': 'false',
+        # -:
+        'dl_video_with_cookie': 'False'
     }
 
     for site in confs:

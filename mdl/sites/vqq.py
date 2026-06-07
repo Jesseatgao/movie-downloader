@@ -25,13 +25,13 @@ class QQVideoPlatforms:
 class QQVideoVC(VideoConfig):
 
     _VIDEO_URL_PATS = [
-        {'pat': r'^https?://v\.qq\.com/x/cover/(\w+)\.html',
+        {'pat': r'^https://v\.qq\.com/x/cover/(\w+)\.html',
          'eg': 'https://v.qq.com/x/cover/nhtfh14i9y1egge.html'},  # 'video_cover'
-        {'pat': r'^https?://v\.qq\.com/detail/([a-zA-Z0-9])/((?:\1)\w+)\.html',
+        {'pat': r'^https://v\.qq\.com/detail/([a-zA-Z0-9])/((?:\1)\w+)\.html',
          'eg': 'https://v.qq.com/detail/n/nhtfh14i9y1egge.html'},  # 'video_detail'
-        {'pat': r'^https?://v\.qq\.com/x/cover/(\w+)/(\w+)\.html',
+        {'pat': r'^https://v\.qq\.com/x/cover/(\w+)/(\w+)\.html',
          'eg': 'https://v.qq.com/x/cover/nhtfh14i9y1egge/d00249ld45q.html'},  # 'video_episode'
-        {'pat': r'^https?://v\.qq\.com/x/page/(\w+)\.html',
+        {'pat': r'^https://v\.qq\.com/x/page/(\w+)\.html',
          'eg': 'https://v.qq.com/x/page/d00249ld45q.html'}  # 'video_page'
     ]
     SOURCE_NAME = "Tencent"
@@ -402,7 +402,9 @@ class QQVideoVC(VideoConfig):
 
         return file_format_id
 
-    def _get_video_urls_p10201(self, vid, definition, vurl, referrer):
+    def _get_video_urls_p10201(self, vi):
+        vid, definition, vurl, referrer = vi['V'], self.preferred_defn, vi['url'], vi['referrer']
+
         urls = []
         ext = None
         format_name = None
@@ -459,7 +461,7 @@ class QQVideoVC(VideoConfig):
                         data = json.loads(data.get('vinfo'))
                 except json.JSONDecodeError as e:
                     self._logger.error("Received ill-formed video config info for '%s': '%r'", vid, e)
-                    return format_name, ext, urls
+                    return
 
                 if data and data.get('dltype'):
                     url_prefixes = []
@@ -478,6 +480,8 @@ class QQVideoVC(VideoConfig):
                         # use all URL prefixes but with default servers coming before CDN mirrors
                         cdn = [prefix for prefix in url_prefixes if prefix not in chosen_url_prefixes]
                         chosen_url_prefixes += cdn
+                    if self.confs['dl_video_with_cookie']:
+                        chosen_url_prefixes = ["https://" + prefix.partition("//")[2] for prefix in chosen_url_prefixes]
 
                     # drm = json_path_get(data, ['vl', 'vi', 0, 'drm'])
 
@@ -557,7 +561,7 @@ class QQVideoVC(VideoConfig):
                                     key_data = json.loads(key_data.get('vkey'))
                             except json.JSONDecodeError as e:
                                 self._logger.error("Received ill-formed video key data for the clip '%s' from video '%s': '%r'", cfilename, vid, e)
-                                return format_name, ext, urls
+                                return
 
                             if key_data and isinstance(key_data, dict):
                                 vkey = key_data.get('key')
@@ -587,15 +591,16 @@ class QQVideoVC(VideoConfig):
                                     break
                         except RequestException as e:
                             self._logger.error("Error while requesting the key for the clip '%s' from video '%s': '%r'", cfilename, vid, e)
-                            return format_name, ext, urls
+                            return
 
                     # hopefully the URLs for the file parts have all been successfully obtained
                     if len(urls) > 0:
                         format_name = ret_defn
+                        if format_name:  # may not be same as preferred definition
+                            fmt = dict(ext=ext, urls=urls)
+                            vi['defns'].setdefault(format_name, []).append(fmt)
             except RequestException as e:
                 self._logger.error("Error while requesting the config info of video '%s': '%r'", vid, e)
-
-        return format_name, ext, urls
 
     def _get_ret_defn_by_fs(self, data):
         ret_defn = ""
@@ -695,7 +700,9 @@ class QQVideoVC(VideoConfig):
 
         return ret_defn
 
-    def _get_video_urls_p10201_ts(self, vid, definition, vurl, referrer):
+    def _get_video_urls_p10201_ts(self, vi):
+        vid, definition, vurl, referrer = vi['V'], self.preferred_defn, vi['url'], vi['referrer']
+
         urls = []
         ext = None
         format_name = None
@@ -767,7 +774,7 @@ class QQVideoVC(VideoConfig):
                         data = json.loads(data.get('vinfo'))
                 except json.JSONDecodeError as e:
                     self._logger.error("Received ill-formed video config info for '%s': '%r'", vid, e)
-                    return format_name, ext, urls
+                    return
 
                 if data and data.get('dltype'):
                     url_prefixes = []
@@ -788,6 +795,8 @@ class QQVideoVC(VideoConfig):
                         # use all URL prefixes but with default servers coming before CDN mirrors
                         cdn = [prefix for prefix in url_prefixes if prefix not in chosen_url_prefixes]
                         chosen_url_prefixes += cdn
+                    if self.confs['dl_video_with_cookie']:
+                        chosen_url_prefixes = ["https://" + prefix.partition("//")[2] for prefix in chosen_url_prefixes]
 
                     drm = json_path_get(data, ['vl', 'vi', 0, 'drm'])
                     preview = data.get('preview')
@@ -800,7 +809,7 @@ class QQVideoVC(VideoConfig):
 
                     if ext == 'ts':
                         if drm == 1 and not preview and not self.has_vip:
-                            return format_name, ext, urls
+                            return
 
                         # determine the true definition `ret_defn` from the returned formats
                         ret_defn = self._get_ret_defn_ts(data, node_proc, vid, vurl, referrer)
@@ -816,23 +825,16 @@ class QQVideoVC(VideoConfig):
                             urls.append(url_mirrors)
                     else:  # 'mp4'
                         if drm == 1 and not self.has_vip:
-                            return format_name, ext, urls
+                            return
 
                         return self._get_video_urls_p10201(vid, definition, vurl, referrer)
 
                     format_name = ret_defn
+                    if format_name:  # may not be same as preferred definition
+                        fmt = dict(ext=ext, urls=urls)
+                        vi['defns'].setdefault(format_name, []).append(fmt)
             except RequestException as e:
                 self._logger.error("Error while requesting the config info of video '%s': '%r'", vid, e)
-
-        return format_name, ext, urls
-
-    def _get_video_urls(self, vid, definition, vurl, referrer):
-        if self.confs['no_logo']:
-            # return self._get_video_urls_p10801(vid, definition, vurl, referrer)
-            return self._get_video_urls_p10201_ts(vid, definition, vurl, referrer)
-        else:
-            # return self._get_video_urls_p10901(vid, definition)
-            return self._get_video_urls_p10201(vid, definition, vurl, referrer)
 
     def _normalize_conf_info(self, text):
         nullified = self._NULLIFY_RE.sub(r'""', text)
@@ -1152,6 +1154,7 @@ class QQVideoVC(VideoConfig):
                 "E": 1,
                 "url": "https://v.qq.com/x/cover/nhtfh14i9y1egge/d00249ld45q.html",
                 "referrer": "https://v.qq.com/x/cover/nhtfh14i9y1egge/d00249ld45q.html",
+                "cookies": "key1=val1; key2=val2; key3=val3",  # for Aria2
                 "defns": {
                     "hd": [{
                         "ext": "mp4",
@@ -1170,6 +1173,7 @@ class QQVideoVC(VideoConfig):
                 "E": 2,
                 "url": "https://v.qq.com/x/cover/nhtfh14i9y1egge/q0024a27g9j.html",
                 "referrer": "https://v.qq.com/x/cover/nhtfh14i9y1egge/q0024a27g9j.html",
+                "cookies": "key1=val1; key2=val2; key3=val3",  # for Aria2
                 "defns": {
                     "hd": [{
                         "ext": "mp4",
@@ -1186,7 +1190,7 @@ class QQVideoVC(VideoConfig):
             }]
         }
         """
-        format_name, ext, urls = self._get_video_urls(vi['V'], self.preferred_defn, vi['url'], vi['referrer'])
-        if format_name:  # may not be same as preferred definition
-            fmt = dict(ext=ext, urls=urls)
-            vi['defns'].setdefault(format_name, []).append(fmt)
+        if self.confs['no_logo']:
+            self._get_video_urls_p10201_ts(vi)
+        else:
+            self._get_video_urls_p10201(vi)

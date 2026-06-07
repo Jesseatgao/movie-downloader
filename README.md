@@ -122,6 +122,7 @@ mdl [-h] [-V] [-D DIR] [-d {suhd,uhd,dolby,hdr10,fhd,shd,hd,sd}]
     [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-N NODE]
     [-L {debug,info,warning,error,critical}] [--merge-all [{True,False}]]
     [--delete-after-merge [{True,False}]] [--delay-delete [{True,False}]]
+    [--dl-video-with-cookie [{True,False}]]
     url [url ...] [--playlist-items PLAYLIST_ITEMS]
 ```
 
@@ -157,9 +158,11 @@ mdl [-h] [-V] [-D DIR] [-d {suhd,uhd,dolby,hdr10,fhd,shd,hd,sd}]
 
 `--merge-all [{True,False}]`: specify whether to merge all the video clips or not. If not set, default to `True`.
 
-`--delete-after-merge [{True,False}]`: specify whether to delete the original clips after merging.  If not set, default to `True`.
+`--delete-after-merge [{True,False}]`: specify whether to delete the original clips after merging. If not set, default to `True`.
 
-`--delay-delete [{True,False}]`: specify whether to eagerly free up the disk space or not.  If not set, default to `True`.
+`--delay-delete [{True,False}]`: specify whether to eagerly free up the disk space or not. If not set, default to `True`.
+
+`--dl-video-with-cookie [{True,False}]`: specify whether to send cookies along with the video downloading request. If not set, default to `False`.
 
 `url [url ...]`: one or more web page URLs of video episodes, cover and playlist.
 

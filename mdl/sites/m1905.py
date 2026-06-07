@@ -16,11 +16,11 @@ from mdl.utils import json_path_get
 
 class M1905VC(VideoConfig):
     _VIDEO_URL_PATS = [
-        {'pat': r'^https?://www\.1905\.com/(?:vod|video)/play/(\d+)\.shtml',
+        {'pat': r'^https://www\.1905\.com/(?:vod|video)/play/(\d+)\.shtml',
          'eg': 'https://www.1905.com/vod/play/1287886.shtml'}, # 'video_episode_sd'
-        {'pat': r'^https?://www\.1905\.com/mdb/film/(\d+)/?',
+        {'pat': r'^https://www\.1905\.com/mdb/film/(\d+)/?',
          'eg': 'https://www.1905.com/mdb/film/2245563'},  # 'video_cover'
-        {'pat': r'^https?://vip\.1905\.com/play/(\d+)\.shtml',
+        {'pat': r'^https://vip\.1905\.com/play/(\d+)\.shtml',
          'eg': 'https://vip.1905.com/play/535547.shtml'}  # 'VIP: video_episode_hd'
     ]
     SOURCE_NAME = "M1905"

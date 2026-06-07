@@ -217,12 +217,13 @@ class MDownloader(object):
                         continue
                     self._rm_failed_pieces(episode_dir)
 
+                    cookie_header = '\n  header="Cookie: {}"'.format(vi['cookies']) if vi.get('cookies') and vc_confs['dl_video_with_cookie'] else ""
                     fnames = []
                     for idx, url in enumerate(format['urls']):
                         # fname ~ seg_0000.mp4 seg_0001.mp4 seg_0002.mp4 ...
                         fname = "seg_{:04}.{}".format(idx, ext)
                         fnames.append(fname)
-                        urls.append('{}\n  dir={}\n  out={}'.format(url, episode_dir, fname))
+                        urls.append('{}\n  dir={}\n  out={}{}'.format(url, episode_dir, fname, cookie_header))
 
                     seckeys = format.get('seckeys', [])
 

@@ -3,7 +3,7 @@ import logging
 from http.cookiejar import LoadError
 
 from bdownload.download import requests_retry_session
-from .utils import build_cookiejar_from_kvp, build_cookiejar_from_file
+from .utils import build_cookiejar_from_kvp, build_cookiejar_from_file, get_kvp_from_cookiejar
 
 
 class VideoConfig(object):
@@ -171,6 +171,9 @@ class VideoConfig(object):
         vl = cover_info.get('normal_ids', [])
         for vi in vl:
             self.update_video_dwnld_info(vi)
+
+            if not vi.get('cookies') and self.confs['dl_video_with_cookie']:
+                vi['cookies'] = get_kvp_from_cookiejar(self._requester.cookies)
 
     def set_requester(self, requester):
         self._requester = requester

@@ -15,6 +15,7 @@ import re
 
 import requests
 from requests.cookies import cookielib
+from requests.utils import dict_from_cookiejar
 
 
 ILLEGAL_FILENAME_CHARS = {' ', '#', '%', '&', '{', '}', '\\', '<', '>', '*', '?', '/', '$', '!', '\'', '"', ':', '@', '+', '`', '|', '='}
@@ -93,6 +94,21 @@ def build_cookiejar_from_file(filename):
         requests_cookiejar.update(cookiejar)
 
         return requests_cookiejar
+
+
+def get_kvp_from_cookiejar(cj):
+    """get a string of key-value pairs in the form of the HTTP Cookie request header without the `Cookie:` field.
+    """
+    if not cj:
+        return None
+
+    kvp = []
+    cd = dict_from_cookiejar(cj)
+
+    for k, v in cd.items():
+        kvp.append(f"{k}={v}")
+
+    return "; ".join(kvp)
 
 
 def build_logger(logger_name, log_file_name, logger_level=logging.DEBUG, console_level=logging.INFO, file_level=logging.DEBUG):

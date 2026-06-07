@@ -15,7 +15,7 @@ from mdl.utils import json_path_get
 
 class IQiyiVC(VideoConfig):
     _VIDEO_URL_PATS = [
-        {'pat': r'^https?://www\.iqiyi\.com/.+\.html',
+        {'pat': r'^https://www\.iqiyi\.com/.+\.html',
          'eg': 'https://www.iqiyi.com/v_19rrad5u8o.html'}  # 'video_page'
     ]
     SOURCE_NAME = "IQiyi"
