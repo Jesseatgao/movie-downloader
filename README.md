@@ -116,7 +116,7 @@ Step 2: get and install third-party dependency programs
 
 ### Usage
 ```
-mdl [-h] [-V] [-D DIR] [-d {suhd,uhd,dolby,hdr10,fhd,shd,hd,sd}]
+mdl [-h] [-C] [-V] [-D DIR] [-d {suhd,uhd,dolby,hdr10,fhd,shd,hd,sd}]
     [-p PROXY] [--proxy-dl-video [{True,False}]]
     [--no-logo [{True,False}]] [--ts-convert [{True,False}]]
     [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-N NODE]
@@ -169,7 +169,18 @@ mdl [-h] [-V] [-D DIR] [-d {suhd,uhd,dolby,hdr10,fhd,shd,hd,sd}]
 `--playlist-items PLAYLIST_ITEMS`: desired episode indices in a playlist separated by commas, while the playlists are separated by semicolons,
     e.g. `--playlist-items 1,2,5-10`, `--playlist-items 1,2,5-10;3-`, and `--playlist-items 1,2,5-10;;-20`.
 
+`-C, --show-config-dir`: show the configuration directories and exit.
+
 `-V, --version`: show program's version number and exit.
+
+### Configuration
+* Find out where the configuration files reside
+
+    `$ mdl -C`
+
+* Get the cookies string or `cookies.txt` file in Netscape format
+
+    See [Get cookies.txt LOCALLY](https://github.com/kairi003/Get-cookies.txt-Locally) for information on how to get `cookies.txt` for a video site.
 
 ### Credits
 * [**youtube-dl** - an App to download videos from YouTube and other video platforms](https://github.com/ytdl-org/youtube-dl)

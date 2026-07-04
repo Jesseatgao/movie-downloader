@@ -3,6 +3,7 @@ import os
 from shutil import which
 from itertools import zip_longest
 from pathlib import Path
+import argparse
 from argparse import ArgumentParser, ArgumentTypeError
 from configparser import ConfigParser
 
@@ -14,6 +15,8 @@ from .utils import build_logger, change_logging_level, json_path_get, CommentCon
 
 from mdl.sites import get_all_sites_vcs
 
+
+PROJECT_URL = "https://github.com/Jesseatgao/movie-downloader"
 
 MOD_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGGER = build_logger('MDL', os.path.normpath(os.path.join(MOD_DIR, 'log/mdl.log')))
@@ -58,6 +61,19 @@ def _segment_playlist_items(items):
     return res
 
 
+class _ShowConfigDirAction(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        super(_ShowConfigDirAction, self).__init__(option_strings, dest, nargs=nargs, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        config_dir = os.path.normpath(os.path.join(MOD_DIR, 'conf/'))
+        third_party_dir = os.path.normpath(os.path.join(MOD_DIR, 'third_parties/'))
+        print(f"The configuration files are stored in the following directory: '{config_dir}'.")
+        print(f"And the third-party progs are located in the directory '{third_party_dir}'.")
+        print(f"For more information about the configuration, please go to the project URL: '{PROJECT_URL}'.")
+        parser.exit()
+
+
 def arg_parser():
     parser = ArgumentParser(prog='mdl')
 
@@ -95,6 +111,8 @@ def arg_parser():
     parser.add_argument('--dl-video-with-cookie', dest='dl_video_with_cookie', default=None, const='true', nargs='?',
                         type=lambda x: x.lower(), choices=['true', 'false'], help='specify whether or not to send cookies along with the video downloading request')
 
+    parser.add_argument('-C', '--show-config-dir', action=_ShowConfigDirAction, nargs=0, default=argparse.SUPPRESS, const=argparse.SUPPRESS,
+                        help='show the configuration directories and exit')
     parser.add_argument('-V', '--version', action='version', version=f'%(prog)s (movie downloader) {VERSION}')
 
     return parser
