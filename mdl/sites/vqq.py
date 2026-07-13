@@ -109,6 +109,14 @@ class QQVideoVC(VideoConfig):
                                          r"|\"episodeSinglePlay\".+?\"item_params\"\s*:\s*({.+?})\s*,\s*\"\s*sub_items"
                                          r"|videoInfoMap\s*:\s*{\s*\w+\s*:\s*(.+?)\s*}\s*,\s*initialCid",
                                          re.MULTILINE | re.DOTALL | re.IGNORECASE)
+        self._COVER_VINFO_RE = re.compile(r"\"coverInfo\"\s*:\s*(.+?),\s*\"videoInfo\""
+                                        r"|\"placeholderBegin\"\s*:\s*(.+?),\s*\"placeholderEnd\""
+                                        r"|dummyBegin\s*:\s*{\s*\w+\s*:\s*(.+?)\s*}\s*,\s*dummyEnd",
+                                        re.MULTILINE | re.DOTALL | re.IGNORECASE)
+        self._VIDEO_VINFO_RE = re.compile(r"\"videoInfo\"\s*:\s*(.+?),\s*\"flowid\""
+                                          r"|\"placeholderBegin\"\s*:\s*(.+?),\s*\"placeholderEnd\""
+                                          r"|dummyBegin\s*:\s*{\s*\w+\s*:\s*(.+?)\s*}\s*,\s*dummyEnd",
+                                          re.MULTILINE | re.DOTALL | re.IGNORECASE)
         self._ALL_LOADED_INFO_RE = re.compile(r"window\.__PINIA__\s*=\s*(.+?);?</script>"
                                               r"|_piniaState\s*:\s*(.+?)\s*,\s*isHarmonyClient",
                                               re.MULTILINE | re.DOTALL | re.IGNORECASE)
@@ -126,6 +134,7 @@ class QQVideoVC(VideoConfig):
 
         self._VIDEO_COVER_PREFIX = 'https://v.qq.com/x/cover/'
         self._VIDEO_CONFIG_URL = 'https://vd.l.qq.com/proxyhttp'
+        self._VIDEO_CONFIG_API = 'https://vd6.l.qq.com/vinfo_proxy'
         self._VIDEO_GETPAGE_URL = "https://pbaccess.video.qq.com/trpc.vector_layout.page_view.PageService/getPage"
 
         # make sure _VIDEO_URL_PATS has a compiled version, which should have been done in @classmethod is_url_valid
@@ -868,8 +877,8 @@ class QQVideoVC(VideoConfig):
                 type_id = int(cover_info.get('type') or VideoTypeCodes.MOVIE)
                 info['type'] = self._VQQ_TYPE_CODES.get(type_id, VideoTypes.MOVIE)
 
-                video_id = cover_info.get('vid')
-                if video_id is None:
+                info['current_vid'] = video_id = cover_info.get('vid') or ""
+                if not video_id:
                     video_ids = cover_info.get('video_ids') or []
                     normal_ids = [{'V': vid, 'E': ep, 'defns': {}} for ep, vid in enumerate(video_ids, start=1)]
                 else:
@@ -982,18 +991,18 @@ class QQVideoVC(VideoConfig):
 
         playlist_items = self.args['playlist_items'][cover_url]
 
+        current_cid, current_vid = cover_info['cover_id'], cover_info['current_vid']
         conf_info, _, _ = self._get_all_loaded_info(r_text)
-        if not conf_info:
-            return
+        if conf_info:
+            # try again to determine the release year if we didn't get it before
+            year = json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'year']) \
+                   or json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'show_year']) \
+                   or json_path_get(conf_info, ['introductionData', 'introductionData', 'year'])
+            if year and (not cover_info['year'] or cover_info['year'] != year):
+                cover_info['year'] = year
 
-        # try again to determine the release year if we didn't get it before
-        year = json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'year']) \
-               or json_path_get(conf_info, ['introduction', 'introData', 'list', 0, 'item_params', 'show_year']) \
-               or json_path_get(conf_info, ['introductionData', 'introductionData', 'year'])
-        if year and (not cover_info['year'] or cover_info['year'] != year):
-            cover_info['year'] = year
-
-        current_cid, current_vid = conf_info['globalStore']['currentCid'], conf_info['globalStore']['currentVid']
+            if not (current_cid and current_vid):
+                current_cid, current_vid = conf_info['globalStore']['currentCid'], conf_info['globalStore']['currentVid']
         conf_info_page, selected_ep_list, tabs = self._get_page_eplist(current_cid, current_vid)
 
         if len(selected_ep_list) >= len(cover_info['normal_ids']):  # ensure the full list of episodes
@@ -1050,7 +1059,41 @@ class QQVideoVC(VideoConfig):
             ep += size
             shift = cover_info['normal_ids'][ep-1]['E'] - ep
 
-    def _get_cover_info(self, cover_url, url_type):
+    def _request_cover_vinfo_proxy(self, cover_url="", cover_id="", video_id=""):
+        r_text = None
+
+        params = {
+            "cid": cover_id,
+            "vid": video_id,
+            "vqqcookie": "",
+            "playParams": {
+                "localHistoryVid": video_id,
+                "localHistoryPos": 0
+            },
+            "vinfoParams": {
+                "playerVersion": "1.70.2",
+                "adVersion": "4.4.1",
+                "href": cover_url,
+                "vinfoProtoVer": "6",
+                "adProtoVer": "2026062601",
+                "dynamicConfig": {
+                }
+            }
+        }
+
+        try:
+            r = self._requester.post(self._VIDEO_CONFIG_API, json=params)
+            if r.status_code != 200:
+                raise RequestException("Unexpected status code %i" % r.status_code)
+
+            r.encoding = 'utf-8'
+            r_text = r.text
+        except RequestException as e:
+            self._logger.error("Error while requesting the config info through vinfo_proxy api (cid: '%s', vid: '%s'): '%r'", cover_id, video_id, e)
+
+        return r_text
+
+    def _get_cover_info(self, cover_url, url_type, cover_id="", video_id=""):
         """"{
         "referrer": "https://v.qq.com/x/cover/nhtfh14i9y1egge.html",
         "title":"" ,
@@ -1084,6 +1127,14 @@ class QQVideoVC(VideoConfig):
             else:
                 info, _ = self._extract_video_cover_info(self._VIDEO_INFO_RE, r.text)
 
+            if not info:
+                vinfo_text = self._request_cover_vinfo_proxy(cover_url=cover_url, cover_id=cover_id, video_id=video_id)
+                c_vinfo, _ = self._extract_video_cover_info(self._COVER_VINFO_RE, vinfo_text)
+                v_vinfo, _ = self._extract_video_cover_info(self._VIDEO_VINFO_RE, vinfo_text)
+                info = c_vinfo or v_vinfo
+                if info and v_vinfo:
+                    info['current_vid'] = v_vinfo['current_vid'] or video_id
+
             if info:
                 self._update_video_cover_info(info, r.text, cover_url, url_type)
 
@@ -1100,21 +1151,22 @@ class QQVideoVC(VideoConfig):
             match = pat['cpat'].match(videourl)
             if match:
                 if typ == 1:  # 'video_cover'
-                    cover_info = self._get_cover_info(videourl, url_type=VideoURLType.COVER)
+                    cover_id = match.group(1)
+                    cover_info = self._get_cover_info(videourl, url_type=VideoURLType.COVER, cover_id=cover_id)
                 elif typ == 2:  # 'video_detail'
-                    # cover_id = match.group(2)
+                    cover_id = match.group(2)
                     # cover_url = self._VIDEO_COVER_PREFIX + cover_id + '.html'
-                    cover_info = self._get_cover_info(videourl, url_type=VideoURLType.COVER)
+                    cover_info = self._get_cover_info(videourl, url_type=VideoURLType.COVER, cover_id=cover_id)
                 elif typ == 3:  # 'video_episode'
                     cover_id = match.group(1)
                     video_id = match.group(2)
                     # cover_url = self._VIDEO_COVER_PREFIX + cover_id + '.html'
-                    cover_info = self._get_cover_info(videourl, url_type=VideoURLType.PAGE)
+                    cover_info = self._get_cover_info(videourl, url_type=VideoURLType.PAGE, cover_id=cover_id, video_id=video_id)
                     if cover_info and not self.args['playlist_items'][videourl]:
                         cover_info['normal_ids'] = [dic for dic in cover_info['normal_ids'] if dic['V'] == video_id]
                 else:  # typ == 4 'video_page'
                     video_id = match.group(1)
-                    cover_info = self._get_cover_info(videourl, url_type=VideoURLType.PAGE)
+                    cover_info = self._get_cover_info(videourl, url_type=VideoURLType.PAGE, video_id=video_id)
                     if cover_info:
                         if not cover_info['normal_ids']:
                             cover_info['normal_ids'] = [{'V': video_id, 'E': 1, 'defns': {}}]
