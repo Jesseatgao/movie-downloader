@@ -1132,8 +1132,10 @@ class QQVideoVC(VideoConfig):
                 c_vinfo, _ = self._extract_video_cover_info(self._COVER_VINFO_RE, vinfo_text)
                 v_vinfo, _ = self._extract_video_cover_info(self._VIDEO_VINFO_RE, vinfo_text)
                 info = c_vinfo or v_vinfo
-                if info and v_vinfo:
-                    info['current_vid'] = v_vinfo['current_vid'] or video_id
+                if info:
+                    info['current_vid'] = v_vinfo['current_vid'] if v_vinfo else video_id
+                    if not info['current_vid'] and info['normal_ids']:
+                        info['current_vid'] = info['normal_ids'][0]['V']
 
             if info:
                 self._update_video_cover_info(info, r.text, cover_url, url_type)
