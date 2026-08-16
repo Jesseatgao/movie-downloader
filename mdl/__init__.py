@@ -94,6 +94,10 @@ def arg_parser():
                         choices=['true', 'false'], help='specify whether to merge all the video clips or not')
     parser.add_argument('--ts-convert', dest='ts_convert', default=None, const='true', nargs='?', type=lambda x: x.lower(),
                         choices=['true', 'false'], help='specify whether to convert (aggregated) TS file to MP4 format or not')
+    parser.add_argument('--skip-discontinuity', dest='skip_discontinuity', default=None, const='true', nargs='?', type=lambda x: x.lower(),
+                        choices=['true', 'false'], help='specify whether to skip the segments in between the DISCONTINUITY tags or not')
+    parser.add_argument('--opening-discontinuity', dest='opening_discontinuity', default=None, const='true', nargs='?', type=lambda x: x.lower(),
+                        choices=['true', 'false'], help='specify whether the first media segment is a DISCONTINUITY or not')
     parser.add_argument('--proxy-dl-video', dest='enable_proxy_dl_video', default=None, const='true', nargs='?',
                         type=lambda x: x.lower(), choices=['true', 'false'], help='specify whether the proxy should be used to download video contents')
 
@@ -178,6 +182,8 @@ def parse_dlops_default(args, confs):
         'no_logo': 'True',
         'merge_all': 'True',
         'ts_convert': 'True',
+        'skip_discontinuity': 'False',
+        'opening_discontinuity': 'False',
         'episode_batch_size': '2',
         'proxy': '',
         'enable_proxy_dl_video': 'False',

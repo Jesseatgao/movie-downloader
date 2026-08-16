@@ -23,11 +23,9 @@ class M3u8VC(VideoConfig):
     def __init__(self, args, confs):
         super().__init__(args, confs)
 
-        skip_discontinuity = self.confs.get('skip_discontinuity')
-        self.skip_discontinuity = True if skip_discontinuity and skip_discontinuity.lower() == 'true' else False
+        self.skip_discontinuity = self.confs['skip_discontinuity']
 
-        opening_discontinuity = self.confs.get('opening_discontinuity')
-        self.opening_discontinuity = True if opening_discontinuity and opening_discontinuity.lower() == 'true' else False
+        self.opening_discontinuity = self.confs['opening_discontinuity']
 
     def get_video_cover_info(self, url):
         MAX_LEN = 120

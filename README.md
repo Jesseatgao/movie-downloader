@@ -119,6 +119,7 @@ Step 2: get and install third-party dependency programs
 mdl [-h] [-C] [-V] [-D DIR] [-d {suhd,uhd,dolby,hdr10,fhd,shd,hd,sd}]
     [-p PROXY] [--proxy-dl-video [{True,False}]]
     [--no-logo [{True,False}]] [--ts-convert [{True,False}]]
+    [--skip-discontinuity [{True,False}]] [--opening-discontinuity [{True,False}]]
     [-A ARIA2C] [-F FFMPEG] [-M MKVMERGE] [-N NODE]
     [-L {debug,info,warning,error,critical}] [--merge-all [{True,False}]]
     [--delete-after-merge [{True,False}]] [--delay-delete [{True,False}]]
@@ -141,6 +142,10 @@ mdl [-h] [-C] [-V] [-D DIR] [-d {suhd,uhd,dolby,hdr10,fhd,shd,hd,sd}]
 `--no-logo [{True,False}]`: indicate whether we're trying to download no-watermarked videos or not. If not set, default to `True`.
 
 `--ts-convert [{True,False}]`: specify whether to convert (aggregated) TS file to MP4 format or not. If not set, default to `True`.
+
+`--skip-discontinuity [{True,False}]`: specify whether to skip the segments in between the DISCONTINUITY tags or not. If not set, default to `False`.
+
+`--opening-discontinuity [{True,False}]`: specify whether the first media segment is a DISCONTINUITY or not. If not set, default to `False`.
 
 `-A ARIA2C`: specify the absolute path to `aria2c` executable, which takes precedence over the configuration in `conf/misc.conf`
     and the hard-coded fallback path `third_parties/aria2/aria2c[.exe]`.
