@@ -310,13 +310,19 @@ def merge_options(args, confs):
 
 
 def main():
-    args, confs = parse_options()
+    try:
+        args, confs = parse_options()
 
-    merge_options(args, confs)
+        merge_options(args, confs)
 
-    init(args, confs)
+        init(args, confs)
 
-    dl = MDownloader(args, confs)
-    dl.download()
+        dl = MDownloader(args, confs)
+        dl.download()
+
+        LOGGER.info("\nAll done!")
+    except Exception as e:
+        LOGGER.error('{}'.format(repr(e)))
+        sys.exit(-1)
 
 # __all__ = ["main"]

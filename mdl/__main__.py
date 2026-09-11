@@ -12,8 +12,4 @@ if __package__ is None and not hasattr(sys, 'frozen'):
 import mdl
 
 if __name__ == '__main__':
-    try:
-        mdl.main()
-    except Exception as e:
-        print('{}'.format(repr(e)))
-        sys.exit(-1)
+    mdl.main()
