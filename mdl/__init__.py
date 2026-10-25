@@ -196,15 +196,20 @@ def parse_dlops_default(args, confs):
         'max_connection_per_server': '16',
         'retry_wait': '5',
         'lowest_speed_limit': '100K',
+        'max_overall_download_limit': '0',
+        'max_download_limit': '0',
         'max_file_not_found': '10',
         'max_tries': '5000',
-        'retry_on_400': 'false',
-        'retry_on_403': 'false',
-        'retry_on_406': 'false',
-        'retry_on_unknown': 'false',
-        'retry_on_not_satisfied_206': 'false',
-        'retry_on_lowest_speed': 'false',
+        'retry_on_400': 'False',
+        'retry_on_403': 'False',
+        'retry_on_406': 'False',
+        'retry_on_unknown': 'False',
+        'retry_on_not_satisfied_206': 'False',
+        'retry_on_lowest_speed': 'False',
         # -:
+        'device_id': '',
+        'device_id_persist': 'False',
+
         'dl_video_with_cookie': 'False'
     }
 
@@ -245,7 +250,9 @@ def parse_ca_bundle(args, confs):
 
 def parse_callbacks(args, confs):
     callbacks = {
-        'device_id': 'generate_device_id'
+        'device_id': {'cb': 'generate_device_id',  # callback func
+                      'op': 'device_id_persist'    # config option
+                      }
     }
 
     conf_dlops = os.path.join(MOD_DIR, 'conf/dlops.conf')
@@ -254,9 +261,11 @@ def parse_callbacks(args, confs):
 
     changed = False
     for site in config.sections():
-        for cf, cb in callbacks.items():
-            if not confs[site][cf]:
-                conf = getattr(get_all_sites_vcs()[site]['class'], cb)()
+        for cf, opts in callbacks.items():
+            cf_cb = opts['cb']
+            cf_op = opts['op']
+            if not confs[site][cf] or not confs[site][cf_op]:
+                conf = getattr(get_all_sites_vcs()[site]['class'], cf_cb)()
                 if conf:
                     confs[site][cf] = config[site][cf] = conf
                     changed = True

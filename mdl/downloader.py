@@ -95,7 +95,9 @@ class MDownloader(object):
         mfnf = self.confs[cover_info['vc_name']]['max_file_not_found']
         max_tries = self.confs[cover_info['vc_name']]['max_tries']
         retry_wait = self.confs[cover_info['vc_name']]['retry_wait']
-        speed_limit = self.confs[cover_info['vc_name']]['lowest_speed_limit']
+        lowest_speed_limit = self.confs[cover_info['vc_name']]['lowest_speed_limit']
+        max_overall_download_limit = self.confs[cover_info['vc_name']]['max_overall_download_limit']
+        max_download_limit = self.confs[cover_info['vc_name']]['max_download_limit']
         retry_on_400 = '--retry-on-400=true' if self.confs[cover_info['vc_name']]['retry_on_400'] else '--retry-on-400=false'
         retry_on_403 = '--retry-on-403=true' if self.confs[cover_info['vc_name']]['retry_on_403'] else '--retry-on-403=false'
         retry_on_406 = '--retry-on-406=true' if self.confs[cover_info['vc_name']]['retry_on_406'] else '--retry-on-406=false'
@@ -108,9 +110,9 @@ class MDownloader(object):
         cert_path = self.confs[cover_info['vc_name']]['ca_cert'] or where()
 
         cmd_aria2c = [aria2c, '-c', '-j', mcd, '-k', mss, '-s', split, '-x', mcps, '--max-file-not-found', mfnf, '-m', max_tries,
-                      '--retry-wait', retry_wait, '--lowest-speed-limit', speed_limit, '--no-conf', '-i-',
-                      '--console-log-level=warn', '--download-result=hide', '--summary-interval=0',
-                      '--uri-selector=adaptive',
+                      '--retry-wait', retry_wait, '--lowest-speed-limit', lowest_speed_limit, '--no-conf', '-i-',
+                      '--console-log-level=warn', '--download-result=hide', '--summary-interval=0', '--uri-selector=adaptive',
+                      '--max-overall-download-limit', max_overall_download_limit, '--max-download-limit', max_download_limit,
                       '--referer', referer, '--ca-certificate', cert_path, '-U', user_agent, '--all-proxy', proxy,
                       retry_on_400, retry_on_403, retry_on_406, retry_on_unknown, retry_on_not_satisfied_206, retry_on_lowest_speed]
 
