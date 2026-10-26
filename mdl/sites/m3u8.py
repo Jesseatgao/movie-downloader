@@ -114,11 +114,11 @@ class M3u8VC(VideoConfig):
         if uri:
             uri = urljoin(playlist_url, uri[1:-1])
             try:
-                r = self._requester.get(uri)
-                if r.status_code == 200:
-                    seckey['key'] = r.content
-                else:
-                    raise RequestException("Unexpected status code %i" % r.status_code)
+                with self._requester.get(uri) as r:
+                    if r.status_code == 200:
+                        seckey['key'] = r.content
+                    else:
+                        raise RequestException("Unexpected status code %i" % r.status_code)
             except RequestException as e:
                 seckey['key'] = False
                 self._logger.error("Failed to fetch the decryption key from '%s': '%r'", uri, e)
@@ -207,28 +207,28 @@ class M3u8VC(VideoConfig):
         playlist = m3u8_url
         try:
             for _ in range(2):
-                r = self._requester.get(playlist)
-                if r.status_code == 200:
-                    r.encoding = "utf-8"
-                    for line in r.iter_lines(decode_unicode=True):
-                        if not line:
-                            continue
-                        if line.startswith("#EXT-X-STREAM-INF:"):  # in master playlist
-                            _, m3u, sessionkey = self._pick_highest_bandwidth_m3u8(r.text, playlist)
-                            playlist = urljoin(playlist, m3u)
-                            break
-                        elif line.startswith("#EXTINF:"):  # in media playlist
-                            mpeg_urls, seckeys, seqnums = self._purge_media_playlist(r.text, playlist)
-                            if not seckeys and sessionkey:
-                                seckeys = [sessionkey.copy() for _ in range(len(mpeg_urls))]
-                            if seckeys:
-                                for i, seckey in enumerate(seckeys):
-                                    if seckey['algo'] != "NONE" and seckey['iv'] is None:
-                                        seckey['iv'] = (seqnums[i]).to_bytes(16, 'big')
+                with self._requester.get(playlist) as r:
+                    if r.status_code == 200:
+                        r.encoding = "utf-8"
+                        for line in r.iter_lines(decode_unicode=True):
+                            if not line:
+                                continue
+                            if line.startswith("#EXT-X-STREAM-INF:"):  # in master playlist
+                                _, m3u, sessionkey = self._pick_highest_bandwidth_m3u8(r.text, playlist)
+                                playlist = urljoin(playlist, m3u)
+                                break
+                            elif line.startswith("#EXTINF:"):  # in media playlist
+                                mpeg_urls, seckeys, seqnums = self._purge_media_playlist(r.text, playlist)
+                                if not seckeys and sessionkey:
+                                    seckeys = [sessionkey.copy() for _ in range(len(mpeg_urls))]
+                                if seckeys:
+                                    for i, seckey in enumerate(seckeys):
+                                        if seckey['algo'] != "NONE" and seckey['iv'] is None:
+                                            seckey['iv'] = (seqnums[i]).to_bytes(16, 'big')
 
-                            return mpeg_urls, seckeys
-                else:
-                    raise RequestException("Unexpected status code %i" % r.status_code)
+                                return mpeg_urls, seckeys
+                    else:
+                        raise RequestException("Unexpected status code %i" % r.status_code)
         except RequestException as e:
             self._logger.error("Failed to fetch '%s': '%r'", playlist, e)
 

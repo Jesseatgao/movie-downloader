@@ -2,7 +2,7 @@ import re
 import logging
 from http.cookiejar import LoadError
 
-from bdownload.download import requests_retry_session
+from bdownload.download import requests_retry_session, URLLIB3_RETRY_STATUS_CODES
 from .utils import build_cookiejar_from_kvp, build_cookiejar_from_file, get_kvp_from_cookiejar
 
 
@@ -20,7 +20,7 @@ class VideoConfig(object):
         self._logger = logging.getLogger(logger_name)
 
         verify = self.confs['ca_cert'] or True
-        self._requester = requests_retry_session(verify=verify)
+        self._requester = requests_retry_session(verify=verify, status_forcelist={408}|URLLIB3_RETRY_STATUS_CODES)  # FIXME: bdownload
 
         # set proxy
         proxy = self.confs['proxy']

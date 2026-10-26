@@ -114,29 +114,29 @@ class M1905VC(VideoConfig):
         info = None
 
         try:
-            r = self._requester.get(epurl)
-            if r.status_code == 200:  # requests.codes.ok
-                r.encoding = 'utf-8'
-                year = ""
-                year_match = self._SD_YEAR_RE.search(r.text)
-                if year_match:
-                    year = year_match.group(1)
-                    conf_match = self._SD_CONF_PAT_RE.search(r.text[year_match.end(0):])
+            with self._requester.get(epurl) as r:
+                if r.status_code == 200:  # requests.codes.ok
+                    r.encoding = 'utf-8'
+                    year = ""
+                    year_match = self._SD_YEAR_RE.search(r.text)
+                    if year_match:
+                        year = year_match.group(1)
+                        conf_match = self._SD_CONF_PAT_RE.search(r.text[year_match.end(0):])
+                    else:
+                        conf_match = self._SD_CONF_PAT_RE.search(r.text)
+
+                    if conf_match:
+                        self._apikey = conf_match.group('apikey')
+
+                        video_config = conf_match.group(0)  # VODCONFIG | VIDEOCONFIG
+                        re_cover_id = r"mdbfilmid\s*:\s*\"(\d+)\""
+                        cover_id_match = re.search(re_cover_id, video_config, flags=re.MULTILINE | re.DOTALL | re.IGNORECASE)
+                        cover_id = cover_id_match.group(1) if cover_id_match else ""
+
+                        info = {'title': conf_match.group('title'), 'year': year, 'cover_id': cover_id, 'type': VideoTypes.MOVIE,
+                                'normal_ids': [dict(V=conf_match.group('vid'), E=1, defns={}, free=True, vip=False, url=epurl)]}
                 else:
-                    conf_match = self._SD_CONF_PAT_RE.search(r.text)
-
-                if conf_match:
-                    self._apikey = conf_match.group('apikey')
-
-                    video_config = conf_match.group(0)  # VODCONFIG | VIDEOCONFIG
-                    re_cover_id = r"mdbfilmid\s*:\s*\"(\d+)\""
-                    cover_id_match = re.search(re_cover_id, video_config, flags=re.MULTILINE | re.DOTALL | re.IGNORECASE)
-                    cover_id = cover_id_match.group(1) if cover_id_match else ""
-
-                    info = {'title': conf_match.group('title'), 'year': year, 'cover_id': cover_id, 'type': VideoTypes.MOVIE,
-                            'normal_ids': [dict(V=conf_match.group('vid'), E=1, defns={}, free=True, vip=False, url=epurl)]}
-            else:
-                raise RequestException("Unexpected status code %i" % r.status_code)
+                    raise RequestException("Unexpected status code %i" % r.status_code)
         except RequestException as e:
             self._logger.error("Request webpage '%s' failed: '%r'", epurl, e)
 
@@ -146,30 +146,30 @@ class M1905VC(VideoConfig):
         """Parse VIP webpage"""
         info = None
         try:
-            r = self._requester.get(epurl)
-            if r.status_code == 200:
-                r.encoding = 'utf-8'
-                conf_match = self._HD_MV_CONF_PAT_RE.search(r.text)
-                if conf_match:
-                    info = {'title': conf_match.group('title'), 'year': conf_match.group('year'),
-                            'cover_id': conf_match.group('cover_id'), 'type': VideoTypes.MOVIE,
-                            'normal_ids': [dict(V=epurl.split('/')[-1].split('.')[0], E=1, defns={}, free=False, vip=True, url=epurl)]
-                            }
+            with self._requester.get(epurl) as r:
+                if r.status_code == 200:
+                    r.encoding = 'utf-8'
+                    conf_match = self._HD_MV_CONF_PAT_RE.search(r.text)
+                    if conf_match:
+                        info = {'title': conf_match.group('title'), 'year': conf_match.group('year'),
+                                'cover_id': conf_match.group('cover_id'), 'type': VideoTypes.MOVIE,
+                                'normal_ids': [dict(V=epurl.split('/')[-1].split('.')[0], E=1, defns={}, free=False, vip=True, url=epurl)]
+                                }
+                    else:
+                        cover_match = self._HD_TV_COVER_RE.search(r.text)
+                        if cover_match:
+                            conf_match = self._HD_TV_CONF_PAT_RE.search(r.text[cover_match.end(0):])
+                            episodes_match = self._HD_TV_EPISODE_RE.finditer(cover_match.group('dramalist'))
+                            if conf_match and episodes_match:
+                                info = {'title': conf_match.group('title'), 'year': conf_match.group('year'),
+                                        'cover_id': conf_match.group('cover_id'), 'type': VideoTypes.TV,
+                                        'normal_ids': [dict(V=mo.group('vid'), E=int(mo.group('ep')), defns={},
+                                                            free=bool(int(mo.group('free'))), vip=True,
+                                                            url="https://vip.1905.com/play/%s.shtml" % mo.group('vid')) for
+                                                       mo in episodes_match]
+                                        }
                 else:
-                    cover_match = self._HD_TV_COVER_RE.search(r.text)
-                    if cover_match:
-                        conf_match = self._HD_TV_CONF_PAT_RE.search(r.text[cover_match.end(0):])
-                        episodes_match = self._HD_TV_EPISODE_RE.finditer(cover_match.group('dramalist'))
-                        if conf_match and episodes_match:
-                            info = {'title': conf_match.group('title'), 'year': conf_match.group('year'),
-                                    'cover_id': conf_match.group('cover_id'), 'type': VideoTypes.TV,
-                                    'normal_ids': [dict(V=mo.group('vid'), E=int(mo.group('ep')), defns={},
-                                                        free=bool(int(mo.group('free'))), vip=True,
-                                                        url="https://vip.1905.com/play/%s.shtml" % mo.group('vid')) for
-                                                   mo in episodes_match]
-                                    }
-            else:
-                raise RequestException("Unexpected status code %i" % r.status_code)
+                    raise RequestException("Unexpected status code %i" % r.status_code)
         except RequestException as e:
             self._logger.error("Request webpage '%s' failed: '%r'", epurl, e)
 
@@ -189,21 +189,21 @@ class M1905VC(VideoConfig):
         urls = None
 
         try:
-            r = self._requester.get(cvurl)
-            if r.status_code == 200:
-                r.encoding = 'utf-8'
-                year_match = self._COVER_YEAR_RE.search(r.text)
-                if year_match:
-                    year = year_match.group(1)
-                    cover_match = self._ONLINE_COVER_RE.search(r.text[year_match.end(0):])
-                else:
-                    cover_match = self._ONLINE_COVER_RE.search(r.text)
+            with self._requester.get(cvurl) as r:
+                if r.status_code == 200:
+                    r.encoding = 'utf-8'
+                    year_match = self._COVER_YEAR_RE.search(r.text)
+                    if year_match:
+                        year = year_match.group(1)
+                        cover_match = self._ONLINE_COVER_RE.search(r.text[year_match.end(0):])
+                    else:
+                        cover_match = self._ONLINE_COVER_RE.search(r.text)
 
-                if cover_match:
-                    episodes_match = self._ONLINE_EPISODE_RE.finditer(cover_match.group(1))
-                    urls = {defns[mo.group(2)]: mo.group(1) for mo in episodes_match}
-            else:
-                raise RequestException("Unexpected status code %i" % r.status_code)
+                    if cover_match:
+                        episodes_match = self._ONLINE_EPISODE_RE.finditer(cover_match.group(1))
+                        urls = {defns[mo.group(2)]: mo.group(1) for mo in episodes_match}
+                else:
+                    raise RequestException("Unexpected status code %i" % r.status_code)
         except RequestException as e:
             self._logger.error("Request webpage '%s' failed: '%r'", cvurl, e)
 
@@ -274,22 +274,22 @@ class M1905VC(VideoConfig):
         playlist = m3u8_url
         try:
             for _ in range(2):
-                r = self._requester.get(playlist)
-                if r.status_code == 200:
-                    r.encoding = "utf-8"
-                    for line in r.iter_lines(decode_unicode=True):
-                        if not line:
-                            continue
-                        if line.startswith("#EXT-X-STREAM-INF:"):  # in master playlist
-                            _, m3u = self._pick_highest_bandwidth_m3u8(r.text)
-                            playlist = urljoin(playlist, m3u)
-                            break
-                        elif line.startswith("#EXTINF:"):  # in media playlist
-                            mpeg_urls = [urljoin(playlist, ts) for ts in r.text.splitlines() if
-                                         ts and not ts.startswith('#') and (ts.endswith('.ts') or '.ts?' in ts)]
-                            return mpeg_urls
-                else:
-                    raise RequestException("Unexpected status code %i" % r.status_code)
+                with self._requester.get(playlist) as r:
+                    if r.status_code == 200:
+                        r.encoding = "utf-8"
+                        for line in r.iter_lines(decode_unicode=True):
+                            if not line:
+                                continue
+                            if line.startswith("#EXT-X-STREAM-INF:"):  # in master playlist
+                                _, m3u = self._pick_highest_bandwidth_m3u8(r.text)
+                                playlist = urljoin(playlist, m3u)
+                                break
+                            elif line.startswith("#EXTINF:"):  # in media playlist
+                                mpeg_urls = [urljoin(playlist, ts) for ts in r.text.splitlines() if
+                                             ts and not ts.startswith('#') and (ts.endswith('.ts') or '.ts?' in ts)]
+                                return mpeg_urls
+                    else:
+                        raise RequestException("Unexpected status code %i" % r.status_code)
         except RequestException as e:
             self._logger.error("Failed to fetch '%s': '%r'", playlist, e)
 
@@ -310,49 +310,49 @@ class M1905VC(VideoConfig):
         params['signature'] = self._signature(params, self._appid)
 
         try:
-            r = self._requester.get(self._PROFILE_CONFIG_URL, params=params)
-            if r.status_code == 200:
-                # cookie_jar = RequestsCookieJar()
-                # set_cookie = r.headers.get("Set-Cookie")
-                # if set_cookie:
-                #     cookie_info = set_cookie.split(";")
-                #     name, val = cookie_info[0].split("=")
-                #     _, path = cookie_info[-2].split("=")
-                #     _, domain = cookie_info[-1].split("=")
-                #     cookie_jar.set(name, val, path=path, domain=domain)
-                try:
-                    data = json.loads(r.text[len("null("):-1]).get('data')
-                except json.JSONDecodeError:
-                    return
-                if not data:
-                    return
+            with self._requester.get(self._PROFILE_CONFIG_URL, params=params) as r:
+                if r.status_code == 200:
+                    # cookie_jar = RequestsCookieJar()
+                    # set_cookie = r.headers.get("Set-Cookie")
+                    # if set_cookie:
+                    #     cookie_info = set_cookie.split(";")
+                    #     name, val = cookie_info[0].split("=")
+                    #     _, path = cookie_info[-2].split("=")
+                    #     _, domain = cookie_info[-1].split("=")
+                    #     cookie_jar.set(name, val, path=path, domain=domain)
+                    try:
+                        data = json.loads(r.text[len("null("):-1]).get('data')
+                    except json.JSONDecodeError:
+                        return
+                    if not data:
+                        return
 
-                preferred_defn = self._M1905_DEFN_MAP_S2I['free'][self.preferred_defn]
-                defns = [preferred_defn] + [defn for defn in self._M1905_DEFINITION['free'] if defn != preferred_defn]
-                for defn in defns:
-                    host = json_path_get(data, ['quality', defn, 'host'])
-                    sign = json_path_get(data, ['sign', defn, 'sign'])
-                    path = json_path_get(data, ['path', defn, 'path'])
+                    preferred_defn = self._M1905_DEFN_MAP_S2I['free'][self.preferred_defn]
+                    defns = [preferred_defn] + [defn for defn in self._M1905_DEFINITION['free'] if defn != preferred_defn]
+                    for defn in defns:
+                        host = json_path_get(data, ['quality', defn, 'host'])
+                        sign = json_path_get(data, ['sign', defn, 'sign'])
+                        path = json_path_get(data, ['path', defn, 'path'])
 
-                    if host and path:
-                        if sign:
-                            playlist_m3u8 = (host + sign + path).replace('\\', '')
-                        elif 'sign=' in path:
-                            playlist_m3u8 = (host + path).replace('\\', '')
-                        else:
-                            continue
+                        if host and path:
+                            if sign:
+                                playlist_m3u8 = (host + sign + path).replace('\\', '')
+                            elif 'sign=' in path:
+                                playlist_m3u8 = (host + path).replace('\\', '')
+                            else:
+                                continue
 
-                        mpeg_urls = self._get_ts_playlist(playlist_m3u8)
-                        if mpeg_urls:
-                            std_defn = self._M1905_DEFN_MAP_I2S['free'][defn]
-                            vi["defns"].setdefault(std_defn, []).append(dict(ext="ts", urls=mpeg_urls))
+                            mpeg_urls = self._get_ts_playlist(playlist_m3u8)
+                            if mpeg_urls:
+                                std_defn = self._M1905_DEFN_MAP_I2S['free'][defn]
+                                vi["defns"].setdefault(std_defn, []).append(dict(ext="ts", urls=mpeg_urls))
 
-                            if defn != preferred_defn:
-                                self._logger.warning("The preferred quality '%s' not found, chose the best available '%s' instead", self.preferred_defn, std_defn)
+                                if defn != preferred_defn:
+                                    self._logger.warning("The preferred quality '%s' not found, chose the best available '%s' instead", self.preferred_defn, std_defn)
 
-                            break
-            else:
-                raise RequestException("Unexpected status code %i" % r.status_code)
+                                break
+                else:
+                    raise RequestException("Unexpected status code %i" % r.status_code)
         except RequestException as e:
             request_url = "%s?%s" % (self._PROFILE_CONFIG_URL, urlencode(params))
             self._logger.error("Failed to fetch '%s': '%r'", request_url, e)
@@ -366,29 +366,29 @@ class M1905VC(VideoConfig):
         }
 
         try:
-            r = self._requester.get(self._VIP_CONFIG_URL, params=params)
-            if r.status_code == 200:
-                try:
-                    data = json.loads(r.text[len("fnCallback0("):-1]).get('data')
-                except json.JSONDecodeError:
-                    return
-                if not data:
-                    return
+            with self._requester.get(self._VIP_CONFIG_URL, params=params) as r:
+                if r.status_code == 200:
+                    try:
+                        data = json.loads(r.text[len("fnCallback0("):-1]).get('data')
+                    except json.JSONDecodeError:
+                        return
+                    if not data:
+                        return
 
-                defn = self._M1905_DEFN_MAP_S2I['vip'][self.preferred_defn]
-                defns = [defn] if json_path_get(data, ['path', defn]) else self._M1905_DEFINITION['vip']
-                for defn in defns:
-                    path = json_path_get(data, ['path', defn])
-                    if path:
-                        playlist_m3u8 = path.replace('\\', '')
-                        mpeg_urls = self._get_ts_playlist(playlist_m3u8)
-                        if mpeg_urls:
-                            std_defn = self._M1905_DEFN_MAP_I2S['vip'][defn]
-                            vi["defns"].setdefault(std_defn, []).append(dict(ext="ts", urls=mpeg_urls))
+                    defn = self._M1905_DEFN_MAP_S2I['vip'][self.preferred_defn]
+                    defns = [defn] if json_path_get(data, ['path', defn]) else self._M1905_DEFINITION['vip']
+                    for defn in defns:
+                        path = json_path_get(data, ['path', defn])
+                        if path:
+                            playlist_m3u8 = path.replace('\\', '')
+                            mpeg_urls = self._get_ts_playlist(playlist_m3u8)
+                            if mpeg_urls:
+                                std_defn = self._M1905_DEFN_MAP_I2S['vip'][defn]
+                                vi["defns"].setdefault(std_defn, []).append(dict(ext="ts", urls=mpeg_urls))
 
-                            break
-            else:
-                raise RequestException("Unexpected status code %i" % r.status_code)
+                                break
+                else:
+                    raise RequestException("Unexpected status code %i" % r.status_code)
         except RequestException as e:
             request_url = "%s?%s" % (self._VIP_CONFIG_URL, urlencode(params))
             self._logger.error("Failed to fetch '%s': '%r'", request_url, e)

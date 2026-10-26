@@ -459,18 +459,18 @@ class QQVideoVC(VideoConfig):
             }
 
             try:
-                r = self._requester.post(self._VIDEO_CONFIG_URL, json=params)
-                r.raise_for_status()
-                if r.status_code != 200:
-                    raise RequestException("Unexpected status code %i" % r.status_code)
+                with self._requester.post(self._VIDEO_CONFIG_URL, json=params) as r:
+                    r.raise_for_status()
+                    if r.status_code != 200:
+                        raise RequestException("Unexpected status code %i" % r.status_code)
 
-                try:
-                    data = json.loads(r.text)
-                    if data:
-                        data = json.loads(data.get('vinfo'))
-                except json.JSONDecodeError as e:
-                    self._logger.error("Received ill-formed video config info for '%s': '%r'", vid, e)
-                    return
+                    try:
+                        data = json.loads(r.text)
+                        if data:
+                            data = json.loads(data.get('vinfo'))
+                    except json.JSONDecodeError as e:
+                        self._logger.error("Received ill-formed video config info for '%s': '%r'", vid, e)
+                        return
 
                 if data and data.get('dltype'):
                     url_prefixes = []
@@ -559,18 +559,18 @@ class QQVideoVC(VideoConfig):
                         }
 
                         try:
-                            r = self._requester.post(self._VIDEO_CONFIG_URL, json=params)
-                            r.raise_for_status()
-                            if r.status_code != 200:
-                                raise RequestException("Unexpected status code %i" % r.status_code)
+                            with self._requester.post(self._VIDEO_CONFIG_URL, json=params) as r:
+                                r.raise_for_status()
+                                if r.status_code != 200:
+                                    raise RequestException("Unexpected status code %i" % r.status_code)
 
-                            try:
-                                key_data = json.loads(r.text)
-                                if key_data:
-                                    key_data = json.loads(key_data.get('vkey'))
-                            except json.JSONDecodeError as e:
-                                self._logger.error("Received ill-formed video key data for the clip '%s' from video '%s': '%r'", cfilename, vid, e)
-                                return
+                                try:
+                                    key_data = json.loads(r.text)
+                                    if key_data:
+                                        key_data = json.loads(key_data.get('vkey'))
+                                except json.JSONDecodeError as e:
+                                    self._logger.error("Received ill-formed video key data for the clip '%s' from video '%s': '%r'", cfilename, vid, e)
+                                    return
 
                             if key_data and isinstance(key_data, dict):
                                 vkey = key_data.get('key')
@@ -675,18 +675,18 @@ class QQVideoVC(VideoConfig):
                 }
 
                 try:
-                    r = self._requester.post(self._VIDEO_CONFIG_URL, json=params)
-                    if r.status_code != 200:
-                        raise RequestException("Unexpected status code %i" % r.status_code)
+                    with self._requester.post(self._VIDEO_CONFIG_URL, json=params) as r:
+                        if r.status_code != 200:
+                            raise RequestException("Unexpected status code %i" % r.status_code)
 
-                    try:
-                        key_data = json.loads(r.text)
-                        if key_data:
-                            key_data = json.loads(key_data.get('vkey'))
-                    except json.JSONDecodeError as e:
-                        self._logger.error("Received ill-formed video key data for the file '%s' of video '%s': '%r'",
-                                           vfilename, vid, e)
-                        break
+                        try:
+                            key_data = json.loads(r.text)
+                            if key_data:
+                                key_data = json.loads(key_data.get('vkey'))
+                        except json.JSONDecodeError as e:
+                            self._logger.error("Received ill-formed video key data for the file '%s' of video '%s': '%r'",
+                                               vfilename, vid, e)
+                            break
 
                     if key_data and isinstance(key_data, dict):
                         vkey = key_data.get('key')
@@ -772,18 +772,18 @@ class QQVideoVC(VideoConfig):
             }
 
             try:
-                r = self._requester.post(self._VIDEO_CONFIG_URL, json=params)
-                r.raise_for_status()
-                if r.status_code != 200:
-                    raise RequestException("Unexpected status code %i" % r.status_code)
+                with self._requester.post(self._VIDEO_CONFIG_URL, json=params) as r:
+                    r.raise_for_status()
+                    if r.status_code != 200:
+                        raise RequestException("Unexpected status code %i" % r.status_code)
 
-                try:
-                    data = json.loads(r.text)
-                    if data:
-                        data = json.loads(data.get('vinfo'))
-                except json.JSONDecodeError as e:
-                    self._logger.error("Received ill-formed video config info for '%s': '%r'", vid, e)
-                    return
+                    try:
+                        data = json.loads(r.text)
+                        if data:
+                            data = json.loads(data.get('vinfo'))
+                    except json.JSONDecodeError as e:
+                        self._logger.error("Received ill-formed video config info for '%s': '%r'", vid, e)
+                        return
 
                 if data and data.get('dltype'):
                     url_prefixes = []
@@ -951,16 +951,16 @@ class QQVideoVC(VideoConfig):
         }
 
         try:
-            r = self._requester.post(self._VIDEO_GETPAGE_URL, json=json_payload, params=query_params)
-            r.raise_for_status()
-            if r.status_code != 200:
-                raise RequestException("Unexpected status code %i" % r.status_code)
+            with self._requester.post(self._VIDEO_GETPAGE_URL, json=json_payload, params=query_params) as r:
+                r.raise_for_status()
+                if r.status_code != 200:
+                    raise RequestException("Unexpected status code %i" % r.status_code)
 
-            try:
-                data = json.loads(r.text)
-            except json.JSONDecodeError as e:
-                self._logger.error("Received ill-formed video config info for '%s': '%r'", vid, e)
-                return conf_info, ep_list, tabs
+                try:
+                    data = json.loads(r.text)
+                except json.JSONDecodeError as e:
+                    self._logger.error("Received ill-formed video config info for '%s': '%r'", vid, e)
+                    return conf_info, ep_list, tabs
 
             card_list = json_path_get(data, ['data', 'CardList'], [])
             for card in card_list:
@@ -1082,12 +1082,12 @@ class QQVideoVC(VideoConfig):
         }
 
         try:
-            r = self._requester.post(self._VIDEO_CONFIG_API, json=params)
-            if r.status_code != 200:
-                raise RequestException("Unexpected status code %i" % r.status_code)
+            with self._requester.post(self._VIDEO_CONFIG_API, json=params) as r:
+                if r.status_code != 200:
+                    raise RequestException("Unexpected status code %i" % r.status_code)
 
-            r.encoding = 'utf-8'
-            r_text = r.text
+                r.encoding = 'utf-8'
+                r_text = r.text
         except RequestException as e:
             self._logger.error("Error while requesting the config info through vinfo_proxy api (cid: '%s', vid: '%s'): '%r'", cover_id, video_id, e)
 
@@ -1115,34 +1115,34 @@ class QQVideoVC(VideoConfig):
         info = None
 
         try:
-            r = self._requester.get(cover_url)
-            if r.status_code != 200:
-                raise RequestException("Unexpected status code %i" % r.status_code)
+            with self._requester.get(cover_url) as r:
+                if r.status_code != 200:
+                    raise RequestException("Unexpected status code %i" % r.status_code)
 
-            r.encoding = 'utf-8'
-            info, pos_end = self._extract_video_cover_info(self._COVER_PAT_RE, r.text)
-            if info:
-                if not info['normal_ids']:
-                    info, _ = self._extract_video_cover_info(self._VIDEO_INFO_RE, r.text[pos_end:])
-            else:
-                info, _ = self._extract_video_cover_info(self._VIDEO_INFO_RE, r.text)
-
-            if not info:
-                vinfo_text = self._request_cover_vinfo_proxy(cover_url=cover_url, cover_id=cover_id, video_id=video_id)
-                c_vinfo, _ = self._extract_video_cover_info(self._COVER_VINFO_RE, vinfo_text)
-                v_vinfo, _ = self._extract_video_cover_info(self._VIDEO_VINFO_RE, vinfo_text)
-                info = c_vinfo or v_vinfo
+                r.encoding = 'utf-8'
+                info, pos_end = self._extract_video_cover_info(self._COVER_PAT_RE, r.text)
                 if info:
-                    info['current_vid'] = v_vinfo['current_vid'] if v_vinfo else video_id
-                    if not info['current_vid'] and info['normal_ids']:
-                        info['current_vid'] = info['normal_ids'][0]['V']
+                    if not info['normal_ids']:
+                        info, _ = self._extract_video_cover_info(self._VIDEO_INFO_RE, r.text[pos_end:])
+                else:
+                    info, _ = self._extract_video_cover_info(self._VIDEO_INFO_RE, r.text)
 
-            if info:
-                self._update_video_cover_info(info, r.text, cover_url, url_type)
+                if not info:
+                    vinfo_text = self._request_cover_vinfo_proxy(cover_url=cover_url, cover_id=cover_id, video_id=video_id)
+                    c_vinfo, _ = self._extract_video_cover_info(self._COVER_VINFO_RE, vinfo_text)
+                    v_vinfo, _ = self._extract_video_cover_info(self._VIDEO_VINFO_RE, vinfo_text)
+                    info = c_vinfo or v_vinfo
+                    if info:
+                        info['current_vid'] = v_vinfo['current_vid'] if v_vinfo else video_id
+                        if not info['current_vid'] and info['normal_ids']:
+                            info['current_vid'] = info['normal_ids'][0]['V']
 
-                if not info['episode_all']:
-                    info['episode_all'] = len(info['normal_ids']) if info['normal_ids'] else 1
-                info['referrer'] = cover_url  # set the Referer to the address of the cover web page
+                if info:
+                    self._update_video_cover_info(info, r.text, cover_url, url_type)
+
+                    if not info['episode_all']:
+                        info['episode_all'] = len(info['normal_ids']) if info['normal_ids'] else 1
+                    info['referrer'] = cover_url  # set the Referer to the address of the cover web page
         except RequestException as e:
             self._logger.error("Error while requesting the webpage '%s': '%r'", cover_url, e)
 

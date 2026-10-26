@@ -82,15 +82,15 @@ class IQiyiVC(VideoConfig):
 
         req_url = self._PLAYER_INIT_URL
         try:
-            r = self._requester.get(req_url, headers={'referer': url})
-            if r.status_code != 200:
-                raise RequestException("Unexpected status code %i" % r.status_code)
-            r.encoding = 'utf-8'
+            with self._requester.get(req_url, headers={'referer': url}) as r:
+                if r.status_code != 200:
+                    raise RequestException("Unexpected status code %i" % r.status_code)
+                r.encoding = 'utf-8'
 
-            tvid_match = self._TVID_PAT_RE.search(r.text)
-            if not tvid_match:
-                return info
-            tvid = int(tvid_match.group('tvid'))
+                tvid_match = self._TVID_PAT_RE.search(r.text)
+                if not tvid_match:
+                    return info
+                tvid = int(tvid_match.group('tvid'))
 
             params = {
                 'entity_id': tvid,
@@ -110,18 +110,18 @@ class IQiyiVC(VideoConfig):
             params['sign'] = sign
 
             req_url = self._VIDEO_COVER_PREFIX
-            r = self._requester.get(req_url, params=params)
-            if r.status_code != 200:
-                raise RequestException("Unexpected status code %i, request URL: '%s'" % (r.status_code, req_url))
-            r.encoding = 'utf-8'
+            with self._requester.get(req_url, params=params) as r:
+                if r.status_code != 200:
+                    raise RequestException("Unexpected status code %i, request URL: '%s'" % (r.status_code, req_url))
+                r.encoding = 'utf-8'
 
-            try:
-                data = json.loads(r.text).get('data')
-            except json.JSONDecodeError as e:
-                self._logger.error("Received ill-formed video config info for tvId '%i': '%r'", tvid, e)
-                return info
-            if not data:
-                return info
+                try:
+                    data = json.loads(r.text).get('data')
+                except json.JSONDecodeError as e:
+                    self._logger.error("Received ill-formed video config info for tvId '%i': '%r'", tvid, e)
+                    return info
+                if not data:
+                    return info
 
             info = {
                 'url': url,
@@ -222,18 +222,18 @@ class IQiyiVC(VideoConfig):
 
         req_url = self._VIDEO_CONFIG_URL + '?' + urlencode(params)
         try:
-            r = self._requester.get(req_url)
-            if r.status_code != 200:
-                raise RequestException("Unexpected status code %i, request URL: '%s'" % (r.status_code, req_url))
-            r.encoding = 'utf-8'
+            with self._requester.get(req_url) as r:
+                if r.status_code != 200:
+                    raise RequestException("Unexpected status code %i, request URL: '%s'" % (r.status_code, req_url))
+                r.encoding = 'utf-8'
 
-            try:
-                data = json.loads(r.text).get('data')
-            except json.JSONDecodeError as e:
-                self._logger.error("Received ill-formed video config info for tvId '%i': '%r'", vi['V'], e)
-                return
-            if not data:
-                return
+                try:
+                    data = json.loads(r.text).get('data')
+                except json.JSONDecodeError as e:
+                    self._logger.error("Received ill-formed video config info for tvId '%i': '%r'", vi['V'], e)
+                    return
+                if not data:
+                    return
 
             vd = [vd for vd in sorted(data['program']['video'], key=lambda x: x['bid'], reverse=True) if vd.get('m3u8') and vd['ff'] != 'dash']
             if not vd:
