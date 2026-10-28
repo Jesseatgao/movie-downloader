@@ -1149,6 +1149,8 @@ class QQVideoVC(VideoConfig):
         return info
 
     def get_video_cover_info(self, videourl):
+        super().get_video_cover_info(videourl)
+
         for typ, pat in enumerate(self._VIDEO_URL_PATS, 1):
             match = pat['cpat'].match(videourl)
             if match:
@@ -1244,6 +1246,8 @@ class QQVideoVC(VideoConfig):
             }]
         }
         """
+        super().update_video_dwnld_info(vi)
+
         if self.confs['no_logo']:
             self._get_video_urls_p10201_ts(vi)
         else:

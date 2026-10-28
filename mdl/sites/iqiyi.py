@@ -78,6 +78,8 @@ class IQiyiVC(VideoConfig):
         return device_id
 
     def get_video_cover_info(self, url):
+        super().get_video_cover_info(url)
+
         info = None
 
         req_url = self._PLAYER_INIT_URL
@@ -177,6 +179,8 @@ class IQiyiVC(VideoConfig):
             self._logger.error("Error while requesting the webpage '%s': '%r'", req_url, e)
 
     def update_video_dwnld_info(self, vi):
+        super().update_video_dwnld_info(vi)
+
         tm = int(time.time() * 1000)
         params = {
             'tvid': vi['V'],

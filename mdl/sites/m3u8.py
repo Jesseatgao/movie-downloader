@@ -28,6 +28,8 @@ class M3u8VC(VideoConfig):
         self.opening_discontinuity = self.confs['opening_discontinuity']
 
     def get_video_cover_info(self, url):
+        super().get_video_cover_info(url)
+
         MAX_LEN = 120
         digest = hashlib.md5(url.encode("utf-8")).hexdigest()
         parsed = urlparse(url)
@@ -81,6 +83,8 @@ class M3u8VC(VideoConfig):
             }]
         }
         """
+        super().update_video_dwnld_info(vi)
+
         defn = VideoDefnCodes.HD
 
         ts_urls, seckeys = self._get_ts_playlist(vi['url'])

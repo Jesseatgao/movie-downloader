@@ -74,11 +74,19 @@ class VideoConfig(object):
     def generate_device_id(cls):
         pass
 
-    def get_video_cover_info(self, url):
-        pass
+    def _rand_device_id_by_conf(self):
+        if not self.confs['device_id_persist']:
+            device_id = self.generate_device_id()
+            if device_id:
+                self.confs['device_id'] = device_id
 
+    # Extend this method in concrete extractor
+    def get_video_cover_info(self, url):
+        self._rand_device_id_by_conf()
+
+    # Extend this method in concrete extractor
     def update_video_dwnld_info(self, vi):
-        pass
+        self._rand_device_id_by_conf()
 
     @staticmethod
     def _in_rangeset(ep, rangeset):

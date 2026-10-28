@@ -264,7 +264,7 @@ def parse_callbacks(args, confs):
         for cf, opts in callbacks.items():
             cf_cb = opts['cb']
             cf_op = opts['op']
-            if not confs[site][cf] or not confs[site][cf_op]:
+            if not confs[site][cf] and confs[site][cf_op]:
                 conf = getattr(get_all_sites_vcs()[site]['class'], cf_cb)()
                 if conf:
                     confs[site][cf] = config[site][cf] = conf

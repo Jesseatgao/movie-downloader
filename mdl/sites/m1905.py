@@ -210,6 +210,8 @@ class M1905VC(VideoConfig):
         return year, urls
 
     def get_video_cover_info(self, url):
+        super().get_video_cover_info(url)
+
         for typ, pat in enumerate(self._VIDEO_URL_PATS, 1):
             match = pat['cpat'].match(url)
             if match:
@@ -394,6 +396,8 @@ class M1905VC(VideoConfig):
             self._logger.error("Failed to fetch '%s': '%r'", request_url, e)
 
     def update_video_dwnld_info(self, vi):
+        super().update_video_dwnld_info(vi)
+
         if not vi['vip']:
             self._update_video_dwnld_info_sd(vi)
         elif vi['free'] or self.has_vip:
