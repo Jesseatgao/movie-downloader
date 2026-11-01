@@ -1,12 +1,13 @@
 import re
 import logging
+from abc import ABC, abstractmethod
 from http.cookiejar import LoadError
 
 from bdownload.download import requests_retry_session, URLLIB3_RETRY_STATUS_CODES
 from .utils import build_cookiejar_from_kvp, build_cookiejar_from_file, get_kvp_from_cookiejar
 
 
-class VideoConfig(object):
+class VideoConfig(ABC):
     # [{'pat': r'^https?://v\.qq\.com/x/cover/(\w+)\.html', 'eg': 'https://v.qq.com/x/cover/nhtfh14i9y1egge.html'}]
     _VIDEO_URL_PATS = []
     _requester = None  # Web content downloader, e.g. requests
@@ -80,12 +81,28 @@ class VideoConfig(object):
             if device_id:
                 self.confs['device_id'] = device_id
 
-    # Extend this method in concrete extractor
+    @abstractmethod
     def get_video_cover_info(self, url):
+        """Get the video cover information from a video playing webpage.
+
+        Args:
+            url (str): The webpage URL for the video to download.
+
+        Returns:
+            dict: The cover info depicting the video.
+        """
         self._rand_device_id_by_conf()
 
-    # Extend this method in concrete extractor
+    @abstractmethod
     def update_video_dwnld_info(self, vi):
+        """Populate the cover info with the media stream URLs for the video to download.
+
+        Args:
+            vi (dict): The video info, part of a cover info, to be filled out.
+
+        Returns:
+            None.
+        """
         self._rand_device_id_by_conf()
 
     @staticmethod
