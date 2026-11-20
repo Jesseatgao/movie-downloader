@@ -14,7 +14,6 @@ from .downloader import MDownloader
 from .utils import build_logger, change_logging_level, json_path_get, CommentConfigParser
 
 from mdl.sites import get_all_sites_vcs
-from .videoconfig import VideoConfig
 
 
 PROJECT_URL = "https://github.com/Jesseatgao/movie-downloader"
@@ -252,22 +251,17 @@ def parse_ca_bundle(args, confs):
 
 
 def parse_callbacks(args, confs):
-    callbacks = VideoConfig.conf_callbacks
-
     conf_dlops = os.path.join(MOD_DIR, 'conf/dlops.conf')
     config = CommentConfigParser(interpolation=None, allow_no_value=True)
     config.read(conf_dlops)
 
     changed = False
     for site in config.sections():
-        for cf, opts in callbacks.items():
-            cf_cb = opts['cb']
-            cf_op = opts['op']
-            if not confs[site][cf] and confs[site][cf_op]:
-                conf = getattr(get_all_sites_vcs()[site]['class'], cf_cb)()
-                if conf:
-                    confs[site][cf] = config[site][cf] = conf
-                    changed = True
+        vc = get_all_sites_vcs()[site]['class']
+        site_config = vc.conf_callbacks(args, confs[site])
+        if site_config:
+            config[site].update(site_config)
+            changed = True
 
     if changed:
         with open(conf_dlops, mode='w', encoding='utf-8') as conf_fd:
