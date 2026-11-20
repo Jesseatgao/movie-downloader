@@ -14,6 +14,17 @@ class VideoConfig(ABC):
     SOURCE_NAME = 'vc'
     VC_NAME = 'vc'
 
+    conf_callbacks = {
+        'device_id': {
+            'cb': 'generate_device_id',  # callback func
+            'op': 'device_id_persist'  # config option
+        },
+        'player_id': {
+            'cb': 'generate_player_id',
+            'op': 'player_id_persist'
+        }
+    }
+
     def __init__(self, args, confs):
         self.args = args
         self.confs = confs
@@ -75,11 +86,18 @@ class VideoConfig(ABC):
     def generate_device_id(cls):
         pass
 
-    def _rand_device_id_by_conf(self):
-        if not self.confs['device_id_persist']:
-            device_id = self.generate_device_id()
-            if device_id:
-                self.confs['device_id'] = device_id
+    @classmethod
+    def generate_player_id(cls):
+        pass
+
+    def _conf_callbacks(self):
+        for cf, opts in self.conf_callbacks.items():
+            cf_cb = opts['cb']
+            cf_op = opts['op']
+            if not self.confs[cf_op]:
+                conf = getattr(self, cf_cb)()
+                if conf:
+                    self.confs[cf] = conf
 
     @abstractmethod
     def get_video_cover_info(self, url):
@@ -91,7 +109,7 @@ class VideoConfig(ABC):
         Returns:
             dict: The cover info depicting the video.
         """
-        self._rand_device_id_by_conf()
+        self._conf_callbacks()
 
     @abstractmethod
     def update_video_dwnld_info(self, vi):
@@ -103,7 +121,7 @@ class VideoConfig(ABC):
         Returns:
             None.
         """
-        self._rand_device_id_by_conf()
+        self._conf_callbacks()
 
     @staticmethod
     def _in_rangeset(ep, rangeset):

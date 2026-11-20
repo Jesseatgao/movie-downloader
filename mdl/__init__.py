@@ -14,6 +14,7 @@ from .downloader import MDownloader
 from .utils import build_logger, change_logging_level, json_path_get, CommentConfigParser
 
 from mdl.sites import get_all_sites_vcs
+from .videoconfig import VideoConfig
 
 
 PROJECT_URL = "https://github.com/Jesseatgao/movie-downloader"
@@ -209,6 +210,8 @@ def parse_dlops_default(args, confs):
         # -:
         'device_id': '',
         'device_id_persist': 'False',
+        'player_id': '',
+        'player_id_persist': 'False',
 
         'dl_video_with_cookie': 'False'
     }
@@ -249,11 +252,7 @@ def parse_ca_bundle(args, confs):
 
 
 def parse_callbacks(args, confs):
-    callbacks = {
-        'device_id': {'cb': 'generate_device_id',  # callback func
-                      'op': 'device_id_persist'    # config option
-                      }
-    }
+    callbacks = VideoConfig.conf_callbacks
 
     conf_dlops = os.path.join(MOD_DIR, 'conf/dlops.conf')
     config = CommentConfigParser(interpolation=None, allow_no_value=True)

@@ -76,7 +76,6 @@ class M1905VC(VideoConfig):
         self._VIP_CONFIG_URL = "https://vip.1905.com/playerhtml5/formal"
         self._apikey = ""
         self._appid = "dde3d61a0411511d"
-        self._playerid = self._random_string().replace('-', '')[5:20]
 
         # make sure _VIDEO_URL_PATS has a compiled version, which should have been done in @classmethod is_url_valid
         for pat in self._VIDEO_URL_PATS:
@@ -98,6 +97,10 @@ class M1905VC(VideoConfig):
     @classmethod
     def generate_device_id(cls):
         return cls._random_string()
+
+    @classmethod
+    def generate_player_id(cls):
+        return cls._random_string().replace('-', '')[5:20]
 
     @staticmethod
     def _signature(params, appid):
@@ -305,7 +308,7 @@ class M1905VC(VideoConfig):
             'expiretime': nonce + 600,
             'nonce': nonce,
             'page': vi['url'],
-            'playerid': self._playerid,
+            'playerid': self.confs['player_id'],
             'type': "hls",
             'uuid': self.confs['device_id']
         }
@@ -362,7 +365,7 @@ class M1905VC(VideoConfig):
     def _update_video_dwnld_info_hd(self, vi):
         params = {
             'vipid': vi['V'],
-            'playerid': self._playerid,
+            'playerid': self.confs['player_id'],
             'uuid': self.confs['device_id'],
             'callback': 'fnCallback0'
         }
